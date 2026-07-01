@@ -3,11 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createProjectSchema } from "@/lib/validators/project";
-import {
-  createProject,
-  deleteProject,
-  generateMockFiles,
-} from "@/lib/projects";
+import { createProject, deleteProject } from "@/lib/projects";
+import { startGeneration } from "@/lib/jobs";
 
 export type FormState = { error?: string } | undefined;
 
@@ -44,7 +41,9 @@ export async function createProjectAction(
 }
 
 export async function generateAction(projectId: string) {
-  await generateMockFiles(projectId);
+  // Enqueues a GENERATE job. Runs inline when there's no Redis, or via the
+  // BullMQ worker when REDIS_URL is set.
+  await startGeneration(projectId);
   revalidatePath(`/projects/${projectId}`);
 }
 

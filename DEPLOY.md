@@ -34,14 +34,30 @@ This app deploys to [Railway](https://railway.app) via Nixpacks. Config lives in
 
 ## Queue / Redis
 
-Background generation currently runs **synchronously inside the request** — the
-BullMQ path is scaffolded but not yet on the critical path. So:
+Generation is enqueued via `startGeneration()`. Behavior depends on `REDIS_URL`:
 
-- You do **not** need Redis to run the app. Leave `REDIS_URL` unset and jobs run
-  inline.
-- If you add a Railway Redis database and set `REDIS_URL`, `enqueue()` will start
-  using BullMQ — but a **worker service** to consume the queue isn't built yet.
-  Until it is, keep `REDIS_URL` unset (or expect enqueued jobs to sit unprocessed).
+- **No Redis (`REDIS_URL` unset):** jobs run **inline** in the web process —
+  generation completes within the request. Fine for small/low-volume use; no
+  worker service needed.
+- **With Redis (`REDIS_URL` set):** jobs are enqueued to **BullMQ** and processed
+  by a separate **worker service** (below). Generation happens off the request
+  thread.
+
+### Worker service (only if using Redis)
+
+Run a **second Railway service** from the same repo for the worker:
+
+1. Add a **Redis** database to the project; it exposes `REDIS_URL`.
+2. Create a second service pointing at this repo. In its settings:
+   - **Start command:** `npm run worker`
+   - **Variables:** `DATABASE_URL=${{Postgres.DATABASE_URL}}` and
+     `REDIS_URL=${{Redis.REDIS_URL}}`
+3. Set `REDIS_URL=${{Redis.REDIS_URL}}` on the **web** service too, so it enqueues
+   to BullMQ instead of running inline.
+
+Both services share the same code; the worker uses `tsx src/worker.ts` and only
+needs `DATABASE_URL` + `REDIS_URL` (no `next build`). Optional: `WORKER_CONCURRENCY`
+(default 2).
 
 ## Notes
 
