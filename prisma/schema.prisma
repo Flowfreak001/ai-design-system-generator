@@ -1,0 +1,153 @@
+// AI Website Design System Generator — data model
+// Prisma 7 (prisma-client generator → ESM client in src/generated/prisma)
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// A single design-system generation project for a client/business.
+model Project {
+  id              String        @id @default(cuid())
+  name            String
+  clientName      String?
+  // Freeform business/client brief captured from the create form.
+  businessDetails Json?
+  status          ProjectStatus @default(DRAFT)
+
+  referenceUrls ReferenceUrl[]
+  assets        Asset[]
+  files         GeneratedFile[]
+  jobs          Job[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status])
+}
+
+// Website / reference URLs to crawl + analyze (Playwright worker, later).
+model ReferenceUrl {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  url   String
+  type  UrlType @default(REFERENCE)
+  notes String?
+
+  createdAt DateTime @default(now())
+
+  @@index([projectId])
+}
+
+// Uploaded assets / screenshots for visual analysis.
+model Asset {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  kind       AssetKind @default(SCREENSHOT)
+  filename   String
+  mimeType   String
+  // Opaque key resolved by the storage adapter (local fs now, blob later).
+  storageKey String
+  sizeBytes  Int?
+
+  createdAt DateTime @default(now())
+
+  @@index([projectId])
+}
+
+// One generated output file (e.g. DESIGN_TOKENS.json, BRAND.md, tokens.css).
+model GeneratedFile {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  // Canonical output filename, unique per project.
+  name String
+  kind FileKind
+  // Inline content for text/markdown/json; large binaries use storageKey.
+  content    String? @db.Text
+  storageKey String?
+  mimeType   String  @default("text/markdown")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([projectId, name])
+  @@index([projectId])
+}
+
+// A background job (BullMQ on Railway; inline fallback locally).
+model Job {
+  id        String  @id @default(cuid())
+  projectId String
+  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  type     JobType
+  status   JobStatus @default(QUEUED)
+  progress Int       @default(0)
+  // Opaque BullMQ job id when enqueued to Redis.
+  queueJobId String?
+  error      String?
+
+  startedAt  DateTime?
+  finishedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([projectId])
+  @@index([status])
+}
+
+enum ProjectStatus {
+  DRAFT
+  RESEARCHING
+  ANALYZING
+  GENERATING
+  READY
+  FAILED
+}
+
+enum UrlType {
+  PRIMARY // the client's own site
+  REFERENCE // inspiration / competitor
+}
+
+enum AssetKind {
+  SCREENSHOT
+  LOGO
+  BRAND_ASSET
+  OTHER
+}
+
+enum FileKind {
+  JSON
+  MARKDOWN
+  CSS
+  HTML
+  PROMPT
+  REPORT
+}
+
+enum JobType {
+  RESEARCH
+  CRAWL
+  VISUAL_ANALYSIS
+  GENERATE
+  QA
+  EXPORT
+}
+
+enum JobStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+}
