@@ -6,7 +6,6 @@
 // Review step lists what's missing so users know what will be assumed.
 
 import { useActionState, useRef, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { createProjectAction, type FormState } from "@/app/(app)/projects/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -33,6 +32,15 @@ const REQUIRED: Record<number, string[]> = {
   2: [],
   3: [],
   4: ["keyItems", "platformTarget"],
+};
+
+const REQUIRED_LABELS: Record<string, string> = {
+  name: "Project name",
+  businessName: "Business name",
+  businessType: "Business type",
+  goal: "Website goal",
+  keyItems: "Required pages",
+  platformTarget: "Platform target",
 };
 
 const OPTIONAL_LABELS: [string, string][] = [
@@ -64,6 +72,7 @@ function Field({
   placeholder,
   hint,
   type = "text",
+  invalid,
 }: {
   label: string;
   name: string;
@@ -71,13 +80,15 @@ function Field({
   placeholder?: string;
   hint?: string;
   type?: string;
+  invalid?: boolean;
 }) {
   return (
     <div>
       <Label htmlFor={name} className="mb-1.5">
         {label} {required ? <span className="text-accent">*</span> : <span className="text-faint text-xs font-normal">optional</span>}
       </Label>
-      <Input id={name} name={name} type={type} placeholder={placeholder} />
+      <Input id={name} name={name} type={type} placeholder={placeholder} aria-invalid={invalid || undefined} />
+      {invalid && <p className="mt-1 text-xs text-danger">This field is required.</p>}
       {hint && <p className="mt-1 text-xs text-faint">{hint}</p>}
     </div>
   );
@@ -90,6 +101,7 @@ function Area({
   placeholder,
   hint,
   rows = 2,
+  invalid,
 }: {
   label: string;
   name: string;
@@ -97,13 +109,15 @@ function Area({
   placeholder?: string;
   hint?: string;
   rows?: number;
+  invalid?: boolean;
 }) {
   return (
     <div>
       <Label htmlFor={name} className="mb-1.5">
         {label} {required ? <span className="text-accent">*</span> : <span className="text-faint text-xs font-normal">optional</span>}
       </Label>
-      <Textarea id={name} name={name} rows={rows} placeholder={placeholder} />
+      <Textarea id={name} name={name} rows={rows} placeholder={placeholder} aria-invalid={invalid || undefined} />
+      {invalid && <p className="mt-1 text-xs text-danger">This field is required.</p>}
       {hint && <p className="mt-1 text-xs text-faint">{hint}</p>}
     </div>
   );
@@ -115,19 +129,21 @@ function Select({
   options,
   required,
   placeholder = "Select…",
+  invalid,
 }: {
   label: string;
   name: string;
   options: readonly string[];
   required?: boolean;
   placeholder?: string;
+  invalid?: boolean;
 }) {
   return (
     <div>
       <label htmlFor={name} className="mb-1.5 block text-sm font-medium">
         {label} {required ? <span className="text-accent">*</span> : <span className="text-faint text-xs font-normal">optional</span>}
       </label>
-      <select id={name} name={name} defaultValue="" className={`${inputCls} cursor-pointer`}>
+      <select id={name} name={name} defaultValue="" aria-invalid={invalid || undefined} className={`${inputCls} cursor-pointer ${invalid ? "border-danger" : ""}`}>
         <option value="" disabled={required}>
           {placeholder}
         </option>
@@ -154,9 +170,9 @@ export function ProjectWizard({
   );
   const [step, setStep] = useState(1);
   const [stepError, setStepError] = useState<string | null>(null);
+  const [missing, setMissing] = useState<string[]>([]);
   const [summary, setSummary] = useState<Record<string, string>>({});
   const formRef = useRef<HTMLFormElement>(null);
-  const reduce = useReducedMotion();
 
   const readForm = (): Record<string, string> => {
     const fd = new FormData(formRef.current ?? undefined);
@@ -172,21 +188,28 @@ export function ProjectWizard({
       const values = readForm();
       for (const s of Object.keys(REQUIRED).map(Number)) {
         if (s >= next) break;
-        const missing = REQUIRED[s].find((f) => !values[f]);
-        if (missing) {
+        const miss = REQUIRED[s].filter((f) => !values[f]);
+        if (miss.length) {
           setStep(s);
-          setStepError("Fill the required fields marked * to continue.");
+          setMissing(miss);
+          setStepError(
+            `Please fill: ${miss.map((f) => REQUIRED_LABELS[f] ?? f).join(", ")}. (The gray text in empty fields is just an example.)`,
+          );
           return;
         }
       }
     }
     setStepError(null);
+    setMissing([]);
     if (next === 5) setSummary(readForm());
     setStep(next);
   };
 
   const missingOptionals = OPTIONAL_LABELS.filter(([k]) => !summary[k]).map(([, l]) => l);
-  const panel = (n: number) => (n === step ? "" : "hidden");
+  const panel = (n: number) =>
+    n === step
+      ? "animate-in fade-in slide-in-from-bottom-2 duration-300"
+      : "hidden";
 
   return (
     <form ref={formRef} action={formAction} className="grid gap-6">
@@ -224,13 +247,7 @@ export function ProjectWizard({
         </p>
       )}
 
-      <AnimatePresence mode="wait" initial={false}>
-        <motion.div
-          key={step}
-          initial={{ opacity: 0, y: reduce ? 0 : 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-        >
+      <div>
           {/* All panels stay mounted; visibility toggles so FormData persists. */}
           <div className={panel(1)}>
             <div className="card grid gap-5 p-6">
@@ -238,12 +255,12 @@ export function ProjectWizard({
                 <h3 className="text-base font-semibold">Basic details</h3>
                 <p className="mt-1 text-[13px] text-muted">Who is this design system for?</p>
               </div>
-              <Field label="Project name" name="name" required placeholder="Simba Car Hire — new website" />
+              <Field label="Project name" name="name" required placeholder="e.g. Simba Car Hire — new website" invalid={missing.includes("name")} />
               <div className="grid gap-5 sm:grid-cols-2">
-                <Field label="Business name" name="businessName" required placeholder="Simba Car Hire" />
-                <Field label="Business type" name="businessType" required placeholder="Car rental, plumber, restaurant…" />
+                <Field label="Business name" name="businessName" required placeholder="e.g. Simba Car Hire" invalid={missing.includes("businessName")} />
+                <Field label="Business type" name="businessType" required placeholder="e.g. Car rental, plumber, restaurant" invalid={missing.includes("businessType")} />
               </div>
-              <Area label="Website goal" name="goal" required placeholder="What should the website achieve? e.g. Generate booking enquiries" />
+              <Area label="Website goal" name="goal" required placeholder="What should the website achieve? e.g. Generate booking enquiries" invalid={missing.includes("goal")} />
               <Area label="Target audience" name="targetAudience" placeholder="Who are the customers?" />
               <div className="grid gap-5 sm:grid-cols-2">
                 <Field label="Client name" name="clientName" placeholder="Contact person" />
@@ -309,12 +326,12 @@ export function ProjectWizard({
                 <h3 className="text-base font-semibold">Website structure</h3>
                 <p className="mt-1 text-[13px] text-muted">What should the site contain, and where will it be built?</p>
               </div>
-              <Area label="Required pages" name="keyItems" required placeholder="Home, Fleet, Pricing, Locations, Contact…" hint="One per line or comma-separated." />
+              <Area label="Required pages" name="keyItems" required placeholder="e.g. Home, Fleet, Pricing, Locations, Contact" hint="One per line or comma-separated." invalid={missing.includes("keyItems")} />
               <Area label="Services / products" name="services" placeholder="What does the business offer?" />
               <Field label="CTA goal" name="ctaGoal" placeholder="e.g. Book a car, Request a quote" />
               <Area label="SEO keywords" name="seoKeywords" placeholder="One per line or comma-separated" />
               <div className="grid gap-5 sm:grid-cols-2">
-                <Select label="Platform target" name="platformTarget" options={PLATFORM_TARGETS} required />
+                <Select label="Platform target" name="platformTarget" options={PLATFORM_TARGETS} required invalid={missing.includes("platformTarget")} />
                 <Select label="Animation preference" name="animationPreference" options={ANIMATION_PREFERENCES} />
               </div>
               <Area label="Notes" name="notes" placeholder="Anything else worth knowing…" />
@@ -355,8 +372,7 @@ export function ProjectWizard({
               )}
             </div>
           </div>
-        </motion.div>
-      </AnimatePresence>
+        </div>
 
       {/* Nav */}
       <div className="flex items-center justify-between">

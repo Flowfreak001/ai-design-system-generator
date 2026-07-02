@@ -18,6 +18,7 @@ import { WorkflowBlueprint } from "@/components/projects/workflow-blueprint";
 import { NotesSection } from "@/components/projects/notes-section";
 import { AgentRunTimeline } from "@/components/projects/agent-run-timeline";
 import { WorkspaceTabs } from "@/components/projects/workspace-tabs";
+import { RunProgressButton } from "@/components/projects/run-progress-button";
 import { Button } from "@/components/ui/button";
 import { FadeUp } from "@/components/ui/motion";
 
@@ -101,9 +102,14 @@ export default async function ProjectWorkspacePage({
           <p className="mt-0.5 max-w-xl text-[13px] text-body">{next.description}</p>
         </div>
         {nextForm ? (
-          <form action={nextForm}>
-            <Button type="submit">{next.title}</Button>
-          </form>
+          <RunProgressButton
+            projectId={id}
+            runName={next.action === "generate-md" ? "MD design-system generation" : "Preview generation"}
+            label={next.title}
+            pendingLabel="Working…"
+            action={nextForm}
+            variant="primary"
+          />
         ) : (
           <a
             href={`/api/projects/${id}/export`}
@@ -136,19 +142,21 @@ export default async function ProjectWorkspacePage({
 
       {/* Quick actions */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <form action={generateMd} className="contents">
-          <Button type="submit" variant="secondary" className="h-auto flex-col items-start gap-1 !rounded-2xl p-4 text-left">
-            <span className="text-sm font-semibold text-ink">Generate MD Files</span>
-            <span className="text-xs font-normal text-muted">Always available — gaps become assumptions</span>
-          </Button>
-        </form>
+        <RunProgressButton
+          projectId={id}
+          runName="MD design-system generation"
+          label="Generate MD Files"
+          pendingLabel="Generating files…"
+          action={generateMd}
+        />
         {hasReferenceUrls ? (
-          <form action={analyze} className="contents">
-            <Button type="submit" variant="secondary" className="h-auto flex-col items-start gap-1 !rounded-2xl p-4 text-left">
-              <span className="text-sm font-semibold text-ink">Analyze References</span>
-              <span className="text-xs font-normal text-muted">Optional — improves design accuracy</span>
-            </Button>
-          </form>
+          <RunProgressButton
+            projectId={id}
+            runName="Website analysis run"
+            label="Analyze References"
+            pendingLabel="Analyzing website…"
+            action={analyze}
+          />
         ) : (
           <div className="rounded-2xl border border-dashed border-line-strong p-4">
             <p className="text-sm font-semibold text-ink">Analyze References</p>
@@ -246,9 +254,13 @@ export default async function ProjectWorkspacePage({
         </div>
       )}
       {hasReferenceUrls && (
-        <form action={analyze}>
-          <Button type="submit" variant="secondary">Analyze References</Button>
-        </form>
+        <RunProgressButton
+          projectId={id}
+          runName="Website analysis run"
+          label="Analyze References"
+          pendingLabel="Analyzing website…"
+          action={analyze}
+        />
       )}
     </div>
   );
@@ -263,9 +275,15 @@ export default async function ProjectWorkspacePage({
             reference URLs adds real colors, structure, and animation data.
           </p>
           {hasReferenceUrls && (
-            <form action={analyze} className="mt-5">
-              <Button type="submit" variant="secondary">Analyze References</Button>
-            </form>
+            <div className="mt-5 w-full max-w-md">
+              <RunProgressButton
+                projectId={id}
+                runName="Website analysis run"
+                label="Analyze References"
+                pendingLabel="Analyzing website…"
+                action={analyze}
+              />
+            </div>
           )}
         </div>
       ) : (

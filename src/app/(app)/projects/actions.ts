@@ -24,17 +24,33 @@ export async function createProjectAction(
   const user = await requireUser();
 
   const parsed = createProjectSchema.safeParse({
+    // Required
     name: str(formData, "name"),
+    businessName: str(formData, "businessName"),
+    businessType: str(formData, "businessType"),
+    goal: str(formData, "goal"),
+    keyItems: str(formData, "keyItems"),
+    platformTarget: str(formData, "platformTarget"),
+    // Optional
     businessId: str(formData, "businessId"),
     clientName: str(formData, "clientName"),
     type: str(formData, "type"),
-    businessType: str(formData, "businessType"),
-    goal: str(formData, "goal"),
     targetAudience: str(formData, "targetAudience"),
-    keyItems: str(formData, "keyItems"),
-    brandRefs: str(formData, "brandRefs"),
-    currentTools: str(formData, "currentTools"),
+    referenceUrls: str(formData, "referenceUrls"),
+    existingWebsiteUrl: str(formData, "existingWebsiteUrl"),
+    competitorUrls: str(formData, "competitorUrls"),
+    stylePreference: str(formData, "stylePreference"),
+    primaryColor: str(formData, "primaryColor"),
+    secondaryColor: str(formData, "secondaryColor"),
+    fontPreference: str(formData, "fontPreference"),
+    brandPersonality: str(formData, "brandPersonality"),
+    toneOfVoice: str(formData, "toneOfVoice"),
+    services: str(formData, "services"),
+    ctaGoal: str(formData, "ctaGoal"),
+    seoKeywords: str(formData, "seoKeywords"),
+    animationPreference: str(formData, "animationPreference"),
     notes: str(formData, "notes"),
+    // Automation-only
     currentProcess: str(formData, "currentProcess"),
     mainPainPoint: str(formData, "mainPainPoint"),
     triggerSource: str(formData, "triggerSource"),
