@@ -227,42 +227,106 @@ export async function runRenderedProbe(url: string): Promise<RenderedProbeResult
       // question-heading followed by a paragraph.
       const faq: { q: string; a: string }[] = [];
       // textContent (not innerText) so collapsed accordion answers still read.
-      const cleanTxt = (el: Element | null) =>
-        (el?.textContent ?? "").trim().replace(/\s+/g, " ");
-      const pushFaq = (q: string, a: string) => {
-        if (q.length < 8 || q.length > 140 || a.length < 20) return;
-        if (faq.some((f) => f.q === q)) return;
-        faq.push({ q, a: a.slice(0, 260) });
+      // Strip trailing icon glyphs/arrows that bleed in from toggle chrome, and
+      // collapse whitespace.
+      // Decode HTML entities (&#39; &amp; …) that can leak through markup.
+      const decodeEntities = (s: string) => {
+        const t = document.createElement("textarea");
+        t.innerHTML = s;
+        return t.value;
       };
-      // 1) Native <details>/<summary>
-      for (const d of [...document.querySelectorAll("details")].slice(0, 20)) {
-        const q = cleanTxt(d.querySelector("summary"));
-        const a = cleanTxt(d).replace(q, "").trim();
-        pushFaq(q, a);
+      // Strip trailing non-letter/number symbols (arrows, +, chevrons, glyphs);
+      // keep a "?" if the trimmed run contained one.
+      const cleanTxt = (el: Element | null) =>
+        decodeEntities(el?.textContent ?? "")
+          .replace(/\s+/g, " ")
+          .trim()
+          .replace(/[^\p{L}\p{N})?.!]+$/u, (m) => (m.includes("?") ? "?" : ""))
+          .trim();
+      // A real FAQ question ends in "?", is a sensible length, and is not
+      // JSON/schema noise (@type, braces, key:value markup leak into <details>).
+      const isQuestion = (q: string) =>
+        /\?\s*$/.test(q) && q.length >= 12 && q.length <= 160 && !/[@{}<>]|":\s*"|"@/.test(q);
+      const isAnswer = (a: string) => {
+        if (a.length < 20 || a.length > 1500) return false; // real answers run long
+        if (/[@{}<>]|":\s*"/.test(a)) return false; // JSON/schema
+        const letters = (a.match(/[a-zA-Z\s]/g) ?? []).length;
+        return letters / a.length >= 0.75;
+      };
+      const pushFaq = (q: string, a: string) => {
+        if (!isQuestion(q) || !isAnswer(a)) return;
+        // The answer sometimes still contains the question prefix — drop it.
+        const ans = a.startsWith(q) ? a.slice(q.length).trim() : a;
+        if (!isAnswer(ans) || faq.some((f) => f.q === q)) return;
+        faq.push({ q, a: ans.slice(0, 300) });
+      };
+      // 0) JSON-LD — the site's own structured data (most reliable). Handles
+      // both FAQPage.mainEntity and standalone Question nodes (Webflow emits
+      // one <script> per Question, not a wrapping FAQPage).
+      const stripTags = (s: string) => decodeEntities(s.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
+      const addQuestionNode = (e: Record<string, unknown> | null) => {
+        if (!e) return;
+        const q = String((e.name as string) ?? "").trim();
+        const acc = e.acceptedAnswer as Record<string, unknown> | Record<string, unknown>[] | undefined;
+        const accObj = Array.isArray(acc) ? acc[0] : acc;
+        const a = stripTags(String((accObj?.text as string) ?? ""));
+        if (q) pushFaq(q.endsWith("?") ? q : `${q}?`, a);
+      };
+      const walkLd = (node: unknown) => {
+        if (!node || typeof node !== "object") return;
+        if (Array.isArray(node)) return node.forEach(walkLd);
+        const n = node as Record<string, unknown>;
+        const t = n["@type"];
+        const typeStr = Array.isArray(t) ? t.join(" ") : String(t ?? "");
+        if (/\bQuestion\b/.test(typeStr)) addQuestionNode(n);
+        if (/\bFAQPage\b/.test(typeStr) && n.mainEntity) walkLd(n.mainEntity);
+        if (n["@graph"]) walkLd(n["@graph"]);
+      };
+      for (const s of [...document.querySelectorAll('script[type="application/ld+json"]')].slice(0, 30)) {
+        try {
+          walkLd(JSON.parse(s.textContent ?? ""));
+        } catch {
+          /* not valid JSON-LD — skip */
+        }
+        if (faq.length >= 6) break;
       }
-      // 2) ARIA accordions: question button + aria-controls answer panel
-      if (faq.length < 3) {
-        for (const b of [...document.querySelectorAll("[aria-expanded]")].slice(0, 60)) {
+      // 1) Native <details>/<summary> — answer = non-summary/non-script children.
+      if (faq.length < 4) {
+        for (const d of [...document.querySelectorAll("details")].slice(0, 40)) {
+          const q = cleanTxt(d.querySelector("summary"));
+          const a = [...d.children]
+            .filter((ch) => !/^(summary|script|style)$/i.test(ch.tagName))
+            .map((ch) => cleanTxt(ch))
+            .join(" ")
+            .trim();
+          pushFaq(q, a);
+        }
+      }
+      // 2) ARIA accordions: question toggle + aria-controls answer panel
+      if (faq.length < 4) {
+        for (const b of [...document.querySelectorAll("[aria-expanded], [aria-controls]")].slice(0, 120)) {
           const q = cleanTxt(b);
-          if (!/\?/.test(q)) continue;
+          if (!isQuestion(q)) continue;
           const panelId = b.getAttribute("aria-controls");
-          const panel = panelId ? document.getElementById(panelId) : b.parentElement?.nextElementSibling ?? b.nextElementSibling;
-          const a = cleanTxt(panel ?? null);
-          pushFaq(q.replace(/\s*\?.*$/, "?"), a);
-          if (faq.length >= 3) break;
+          const panel =
+            (panelId && document.getElementById(panelId)) ||
+            b.parentElement?.nextElementSibling ||
+            b.nextElementSibling ||
+            b.parentElement?.parentElement;
+          pushFaq(q, cleanTxt(panel ?? null));
+          if (faq.length >= 6) break;
         }
       }
       // 3) Question headings followed by a paragraph
-      if (faq.length < 3) {
+      if (faq.length < 4) {
         const faqRoot = document.querySelector("[class*='faq' i], [id*='faq' i], [data-testid*='faq' i]");
         const scope = faqRoot ?? document;
-        for (const h of [...scope.querySelectorAll("h2, h3, h4, [role='button']")].slice(0, 200)) {
+        for (const h of [...scope.querySelectorAll("h2, h3, h4, dt, [role='button']")].slice(0, 250)) {
           const q = cleanTxt(h);
-          if (!/\?$/.test(q)) continue;
+          if (!isQuestion(q)) continue;
           const next = h.nextElementSibling ?? h.parentElement?.nextElementSibling;
-          const a = cleanTxt(next && /^(p|div)$/i.test(next.tagName) ? next : null);
-          pushFaq(q, a);
-          if (faq.length >= 3) break;
+          pushFaq(q, cleanTxt(next ?? null));
+          if (faq.length >= 6) break;
         }
       }
 
