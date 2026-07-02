@@ -11,6 +11,7 @@ import {
 } from "./context";
 
 export function generatePromptMd(ctx: GeneratorContext): MdArtifact {
+  const m = ctx.tokens?.metrics ?? null;
   const a = new Assumptions();
   const { brief } = ctx.input;
   const name = who(ctx);
@@ -51,7 +52,7 @@ ${pages.map((p) => `- ${p}`).join("\n")}
 
 ## Design rules
 - Use the exact tokens above; neutral surfaces, accent for CTAs/state only.
-- 1180–1240px container, 12-col grid, 4/8px spacing rhythm, WCAG AA contrast.
+- ${m?.containerWidth ? `${m.containerWidth}px container (measured)` : "1180–1240px container (assumed)"}, 12-col grid, ${m?.spacingBase ? `${m.spacingBase}px spacing rhythm (measured)` : "4/8px spacing rhythm (assumed)"}, WCAG AA contrast.
 
 ## Animation rules
 ${animRules.map((r) => `- ${r}`).join("\n")}

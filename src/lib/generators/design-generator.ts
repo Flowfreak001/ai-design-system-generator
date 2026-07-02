@@ -28,7 +28,12 @@ export function generateDesignMd(ctx: GeneratorContext): MdArtifact {
   const palette = paletteOf(ctx, a);
   const fonts = fontsOf(ctx, a);
   const m = ctx.tokens?.metrics ?? null;
-  const radii = Object.values(ctx.tokens?.radius ?? {}).map(String);
+  // Only real length values — CSS keywords like "inherit" are extraction noise.
+  const probeBtn = (ctx.tokens as unknown as { renderedProbe?: { button?: { textTransform?: string; letterSpacing?: string } | null } } | null)?.renderedProbe?.button;
+  const radii = [
+    ...(ctx.tokens?.metrics?.button?.radius ? [String(ctx.tokens.metrics.button.radius)] : []),
+    ...Object.values(ctx.tokens?.radius ?? {}).map(String).filter((r) => /^\d/.test(r)),
+  ];
   const shadows = Object.values(ctx.tokens?.shadow ?? {}).map(String);
   const anim = ctx.animation;
   const visualNotes = ctx.visual?.notes ?? [];
@@ -74,7 +79,7 @@ Rules:
 - Weight: ${measured(a, m?.button?.fontWeight, (v) => `**${v}** (measured)`, "500–600", "Button weight not measurable — medium proposed.")}
 - Padding: ${measured(a, m?.button ? (m.button.paddingY !== undefined ? m.button : undefined) : undefined, (v) => `**${v.paddingY}px${v.paddingX !== undefined ? ` / ${v.paddingX}px` : ""}** (measured)`, "12px / 22px", "Button padding not measurable — 12/22px proposed.")}
 - Hover transition: ${measured(a, m?.button?.transitionMs, (v) => `**${v}ms** (measured)`, "150–300ms", "Button transition not measurable — 150–300ms proposed.")}
-- Primary uses the \`accent\` token; secondary is bordered on white. Min height 44px, visible focus ring.
+${probeBtn ? `- Text casing: ${probeBtn.textTransform && probeBtn.textTransform !== "none" ? `**${probeBtn.textTransform}** (measured)` : "sentence case (measured — no transform on the live CTA)"}${probeBtn.letterSpacing && probeBtn.letterSpacing !== "normal" ? `, letter-spacing **${probeBtn.letterSpacing}** (measured)` : ""}.\n` : ""}- Primary uses the \`accent\` token; secondary is bordered on white. Min height 44px, visible focus ring.
 
 ## Cards
 - White surface, 1px border${radii.length ? `, radius **${radii[0]}** (measured)` : ""}${shadows.length ? `, shadow \`${shadows[0]}\` (measured)` : ""}.

@@ -19,6 +19,8 @@ export function generateBrandMd(ctx: GeneratorContext): MdArtifact {
   const siteMeta = ctx.website?.metaDescription;
   if (!ctx.website) a.add("No website analysis — existing brand voice could not be sampled.");
 
+  const probeCta = (ctx.tokens as unknown as { renderedProbe?: { content?: { ctaText?: string } } } | null)?.renderedProbe?.content?.ctaText;
+  const liveCta = probeCta ?? brief.ctaGoal?.trim() ?? deriveCta(brief.goal);
   const anim = ctx.animation?.globalMotionStyle;
   const toneWords = brief.toneOfVoice?.trim()
     ? `Client-specified: ${brief.toneOfVoice.trim()}.`
@@ -50,7 +52,7 @@ ${name}${brief.businessType ? ` is a ${brief.businessType.toLowerCase()}` : ""}.
 - **Category:** ${orNa(brief.businessType)}
 ${siteTitle ? `- **Current site title:** “${siteTitle}”` : ""}
 - **Positioning statement:** For ${audience || "its customers"}, ${name} delivers ${
-    brief.keyItems[0]?.toLowerCase() || "its core offering"
+    brief.services?.trim()?.toLowerCase() || brief.businessType?.toLowerCase() || "its core offering"
   } with a dependable, professional experience.
 
 ## Target audience
@@ -61,7 +63,7 @@ Every design and copy decision below should be validated against this audience f
 ## Tone of voice
 - ${toneWords}
 ${brief.brandPersonality?.trim() ? `- Brand personality: ${brief.brandPersonality.trim()}.` : ""}
-- Speak to outcomes ("get your quote in minutes"), not features.
+- Speak to outcomes (primary CTA: "${liveCta}"), not features.
 - Plain language over jargon; technical detail only where it builds trust.
 
 ## Trust signals
@@ -83,7 +85,7 @@ ${bullets(useWords)}
 - Filler that doesn't state a concrete benefit
 
 ## Conversion message
-Lead with the outcome for ${audience || "the visitor"}: what they get, why it's credible, and one unambiguous next step. Primary CTA direction: **${deriveCta(brief.goal)}**.
+Lead with the outcome for ${audience || "the visitor"}: what they get, why it's credible, and one unambiguous next step. Primary CTA direction: **${liveCta}**${probeCta ? " (measured from the live site)" : ""}.
 
 ${a.section()}
 `;

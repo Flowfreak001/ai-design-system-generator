@@ -9,6 +9,21 @@ import {
   analysisConfidenceNote,
 } from "./context";
 
+const SECTION_GUIDANCE: [RegExp, string][] = [
+  [/hero/i, "one outcome headline, one support line, primary CTA"],
+  [/feature|service/i, "one card per real offering; benefit first, then proof point"],
+  [/pricing|offer/i, "real numbers or a clear quote path; highlight one tier"],
+  [/testimonial|review|proof/i, "real quotes with names/context — never fabricated"],
+  [/faq/i, "5–8 genuine objections answered plainly"],
+  [/contact|booking|cta/i, "one form or one action; state the response promise"],
+  [/footer/i, "sitemap, legal, one-line brand statement"],
+  [/about|team/i, "who is behind it and why they're credible"],
+  [/process|how/i, "3 numbered steps that remove uncertainty"],
+];
+function sectionGuidance(section: string): string {
+  return SECTION_GUIDANCE.find(([re]) => re.test(section))?.[1] ?? "one idea, one CTA where relevant";
+}
+
 export function generateContentMd(ctx: GeneratorContext): MdArtifact {
   const a = new Assumptions();
   const { brief } = ctx.input;
@@ -29,7 +44,7 @@ ${pages.map((p) => `- ${p}`).join("\n")}
 ${nav.length ? `\nCurrent site navigation (for continuity): ${nav.join(" · ")}` : ""}
 
 ## Page-by-page section plan (Home)
-${sections.map((s, i) => `${i + 1}. **${s}** — one idea, one CTA where relevant`).join("\n")}
+${sections.map((s, i) => `${i + 1}. **${s}** — ${sectionGuidance(s)}`).join("\n")}
 
 ## Hero copy direction
 - Headline: the outcome for ${brief.targetAudience?.trim() || "the customer"} in ≤9 words.

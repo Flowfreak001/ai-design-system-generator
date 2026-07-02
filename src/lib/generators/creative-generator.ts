@@ -14,11 +14,14 @@ export function generateCreativeMd(ctx: GeneratorContext): MdArtifact {
   const name = who(ctx);
   const sections = sectionsOf(ctx, a);
   const anim = ctx.animation;
-  const mood =
-    ctx.visual?.colorUsage?.length
+  const tokenColors = (ctx.tokens?.color ?? {}) as Record<string, string>;
+  const accents = Object.entries(tokenColors).filter(([k]) => k.startsWith("accent")).map(([, v]) => v);
+  const mood = accents.length
+    ? `Grounded in the measured palette — ${tokenColors.background ?? "light"} surfaces, ${tokenColors.ink ?? "dark"} text, accents ${accents.slice(0, 3).join(", ")}. Evolve it, don't replace it without reason.`
+    : ctx.visual?.colorUsage?.length
       ? `Grounded in the current palette (${ctx.visual.colorUsage.slice(0, 3).map((c) => c.value).join(", ")}) — evolve it, don't replace it without reason.`
       : "No visual sample — propose a calm, premium mood: light surfaces, one confident accent, real photography.";
-  if (!ctx.visual?.colorUsage?.length) a.add("Visual mood proposed without a site sample.");
+  if (!accents.length && !ctx.visual?.colorUsage?.length) a.add("Visual mood proposed without a site sample.");
 
   const content = `# CREATIVE — ${name}
 
@@ -55,7 +58,7 @@ ${sections.map((s, i) => `${i + 1}. ${s}`).join("\n")}
 ${
     brief.notes?.trim()
       ? `From the brief: ${brief.notes.trim()}`
-      : "Lean on specificity: exact response times, local knowledge, named guarantees — the things competitors say vaguely."
+      : `Lean on specificity for ${brief.targetAudience?.trim() || "the audience"}: concrete numbers, named outcomes, and real proof — the things competitors say vaguely.`
   }
 
 ## Creative do's and don'ts
