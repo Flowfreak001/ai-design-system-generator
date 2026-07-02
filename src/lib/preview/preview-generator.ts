@@ -41,9 +41,10 @@ export function generatePreviewHtml(data: PreviewData): string {
   const { input, tokens, animation } = data;
   const name = input.clientName || input.projectName;
   const { entries: palette, assumed } = paletteEntries(tokens, input.brief.brandRefs);
-  const accent = palette[1]?.value ?? palette[0].value;
-  const dark = palette[0].value;
-  const font = String(Object.values(tokens?.typography ?? {})[0] ?? "Inter");
+  const byName = Object.fromEntries(palette.map((c) => [c.name, c.value]));
+  const accent = byName.accent ?? byName.primary ?? palette[1]?.value ?? palette[0].value;
+  const dark = byName.ink ?? palette[0].value;
+  const font = String(tokens?.typography?.primary ?? Object.values(tokens?.typography ?? {})[0] ?? "Inter");
   const radius = String(Object.values(tokens?.radius ?? {})[0] ?? "12px");
   const services = input.brief.keyItems.slice(0, 3);
   while (services.length < 3) services.push(["Core service", "Second service", "Third service"][services.length]);

@@ -9,9 +9,9 @@ const esc = (s: string) =>
 export function generateComponentPreviewHtml(data: PreviewData): string {
   const { input, tokens } = data;
   const name = input.clientName || input.projectName;
-  const colors = Object.values(tokens?.color ?? {}).map(String);
-  const accent = colors[1] ?? colors[0] ?? "#2563eb";
-  const font = String(Object.values(tokens?.typography ?? {})[0] ?? "Inter");
+  const c = (tokens?.color ?? {}) as Record<string, string>;
+  const accent = c.accent ?? c.primary ?? Object.values(c)[1] ?? Object.values(c)[0] ?? "#2563eb";
+  const font = String(tokens?.typography?.primary ?? Object.values(tokens?.typography ?? {})[0] ?? "Inter");
   const radius = String(Object.values(tokens?.radius ?? {})[0] ?? "12px");
 
   return `<!doctype html>
