@@ -1,250 +1,385 @@
-// File generators — produce professional, structured markdown from the actual
-// project input (no vague filler). Each generator maps to one output artifact.
-// Real AI agents will later replace these deterministic templates.
+// File generators. Two sets keyed by project type, each producing structured,
+// professional markdown from the actual project input — no vague filler.
+// Deterministic templates for the MVP; real AI agents can replace individual
+// generators later without changing the orchestration.
 
-import type { GenerationInput, GeneratedArtifact, OutputFileName } from "@/types";
+import type { GenerationInput, GeneratedArtifact } from "@/types";
+import { suggestWorkflows } from "@/lib/workflow-suggestions";
 
 type Generator = (input: GenerationInput) => GeneratedArtifact;
 
 // ---- helpers ------------------------------------------------------------
 
 const orNa = (v?: string | null) => (v && v.trim() ? v.trim() : "_Not specified_");
-const list = (items: string[], fallback = "_Not specified_") =>
+const list = (items: string[], fallback = "- _Not specified_") =>
   items.length ? items.map((i) => `- ${i}`).join("\n") : fallback;
 const inline = (items: string[], fallback = "not specified") =>
   items.length ? items.join(", ") : fallback;
 
-function biz(input: GenerationInput) {
-  return input.businessName || input.projectName || "the business";
-}
+const who = (i: GenerationInput) => i.clientName || i.projectName;
 
-// ---- BRAND.md -----------------------------------------------------------
+// =====================================================================
+// WEBSITE_APP generators
+// =====================================================================
 
-const brand: Generator = (input) => {
-  const name = biz(input);
-  const audience = orNa(input.targetAudience);
-  const content = `# BRAND — ${name}
+const projectBrief: Generator = (i) => ({
+  name: "PROJECT_BRIEF.md",
+  type: "markdown",
+  content: `# Project Brief — ${i.projectName}
 
-## Brand overview
-${name}${input.businessType ? ` is a ${input.businessType.toLowerCase()}` : ""} building a web presence with a clear, conversion-focused design system. This document defines how the brand should sound and feel across every page.
+## Client
+${orNa(i.clientName)} ${i.brief.businessType ? `(${i.brief.businessType})` : ""}
 
-## Business positioning
-- **Primary goal:** ${orNa(input.websiteGoal)}
-- **Category:** ${orNa(input.businessType)}
-- **Offering:** ${orNa(input.servicesProducts)}
-- **Positioning statement:** For ${input.targetAudience?.trim() || "its audience"}, ${name} delivers ${input.servicesProducts?.trim() || "its core offering"} with a premium, trustworthy experience.
+## Goal
+${orNa(i.brief.goal)}
 
 ## Target audience
-${audience}
+${orNa(i.brief.targetAudience)}
 
-Design and copy decisions should be validated against this audience first.
+## Key pages / features
+${list(i.brief.keyItems)}
 
-## Tone of voice
-- Confident, clear, and credible — never hypey.
-- ${input.animationPreference === "Bold" ? "Energetic and expressive" : input.animationPreference === "Minimal" || input.animationPreference === "None" ? "Calm, precise, and understated" : "Polished and premium"}.
-- Short sentences. Concrete benefits over adjectives.
+## Brand / references
+${list(i.brief.brandRefs)}
 
-## Trust signals
-- Clear outcomes and specifics (numbers, named results) over vague claims.
-- Consistent visual system across every page.
-- Social proof, security/quality cues, and transparent next steps near each CTA.
+## Current tools
+${list(i.brief.currentTools, "- None recorded")}
 
-## Words to use
-${list([
-  "clear",
-  "premium",
-  input.businessType ? input.businessType.toLowerCase() : "professional",
-  "trusted",
-  "results",
-  ...input.seoKeywords.slice(0, 4),
-])}
+## Notes
+${orNa(i.brief.notes)}
+`,
+});
 
-## Words to avoid
-- "revolutionary", "world-class", "cutting-edge" (unearned superlatives)
-- "cheap", "basic", "simple" when describing the product
-- Filler that doesn't state a concrete benefit
+const scope: Generator = (i) => ({
+  name: "SCOPE.md",
+  type: "markdown",
+  content: `# Scope of Work — ${i.projectName}
+
+## In scope
+${list(i.brief.keyItems, "- Core pages/features to be confirmed with client")}
+
+## Out of scope (until agreed separately)
+- Ongoing content production
+- Paid advertising / campaign management
+- Third-party integrations beyond those listed in the brief
+- Post-launch feature requests not in this document
+
+## Deliverables
+- Production-ready build of the items above
+- Design system + content aligned to DESIGN.md and CONTENT.md
+- Handoff documentation (HANDOFF.md)
+
+## Assumptions
+- Client provides brand assets and timely feedback
+- One consolidated revision round per milestone
+- Goal to optimize for: ${orNa(i.brief.goal)}
+`,
+});
+
+const design: Generator = (i) => ({
+  name: "DESIGN.md",
+  type: "markdown",
+  content: `# Design Direction — ${i.projectName}
+
+## Audience
+Design for ${i.brief.targetAudience?.trim() || "the client's core audience"} — every layout and copy decision is validated against them first.
+
+## Visual references
+${list(i.brief.brandRefs, "- No references supplied — propose 2–3 directions before build")}
+
+## Rules
+- Clear hierarchy, generous whitespace, consistent spacing rhythm
+- Accessible contrast (WCAG AA), visible focus states, ≥44px touch targets
+- Mobile-first, responsive at 640 / 768 / 1024 / 1280
+
+## Components
+Buttons (primary/secondary), cards, forms with visible labels + inline
+validation, sticky navigation, structured footer.
+
+## Do / Don't
+**Do:** one idea per section, restrained palette, purposeful motion.
+**Don't:** clutter, random colors, flashy animation, template look.
+`,
+});
+
+const content: Generator = (i) => ({
+  name: "CONTENT.md",
+  type: "markdown",
+  content: `# Content Plan — ${i.projectName}
+
+## Voice
+Confident, clear, specific. Write for ${i.brief.targetAudience?.trim() || "the target audience"}; lead with outcomes, not adjectives.
+
+## Page/feature content requirements
+${list(
+    i.brief.keyItems.map((k) => `${k} — headline, supporting copy, one clear CTA`),
+    "- Confirm page list with client",
+  )}
 
 ## Conversion message
-Lead with the outcome for ${input.targetAudience?.trim() || "the visitor"}: what they get, why it's credible, and the single next step. Primary CTA: **${input.websiteGoal?.trim() ? deriveCta(input.websiteGoal) : "Get started"}**.
-`;
-  return { fileName: "BRAND.md", fileType: "MARKDOWN", content };
-};
+Primary goal: ${orNa(i.brief.goal)}. Every page ends with a single, unambiguous next step.
 
-function deriveCta(goal: string) {
-  const g = goal.toLowerCase();
-  if (g.includes("lead") || g.includes("contact")) return "Book a call";
-  if (g.includes("sign") || g.includes("trial") || g.includes("saas")) return "Start free";
-  if (g.includes("sell") || g.includes("ecommerce") || g.includes("buy")) return "Shop now";
-  return "Get started";
-}
+## Content to request from client
+- Logo + brand assets
+- Testimonials / proof points
+- Team / about material
+- Any legal or compliance copy
+`,
+});
 
-// ---- DESIGN.md ----------------------------------------------------------
+const buildPrompt: Generator = (i) => ({
+  name: "BUILD_PROMPT.md",
+  type: "prompt",
+  content: `# Build Prompt — ${i.projectName}
 
-const design: Generator = (input) => {
-  const colors = input.brandColors;
-  const anim = input.animationPreference || "Premium";
-  const content = `# DESIGN — ${biz(input)}
+Use this prompt with your AI build tool (Claude Code, Cursor, v0, …):
 
-## Visual style
-A premium, modern, high-contrast system. Generous whitespace, strong typographic
-hierarchy, elegant cards, and soft gradients used sparingly for depth.
-Animation intensity: **${anim}**.
+\`\`\`
+Build a production-ready website/app for ${who(i)}${i.brief.businessType ? `, a ${i.brief.businessType}` : ""}.
+Goal: ${i.brief.goal?.trim() || "convert visitors"}. Audience: ${i.brief.targetAudience?.trim() || "core customers"}.
 
-## Color usage
-${colors.length
-    ? `Brand palette:\n${list(colors)}\n\n- Use the first color as the primary brand/accent.\n- Reserve accents for CTAs and key highlights; keep large surfaces neutral.`
-    : "- No brand colors supplied — default to a neutral base (near-white / near-black) with a single confident accent for CTAs.\n- Maintain WCAG AA contrast (4.5:1 for body text)."}
+Pages/features: ${inline(i.brief.keyItems, "confirm with the brief")}.
+Follow DESIGN.md and CONTENT.md exactly. References: ${inline(i.brief.brandRefs, "none — keep neutral premium")}.
 
-## Typography direction
-- One strong sans for display + body; a monospace for code/file names.
-- Scale: clear jumps (e.g. 14 / 16 / 20 / 32 / 48+). Tight leading on headings, 1.5–1.7 on body.
-- Weight for hierarchy: 600–800 headings, 400–500 body.
-
-## Layout rules
-- Max content width ~1200px; consistent 4/8px spacing rhythm.
-- Sections breathe: generous vertical padding, one idea per section.
-- Required pages: ${inline(input.requiredPages, "Home (others TBD)")}.
-
-## Buttons
-- Primary: solid accent, medium radius, clear hover (subtle lift + shade), 250–300ms.
-- Secondary: outline/ghost. Min touch target 44px. Visible focus ring.
-
-## Cards
-- Soft border + subtle shadow; elevate slightly on hover (translateY, never bounce).
-- Consistent padding and radius across the system.
-
-## Forms
-- Visible labels (not placeholder-only), helper text, inline validation on blur.
-- Errors below the field; clear focus states; comfortable input height (≥44px).
-
-## Navigation
-- Sticky, condenses on scroll. 4–6 primary items max. Clear active state.
-
-## Footer
-- Grouped links, brand line, legal. Calm, low-contrast, well-spaced.
-
-## Responsive rules
-- Mobile-first. Breakpoints ~640 / 768 / 1024 / 1280.
-- No horizontal scroll; stack cards; keep tap targets ≥44px.
-
-## Design do's and don'ts
-**Do:** strong hierarchy, consistent spacing, restrained palette, accessible contrast.
-**Don't:** random colors, cramped sections, weak hierarchy, cheap/flashy animation.
-`;
-  return { fileName: "DESIGN.md", fileType: "MARKDOWN", content };
-};
-
-// ---- CREATIVE.md --------------------------------------------------------
-
-const creative: Generator = (input) => {
-  const name = biz(input);
-  const anim = input.animationPreference || "Premium";
-  const content = `# CREATIVE — ${name}
-
-## Creative direction
-Position ${name} as a premium, credible ${input.businessType?.toLowerCase() || "brand"}.
-Every section should feel intentional and product-ready — editorial, not template.
-
-## Visual mood
-${anim === "Bold" ? "Confident and expressive; larger type, richer gradients." : anim === "Minimal" || anim === "None" ? "Quiet and precise; lots of space, minimal ornament." : "Premium and polished; soft gradients, elegant depth, restrained motion."}
-
-## Homepage story
-1. Hook: the outcome for ${input.targetAudience?.trim() || "the visitor"}.
-2. Proof: why it's credible.
-3. How it works.
-4. What they get.
-5. Clear final call to action: ${orNa(input.websiteGoal)}.
-
-## Hero concept
-A bold headline stating the core value, a one-line subhead, two CTAs, and a
-supporting visual (product/preview). Entrance animation: staggered fade-up.
-
-## Section flow
-${list(
-  input.requiredPages.length
-    ? input.requiredPages
-    : ["Hero", "Features", "How it works", "Output / proof", "Trust", "Final CTA"],
-)}
-
-## Image direction
-- Real product/preview imagery over generic stock.
-- Consistent treatment (duotone or soft-gradient overlays) tied to the palette.
-
-## Animation feel
-- ${anim} intensity. Fade-up on sections, subtle card lift, button micro-interactions.
-- Smooth (250–400ms), controlled easing. No bouncing, spinning, or flashy effects.
-- Respect \`prefers-reduced-motion\`.
-
-## Creative do's and don'ts
-**Do:** one orchestrated moment per view, cohesive mood, purposeful motion.
-**Don't:** decorative-only animation, clashing styles, stock-photo clutter.
-`;
-  return { fileName: "CREATIVE.md", fileType: "MARKDOWN", content };
-};
-
-// ---- PROMPT_CLAUDE_CODE.md ---------------------------------------------
-
-const promptClaudeCode: Generator = (input) => {
-  const name = biz(input);
-  const platform = input.platformTarget || "Claude Code";
-  const content = `# PROMPT — Claude Code build prompt for ${name}
-
-## Full build prompt
-> Build a production-ready ${input.businessType?.toLowerCase() || "marketing"} website for **${name}**
-> targeting ${input.targetAudience?.trim() || "its audience"}. Primary goal:
-> ${input.websiteGoal?.trim() || "convert visitors"}. Target platform: ${platform}.
-> Apply the accompanying BRAND.md, DESIGN.md, and CREATIVE.md exactly.
-
-## Page requirements
-${list(input.requiredPages.length ? input.requiredPages : ["Home"], "- Home")}
-
-Offering to represent: ${orNa(input.servicesProducts)}.
-
-## Design rules
-- Follow DESIGN.md: palette (${inline(input.brandColors, "neutral base + one accent")}), typographic hierarchy, elegant cards, soft gradients.
-- High contrast, generous spacing, consistent 4/8px rhythm.
-
-## Animation rules
-- Intensity: ${input.animationPreference || "Premium"}. Fade-up on sections, subtle card lift, button micro-interactions, smooth tab/preview transitions.
-- 250–400ms, controlled easing. No bounce/spin/flash. Respect \`prefers-reduced-motion\`.
-
-## SEO rules
-- Unique title + meta description per page. One \`<h1>\` per page; semantic headings.
-- Target keywords: ${inline(input.seoKeywords, "derive from services + audience")}.
-- Open Graph + Twitter tags; clean slugs; sitemap + robots.
-
-## Responsive rules
-- Mobile-first; breakpoints 640 / 768 / 1024 / 1280. No horizontal scroll. Tap targets ≥44px.
+Rules: mobile-first responsive, WCAG AA, semantic HTML, one h1 per page,
+fast (optimized images, no layout shift), no template look, no flashy animation.
+\`\`\`
 
 ## What not to do
-- No generic template look, no random colors, no weak hierarchy.
-- No cheap/flashy animation. No unrelated placeholder content.
+- Don't invent brand colors not in the references
+- Don't add pages/features outside SCOPE.md
+- Don't ship placeholder copy
 
 ## Output expectations
-- A clean, componentized ${platform} project that matches the design system.
-- Accessible (WCAG AA), responsive, and production-ready — not a rough draft.
-${input.existingWebsiteUrl ? `\n_Reference the existing site for continuity: ${input.existingWebsiteUrl}_` : ""}
-${input.competitorUrls.length ? `\n_Competitors to differentiate from: ${inline(input.competitorUrls)}_` : ""}
-`;
-  return { fileName: "PROMPT_CLAUDE_CODE.md", fileType: "PROMPT", content };
+Componentized, typed, production-ready code matching the design system.
+`,
+});
+
+const websiteHandoff: Generator = (i) => ({
+  name: "HANDOFF.md",
+  type: "markdown",
+  content: `# Handoff — ${i.projectName}
+
+## What's being delivered
+${list(i.brief.keyItems, "- See SCOPE.md")}
+
+## Access & credentials to hand over
+- Hosting / deployment access
+- Domain / DNS
+- Analytics
+- CMS or admin accounts (if applicable)
+
+## Documentation included
+PROJECT_BRIEF.md · SCOPE.md · DESIGN.md · CONTENT.md · BUILD_PROMPT.md
+
+## Aftercare
+- 14-day post-launch fix window (bugs only, per SCOPE.md)
+- Change requests are quoted separately
+
+## Sign-off
+Client: ${orNa(i.clientName)}  ·  Date: ____________
+`,
+});
+
+// =====================================================================
+// AUTOMATION_WORKFLOW generators
+// =====================================================================
+
+const workflowAudit: Generator = (i) => ({
+  name: "WORKFLOW_AUDIT.md",
+  type: "markdown",
+  content: `# Workflow Audit — ${who(i)}
+
+## Business
+${orNa(i.clientName)} ${i.brief.businessType ? `(${i.brief.businessType})` : ""}
+
+## Current process
+${orNa(i.automation?.currentProcess)}
+
+## Main pain point
+${orNa(i.automation?.mainPainPoint)}
+
+## Where enquiries come from (trigger source)
+${orNa(i.automation?.triggerSource)}
+
+## Current tools
+${list(i.brief.currentTools, "- None recorded")}
+
+## Time/lead leaks identified
+- Enquiries answered late or missed entirely
+- Manual re-typing of customer details
+- No systematic follow-up on unanswered quotes
+- Owner attention pulled into routine replies
+
+## Automation opportunity
+${orNa(i.automation?.aiShouldDo)}
+`,
+});
+
+const automationBlueprint: Generator = (i) => {
+  const suggestions = suggestWorkflows(i.brief.businessType);
+  return {
+    name: "AUTOMATION_BLUEPRINT.md",
+    type: "markdown",
+    content: `# Automation Blueprint — ${who(i)}
+
+## Core flow
+\`\`\`
+Trigger (${i.automation?.triggerSource?.trim() || "new enquiry"})
+↓
+AI reads and classifies the enquiry
+↓
+Condition: urgent / routine
+↓
+Create lead record
+↓
+Draft customer reply
+↓
+Human approval (${i.automation?.needsHumanApproval?.trim() || "owner reviews drafts"})
+↓
+Send reply / schedule
+↓
+Follow-up if no response
+\`\`\`
+
+## What AI handles
+${orNa(i.automation?.aiShouldDo)}
+
+## What stays human
+${orNa(i.automation?.needsHumanApproval)}
+
+## Suggested workflows for a ${i.brief.businessType?.trim() || "service business"}
+${suggestions.map((s) => `- **${s.name}** — ${s.description}`).join("\n")}
+`,
+  };
 };
+
+const toolsStack: Generator = (i) => ({
+  name: "TOOLS_STACK.md",
+  type: "markdown",
+  content: `# Tools & Stack — ${who(i)}
+
+## Already in use
+${list(i.brief.currentTools, "- None recorded — greenfield setup")}
+
+## Recommended stack
+- **This platform** — workflow runs, approvals, lead records, follow-ups
+- **Email** — existing business inbox (connected later)
+- **Calendar** — existing booking calendar (connected later)
+
+## Explicitly not required
+- n8n / Make / Zapier — the workflow engine here replaces them for this scope
+- New CRM — leads live in this workspace until volume justifies more
+
+## Integration order
+1. Enquiry capture (form/webhook)
+2. Approval notifications
+3. Email sending
+4. Calendar/booking (phase 2)
+`,
+});
+
+const clientProposal: Generator = (i) => ({
+  name: "CLIENT_PROPOSAL.md",
+  type: "markdown",
+  content: `# Proposal — Automation for ${who(i)}
+
+## The problem
+${i.automation?.mainPainPoint?.trim() || "Manual admin is eating hours and leads are slipping through."}
+
+## What we'll build
+An automated enquiry-to-reply pipeline: every enquiry from ${i.automation?.triggerSource?.trim() || "your channels"} is read, classified, and answered with a drafted reply you approve — plus automatic follow-ups so no lead goes cold.
+
+## What changes for you
+- Enquiries answered in minutes, not hours
+- Every lead captured in one place
+- You approve replies; the system does the typing
+- Follow-ups happen without anyone remembering
+
+## Scope
+${list(i.brief.keyItems, "- Core enquiry workflow (see AUTOMATION_BLUEPRINT.md)")}
+
+## Next step
+Approve this proposal and we begin with the highest-impact workflow first.
+
+— Prepared for ${orNa(i.clientName)}
+`,
+});
+
+const buildPlan: Generator = (i) => ({
+  name: "BUILD_PLAN.md",
+  type: "markdown",
+  content: `# Build Plan — ${who(i)}
+
+## Phase 1 — Capture (week 1)
+- Connect trigger source: ${orNa(i.automation?.triggerSource)}
+- Lead record creation + classification rules
+
+## Phase 2 — Respond (week 2)
+- AI reply drafting for common enquiry types
+- Human approval queue: ${i.automation?.needsHumanApproval?.trim() || "owner approves all outgoing replies"}
+
+## Phase 3 — Follow up (week 3)
+- No-response follow-up sequence
+- Review/feedback request after completion
+
+## Phase 4 — Handoff
+- Owner training, HANDOFF.md walkthrough, tune classification rules
+
+## Success criteria
+Directly addresses: ${orNa(i.automation?.mainPainPoint)}
+`,
+});
+
+const automationHandoff: Generator = (i) => ({
+  name: "HANDOFF.md",
+  type: "markdown",
+  content: `# Handoff — ${who(i)} automation
+
+## What's live
+- Enquiry capture from: ${orNa(i.automation?.triggerSource)}
+- AI classification + drafted replies
+- Approval queue (${i.automation?.needsHumanApproval?.trim() || "owner approval on outgoing replies"})
+- Follow-up sequence
+
+## How to operate it
+1. New enquiries appear as leads automatically
+2. Review drafted replies in the approval queue
+3. Approve or edit — the system sends and schedules follow-ups
+
+## Documentation included
+WORKFLOW_AUDIT.md · AUTOMATION_BLUEPRINT.md · TOOLS_STACK.md · CLIENT_PROPOSAL.md · BUILD_PLAN.md
+
+## Aftercare
+- 30 days of tuning included (classification + reply quality)
+- New workflows quoted separately
+
+## Sign-off
+Client: ${orNa(i.clientName)}  ·  Date: ____________
+`,
+});
 
 // ---- registry -----------------------------------------------------------
 
-export const generators: Record<OutputFileName, Generator> = {
-  "BRAND.md": brand,
-  "DESIGN.md": design,
-  "CREATIVE.md": creative,
-  "PROMPT_CLAUDE_CODE.md": promptClaudeCode,
-};
-
-export const OUTPUT_ORDER: OutputFileName[] = [
-  "BRAND.md",
-  "DESIGN.md",
-  "CREATIVE.md",
-  "PROMPT_CLAUDE_CODE.md",
+const WEBSITE_GENERATORS: Generator[] = [
+  projectBrief,
+  scope,
+  design,
+  content,
+  buildPrompt,
+  websiteHandoff,
 ];
 
-export function generateAll(input: GenerationInput): GeneratedArtifact[] {
-  return OUTPUT_ORDER.map((name) => generators[name](input));
+const AUTOMATION_GENERATORS: Generator[] = [
+  workflowAudit,
+  automationBlueprint,
+  toolsStack,
+  clientProposal,
+  buildPlan,
+  automationHandoff,
+];
+
+export function generateForProject(input: GenerationInput): GeneratedArtifact[] {
+  const set = input.type === "AUTOMATION_WORKFLOW" ? AUTOMATION_GENERATORS : WEBSITE_GENERATORS;
+  return set.map((g) => g(input));
 }

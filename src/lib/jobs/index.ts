@@ -13,14 +13,14 @@ registerProcessor(GENERATE_JOB, async (payload: JobPayload) => {
 });
 
 /**
- * Kick off generation. Sets the project to GENERATING immediately, then enqueues.
+ * Kick off generation. Marks the project IN_PROGRESS immediately, then enqueues.
  * - No Redis: runs inline (files ready when this resolves).
  * - Redis set: the worker processes it asynchronously.
  */
 export async function startGeneration(projectId: string) {
   await prisma.project.update({
     where: { id: projectId },
-    data: { status: "GENERATING" },
+    data: { status: "IN_PROGRESS" },
   });
   return enqueue(GENERATE_JOB, { projectId });
 }

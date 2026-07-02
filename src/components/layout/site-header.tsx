@@ -6,7 +6,7 @@ import { LinkButton } from "@/components/ui/button";
 
 const LINKS = [
   { label: "Features", href: "/#features" },
-  { label: "Workflow", href: "/#workflow" },
+  { label: "How it works", href: "/#how" },
   { label: "Output", href: "/#output" },
   { label: "Projects", href: "/projects" },
 ];
@@ -32,7 +32,7 @@ export function SiteHeader() {
             ◆
           </span>
           <span>
-            ADSG<span className="text-brand">.</span>
+            Project OS<span className="text-brand">.</span>
           </span>
         </Link>
 

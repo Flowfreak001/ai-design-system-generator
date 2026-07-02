@@ -1,9 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { createProjectAction, type FormState } from "@/app/projects/actions";
 import { Button } from "@/components/ui/button";
-import { PLATFORM_TARGETS, ANIMATION_PREFERENCES } from "@/lib/validators/project";
+import { PROJECT_TYPES } from "@/lib/validators/project";
 
 const inputCls =
   "w-full rounded-xl border border-line bg-white/[0.02] px-3.5 py-2.5 text-sm text-ink " +
@@ -15,23 +16,18 @@ function Field({
   name,
   required,
   placeholder,
-  hint,
-  type = "text",
 }: {
   label: string;
   name: string;
   required?: boolean;
   placeholder?: string;
-  hint?: string;
-  type?: string;
 }) {
   return (
     <div>
       <label htmlFor={name} className="mb-1.5 block text-sm font-medium">
         {label} {required && <span className="text-brand">*</span>}
       </label>
-      <input id={name} name={name} type={type} required={required} placeholder={placeholder} className={inputCls} />
-      {hint && <p className="mt-1 text-xs text-faint">{hint}</p>}
+      <input id={name} name={name} required={required} placeholder={placeholder} className={inputCls} />
     </div>
   );
 }
@@ -41,7 +37,7 @@ function Area({
   name,
   placeholder,
   hint,
-  rows = 3,
+  rows = 2,
 }: {
   label: string;
   name: string;
@@ -60,24 +56,6 @@ function Area({
   );
 }
 
-function Select({ label, name, options }: { label: string; name: string; options: readonly string[] }) {
-  return (
-    <div>
-      <label htmlFor={name} className="mb-1.5 block text-sm font-medium">
-        {label}
-      </label>
-      <select id={name} name={name} defaultValue="" className={`${inputCls} cursor-pointer`}>
-        <option value="">Select…</option>
-        {options.map((o) => (
-          <option key={o} value={o}>
-            {o}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
-
 function Group({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <fieldset className="card p-6">
@@ -92,6 +70,9 @@ export function ProjectForm() {
     createProjectAction,
     undefined,
   );
+  const [type, setType] = useState<string>("WEBSITE_APP");
+  const reduce = useReducedMotion();
+  const isAutomation = type === "AUTOMATION_WORKFLOW";
 
   return (
     <form action={formAction} className="grid gap-5">
@@ -101,46 +82,93 @@ export function ProjectForm() {
         </p>
       )}
 
+      {/* Project type selector */}
+      <fieldset className="card p-6">
+        <legend className="eyebrow px-1">Project type</legend>
+        <div className="mt-5 grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label="Project type">
+          {PROJECT_TYPES.map((t) => {
+            const on = type === t.value;
+            return (
+              <label
+                key={t.value}
+                className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors duration-200 ${
+                  on ? "border-brand/50 bg-brand/[0.08]" : "border-line bg-white/[0.02] hover:border-line-strong"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="type"
+                  value={t.value}
+                  checked={on}
+                  onChange={() => setType(t.value)}
+                  className="mt-1 accent-[#7c6cf7]"
+                />
+                <span>
+                  <span className="block text-sm font-semibold">{t.label}</span>
+                  <span className="mt-0.5 block text-xs text-muted">
+                    {t.value === "WEBSITE_APP"
+                      ? "Websites, SaaS apps, dashboards, portals, landing pages."
+                      : "Leads, bookings, follow-ups, approvals — automation for a small business."}
+                  </span>
+                </span>
+              </label>
+            );
+          })}
+        </div>
+      </fieldset>
+
       <Group title="Basics">
-        <Field label="Project name" name="name" required placeholder="Aurora marketing site" />
+        <Field label="Project name" name="name" required placeholder="Acme Plumbing — enquiry automation" />
         <div className="grid gap-5 sm:grid-cols-2">
-          <Field label="Client name" name="clientName" placeholder="Aurora Inc." />
-          <Field label="Business name" name="businessName" placeholder="Aurora" />
+          <Field label="Client / business name" name="clientName" placeholder="Acme Plumbing" />
+          <Field label="Business type" name="businessType" placeholder="Plumber, restaurant, real estate…" />
         </div>
-        <Field label="Business type" name="businessType" placeholder="SaaS, agency, e-commerce…" />
       </Group>
 
-      <Group title="Strategy">
-        <Field label="Website goal" name="websiteGoal" placeholder="Generate qualified leads" />
-        <Area label="Target audience" name="targetAudience" placeholder="Who is this for?" rows={2} />
-        <Area label="Services / products" name="servicesProducts" placeholder="What do they offer?" rows={2} />
+      <Group title="Goals & audience">
+        <Area label="Goal / problem" name="goal" placeholder="What should this project achieve or fix?" />
+        <Area label="Target audience / customer type" name="targetAudience" placeholder="Who are the customers?" />
+        <Area
+          label={isAutomation ? "Key workflows needed" : "Key pages / features needed"}
+          name="keyItems"
+          placeholder={isAutomation ? "Enquiry handling, quote follow-up, review requests…" : "Home, Pricing, Booking, Dashboard…"}
+          hint="One per line or comma-separated."
+        />
       </Group>
 
-      <Group title="References">
-        <Field label="Existing website URL" name="existingWebsiteUrl" placeholder="https://…" />
-        <Area label="Reference URLs" name="referenceUrls" placeholder="One per line or comma-separated" hint="Sites you admire, for tone and structure." rows={2} />
-        <Area label="Competitor URLs" name="competitorUrls" placeholder="One per line or comma-separated" rows={2} />
-      </Group>
+      {/* Automation-only helper fields */}
+      <AnimatePresence initial={false}>
+        {isAutomation && (
+          <motion.div
+            key="automation-fields"
+            initial={{ opacity: 0, height: reduce ? "auto" : 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: reduce ? "auto" : 0 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className="overflow-hidden"
+          >
+            <Group title="Automation details">
+              <Area label="Current process" name="currentProcess" placeholder="How are enquiries handled today?" />
+              <Area label="Main pain point" name="mainPainPoint" placeholder="What's costing the most time or leads?" />
+              <Field label="Trigger source" name="triggerSource" placeholder="Website form, WhatsApp, phone, email…" />
+              <Area label="What should AI do?" name="aiShouldDo" placeholder="Read enquiries, classify urgency, draft replies…" />
+              <Area label="What needs human approval?" name="needsHumanApproval" placeholder="Outgoing replies, quotes, refunds…" />
+            </Group>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      <Group title="Brand & content">
-        <Area label="Brand colors" name="brandColors" placeholder="#6D5EF6, #0E1017 …" hint="Hex values, comma-separated." rows={2} />
-        <Area label="Required pages" name="requiredPages" placeholder="Home, Pricing, About, Contact…" rows={2} />
-        <Area label="SEO keywords" name="seoKeywords" placeholder="One per line or comma-separated" rows={2} />
-      </Group>
-
-      <Group title="Technical">
-        <div className="grid gap-5 sm:grid-cols-2">
-          <Select label="Platform target" name="platformTarget" options={PLATFORM_TARGETS} />
-          <Select label="Animation preference" name="animationPreference" options={ANIMATION_PREFERENCES} />
-        </div>
-        <Area label="Notes" name="notes" placeholder="Anything else the agents should know…" rows={3} />
+      <Group title="Context (optional)">
+        <Area label="Brand colors / reference links" name="brandRefs" placeholder="#6D5EF6, https://example.com…" />
+        <Area label="Current tools" name="currentTools" placeholder="Google Calendar, WhatsApp Business, Stripe…" />
+        <Area label="Notes" name="notes" placeholder="Anything else worth knowing…" rows={3} />
       </Group>
 
       <div className="flex items-center gap-3 pt-1">
         <Button type="submit" size="lg" disabled={pending} className="disabled:opacity-50 disabled:cursor-not-allowed">
           {pending ? "Creating…" : "Create project"}
         </Button>
-        <span className="text-xs text-faint">You can generate files after creating the project.</span>
+        <span className="text-xs text-faint">Generate files from the detail page after creating.</span>
       </div>
     </form>
   );

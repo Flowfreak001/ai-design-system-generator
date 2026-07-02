@@ -5,13 +5,14 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 export type ViewerFile = {
   id: string;
-  fileName: string;
+  name: string;
   content: string;
-  version: number;
+  _count: { versions: number };
 };
 
 export function GeneratedFilesViewer({ files }: { files: ViewerFile[] }) {
   const [activeId, setActiveId] = useState(files[0]?.id ?? "");
+  const [copied, setCopied] = useState(false);
   const reduce = useReducedMotion();
   const active = files.find((f) => f.id === activeId) ?? files[0];
 
@@ -19,14 +20,21 @@ export function GeneratedFilesViewer({ files }: { files: ViewerFile[] }) {
     return (
       <div className="card p-10 text-center">
         <p className="text-sm text-muted">
-          No files yet. Run generation to produce the design system.
+          No files yet — run <span className="text-ink">Generate files</span> to
+          produce the delivery documents for this project type.
         </p>
       </div>
     );
   }
 
+  const copy = async () => {
+    await navigator.clipboard?.writeText(active.content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1500);
+  };
+
   return (
-    <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
+    <div className="grid gap-4 lg:grid-cols-[240px_1fr]">
       <ul className="card h-fit p-2">
         {files.map((f) => {
           const on = f.id === active.id;
@@ -38,8 +46,10 @@ export function GeneratedFilesViewer({ files }: { files: ViewerFile[] }) {
                   on ? "bg-brand/15 text-brand" : "text-muted hover:bg-white/[0.04] hover:text-ink"
                 }`}
               >
-                <span className="truncate">{f.fileName}</span>
-                <span className="shrink-0 text-[10px] text-faint">v{f.version}</span>
+                <span className="truncate">{f.name}</span>
+                <span className="shrink-0 text-[10px] text-faint">
+                  v{f._count.versions}
+                </span>
               </button>
             </li>
           );
@@ -48,12 +58,12 @@ export function GeneratedFilesViewer({ files }: { files: ViewerFile[] }) {
 
       <div className="card min-w-0 overflow-hidden">
         <div className="flex items-center justify-between border-b border-line px-4 py-2.5">
-          <span className="font-mono text-xs text-ink">{active.fileName}</span>
+          <span className="font-mono text-xs text-ink">{active.name}</span>
           <button
-            onClick={() => navigator.clipboard?.writeText(active.content)}
-            className="font-mono text-[11px] text-faint transition-colors hover:text-ink"
+            onClick={copy}
+            className="cursor-pointer font-mono text-[11px] text-faint transition-colors hover:text-ink"
           >
-            Copy
+            {copied ? "Copied ✓" : "Copy"}
           </button>
         </div>
         <AnimatePresence mode="wait">

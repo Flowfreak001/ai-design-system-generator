@@ -1,15 +1,32 @@
 import { Stagger, StaggerItem, HoverLift } from "@/components/ui/motion";
 import { SectionHeading } from "./section";
 
-const FEATURES = [
-  { t: "Structured project input", d: "Capture goals, audience, brand, pages, services, and platform in one considered brief." },
-  { t: "Reference & competitor analysis", d: "Point at existing sites and competitors so the system designs with real context." },
-  { t: "Brand & content strategy", d: "Tone of voice, positioning, trust signals, and conversion messaging — not filler." },
-  { t: "Design rules & tokens", d: "Color usage, typography, layout, components, and responsive rules as a real system." },
-  { t: "Animation direction", d: "Premium, controlled motion guidance — feel, timing, and do's and don'ts." },
-  { t: "SEO structure", d: "Keyword targeting, page structure, and metadata baked into the output." },
-  { t: "Platform-specific prompts", d: "Ready prompts for Claude Code, Codex, Cursor, v0, Webflow, Wix, WordPress and more." },
-  { t: "Preview & export", d: "Preview the system and export the whole package for your build tool." },
+const PILLARS = [
+  {
+    t: "Project Workspace",
+    d: "Every client project in one place — brief, inputs, files, notes, decisions, and activity history.",
+  },
+  {
+    t: "AI Brief Builder",
+    d: "Structured client input becomes real documents: scope, design direction, content plan, and build prompts.",
+  },
+  {
+    t: "Workflow Builder",
+    d: "Plan small-business automations — triggers, AI steps, conditions, and actions — as clear blueprints.",
+  },
+  {
+    t: "Approval & Handoff",
+    d: "Human approval points where they matter, versioned files, and a clean handoff package at delivery.",
+  },
+];
+
+const USE_CASES = [
+  { t: "Agencies", d: "Scope and deliver client builds faster." },
+  { t: "Freelancers", d: "Look like a team of five, alone." },
+  { t: "Plumbers & trades", d: "Emergency triage, quotes, follow-ups." },
+  { t: "Restaurants", d: "Bookings, catering enquiries, reviews." },
+  { t: "Real estate", d: "Viewings, maintenance, vendor routing." },
+  { t: "Taxi & car rental", d: "Bookings, estimates, documents." },
 ];
 
 function Dot() {
@@ -26,12 +43,12 @@ export function FeatureSection() {
   return (
     <section id="features" className="mx-auto max-w-6xl px-5 sm:px-8 py-24 md:py-32 scroll-mt-20">
       <SectionHeading
-        eyebrow="What it produces"
-        title="Everything a real design system needs — generated."
-        intro="Each project runs a pipeline of specialized agents. The output is structured, professional, and ready to hand to a build tool."
+        eyebrow="Product pillars"
+        title="One workspace from first brief to final handoff."
+        intro="Not a project-management clone and not another Zapier — a focused delivery system for agencies and the businesses they serve."
       />
       <Stagger className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {FEATURES.map((f) => (
+        {PILLARS.map((f) => (
           <StaggerItem key={f.t}>
             <HoverLift className="card h-full p-6">
               <Dot />
@@ -41,6 +58,26 @@ export function FeatureSection() {
           </StaggerItem>
         ))}
       </Stagger>
+
+      <div className="mt-20">
+        <SectionHeading
+          eyebrow="Who it's for"
+          title="Built for the people doing the work."
+        />
+        <Stagger className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {USE_CASES.map((u) => (
+            <StaggerItem key={u.t}>
+              <div className="flex items-center gap-4 rounded-xl border border-line bg-white/[0.02] px-4 py-3.5 transition-colors duration-200 hover:border-line-strong">
+                <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
+                <div>
+                  <p className="text-sm font-semibold">{u.t}</p>
+                  <p className="text-xs text-muted">{u.d}</p>
+                </div>
+              </div>
+            </StaggerItem>
+          ))}
+        </Stagger>
+      </div>
     </section>
   );
 }

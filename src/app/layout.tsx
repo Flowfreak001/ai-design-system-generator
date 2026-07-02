@@ -20,15 +20,15 @@ const mono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://ai-design-system-generator.up.railway.app"),
   title: {
-    default: "AI Design System Generator — Multi-agent design intelligence",
-    template: "%s · ADSG",
+    default: "Project OS — Agency projects & small-business automation",
+    template: "%s · Project OS",
   },
   description:
-    "Generate AI-ready website design system files — brand, design, creative, content, animation, SEO, and platform-specific prompts — from structured project input.",
+    "An AI-powered project workspace for freelancers and agencies to scope, organize, and deliver websites, apps, and small-business automation workflows from first client brief to final handoff.",
   openGraph: {
-    title: "AI Design System Generator",
+    title: "Project OS",
     description:
-      "A multi-agent design intelligence system that turns a brief into an AI-ready design system.",
+      "Run client projects and small-business automations from one AI-powered workspace.",
     type: "website",
   },
 };

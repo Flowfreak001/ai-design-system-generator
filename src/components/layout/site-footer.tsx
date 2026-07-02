@@ -10,11 +10,12 @@ export function SiteFooter() {
               <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-brand to-brand-2 text-white text-sm">
                 ◆
               </span>
-              ADSG<span className="text-brand">.</span>
+              Project OS<span className="text-brand">.</span>
             </div>
             <p className="mt-4 text-sm leading-relaxed text-muted">
-              A multi-agent design intelligence system. Turn a brief into an
-              AI-ready design system — tokens, docs, and platform prompts.
+              An AI-powered project workspace for freelancers and agencies to
+              scope, organize, and deliver websites, apps, and small-business
+              automation workflows — from first client brief to final handoff.
             </p>
           </div>
 
@@ -22,9 +23,9 @@ export function SiteFooter() {
             <FooterCol
               title="Product"
               links={[
-                { label: "Features", href: "/#features" },
-                { label: "Workflow", href: "/#workflow" },
-                { label: "Output files", href: "/#output" },
+                { label: "Pillars", href: "/#features" },
+                { label: "How it works", href: "/#how" },
+                { label: "Generated files", href: "/#output" },
               ]}
             />
             <FooterCol
@@ -35,18 +36,18 @@ export function SiteFooter() {
               ]}
             />
             <FooterCol
-              title="Resources"
+              title="Use cases"
               links={[
-                { label: "Docs", href: "/#output" },
-                { label: "Export", href: "/#preview" },
+                { label: "Agencies", href: "/#features" },
+                { label: "Small businesses", href: "/#features" },
               ]}
             />
           </div>
         </div>
 
         <div className="mt-12 flex flex-col gap-2 border-t border-line pt-6 text-xs text-faint sm:flex-row sm:items-center sm:justify-between">
-          <p>© {new Date().getFullYear()} AI Design System Generator.</p>
-          <p className="font-mono">Multi-agent design intelligence · not a website builder</p>
+          <p>© {new Date().getFullYear()} Project OS.</p>
+          <p className="font-mono">Brief → files → workflow → approval → handoff</p>
         </div>
       </div>
     </footer>

@@ -1,14 +1,34 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getProject } from "@/lib/projects";
+import { getProject, getFileVersions, toGenerationInput } from "@/lib/projects";
 import { generateAction, deleteProjectAction } from "../actions";
-import { StatusBadge } from "@/components/projects/status-badge";
+import { StatusBadge, TypeBadge } from "@/components/projects/status-badge";
 import { ProjectOverview } from "@/components/projects/project-overview";
 import { GeneratedFilesViewer } from "@/components/projects/generated-files-viewer";
+import { WorkflowBlueprint } from "@/components/projects/workflow-blueprint";
+import { NotesSection } from "@/components/projects/notes-section";
+import { AgentRunTimeline } from "@/components/projects/agent-run-timeline";
 import { Button } from "@/components/ui/button";
 import { FadeUp } from "@/components/ui/motion";
 
 export const dynamic = "force-dynamic";
+
+function Section({
+  id,
+  title,
+  children,
+}: {
+  id: string;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section id={id} className="mt-12 scroll-mt-24">
+      <h2 className="text-lg font-semibold">{title}</h2>
+      <div className="mt-5">{children}</div>
+    </section>
+  );
+}
 
 export default async function ProjectDetailPage({
   params,
@@ -19,9 +39,22 @@ export default async function ProjectDetailPage({
   const project = await getProject(id);
   if (!project) notFound();
 
-  const latestRun = project.agentRuns[0];
+  const versions = await getFileVersions(id);
+  const gen = toGenerationInput(project);
+  const isAutomation = project.type === "AUTOMATION_WORKFLOW";
+  const workflow = project.workflows[0];
+
   const generate = generateAction.bind(null, id);
   const remove = deleteProjectAction.bind(null, id);
+
+  const sections = [
+    { id: "overview", label: "Overview" },
+    { id: "files", label: "Files" },
+    ...(isAutomation ? [{ id: "workflow", label: "Workflow" }] : []),
+    { id: "notes", label: "Notes" },
+    { id: "runs", label: "Agent runs" },
+    { id: "versions", label: "Versions" },
+  ];
 
   return (
     <div className="mx-auto max-w-6xl px-5 sm:px-8 pt-28 md:pt-32 pb-24">
@@ -32,14 +65,12 @@ export default async function ProjectDetailPage({
       {/* Header */}
       <FadeUp className="mt-4 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <h1 className="text-3xl font-bold tracking-tight">{project.name}</h1>
+            <TypeBadge type={project.type} />
             <StatusBadge status={project.status} />
           </div>
-          <p className="mt-2 text-muted">
-            {project.clientName || "—"}
-            {project.businessType ? ` · ${project.businessType}` : ""}
-          </p>
+          <p className="mt-2 text-muted">{project.clientName || "—"}</p>
         </div>
         <div className="flex items-center gap-2">
           <form action={generate}>
@@ -55,53 +86,79 @@ export default async function ProjectDetailPage({
         </div>
       </FadeUp>
 
-      {/* Overview + agent workflow */}
-      <div className="mt-10">
-        <ProjectOverview input={project.input} run={latestRun} />
-      </div>
+      {/* Section nav */}
+      <nav aria-label="Project sections" className="sticky top-16 z-30 mt-8 -mx-5 px-5 sm:-mx-8 sm:px-8 border-b border-line bg-canvas/85 backdrop-blur-xl">
+        <ul className="flex gap-1 overflow-x-auto py-2">
+          {sections.map((s) => (
+            <li key={s.id}>
+              <a
+                href={`#${s.id}`}
+                className="block whitespace-nowrap rounded-lg px-3 py-1.5 text-sm text-muted transition-colors duration-200 hover:bg-white/[0.05] hover:text-ink"
+              >
+                {s.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
 
-      {/* Generated files */}
-      <section className="mt-12">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">
-            Generated files{" "}
-            <span className="font-mono text-sm text-faint">({project.files.length})</span>
-          </h2>
-        </div>
-        <div className="mt-5">
-          <GeneratedFilesViewer files={project.files} />
-        </div>
-      </section>
+      <Section id="overview" title="Overview">
+        <ProjectOverview
+          brief={gen.brief}
+          automation={gen.automation}
+          description={project.description}
+        />
+      </Section>
 
-      {/* Preview + export */}
-      <section className="mt-12 grid gap-4 lg:grid-cols-2">
-        <div className="card p-6">
-          <p className="eyebrow">Design preview</p>
-          <div className="mt-4 aspect-[16/10] w-full overflow-hidden rounded-xl border border-line">
-            <div className="aurora flex h-full w-full flex-col items-center justify-center gap-3 text-center">
-              <span className="grid h-10 w-10 place-items-center rounded-lg bg-gradient-to-br from-brand to-brand-2 text-white">
-                ◆
-              </span>
-              <p className="text-sm text-muted">
-                {project.status === "READY"
-                  ? "Rendered preview appears here once wired to preview.html."
-                  : "Generate files to unlock the design preview."}
-              </p>
+      <Section id="files" title={`Generated files (${project.files.length})`}>
+        <GeneratedFilesViewer files={project.files} />
+      </Section>
+
+      {isAutomation && (
+        <Section id="workflow" title="Workflow blueprint">
+          {workflow ? (
+            <WorkflowBlueprint workflow={workflow} />
+          ) : (
+            <div className="card p-8 text-center text-sm text-muted">
+              No workflow yet — generate files and the blueprint is drafted
+              alongside them.
             </div>
-          </div>
-        </div>
+          )}
+        </Section>
+      )}
 
-        <div className="card flex flex-col p-6">
-          <p className="eyebrow">Export</p>
-          <p className="mt-4 flex-1 text-sm text-muted">
-            Download the full design system as a package for your build tool.
-            Export is coming next — for now, copy any file from the viewer.
-          </p>
-          <Button variant="secondary" disabled className="mt-6 w-fit opacity-60">
-            Export package (soon)
-          </Button>
-        </div>
-      </section>
+      <Section id="notes" title="Notes & decisions">
+        <NotesSection projectId={id} notes={project.notes} />
+      </Section>
+
+      <Section id="runs" title="Agent runs">
+        <AgentRunTimeline runs={project.agentRuns} />
+      </Section>
+
+      <Section id="versions" title="Versions & activity">
+        {versions.length === 0 ? (
+          <div className="card p-8 text-center text-sm text-muted">
+            No versions yet. Every generation snapshots each file.
+          </div>
+        ) : (
+          <div className="card divide-y divide-line">
+            {versions.map((v) => (
+              <div key={v.id} className="flex items-center justify-between gap-4 px-5 py-3">
+                <span className="truncate font-mono text-xs text-ink">{v.file.name}</span>
+                <span className="flex shrink-0 items-center gap-4 font-mono text-[11px] text-faint">
+                  <span className="rounded bg-white/[0.05] px-1.5 py-0.5">v{v.version}</span>
+                  {new Date(v.createdAt).toLocaleString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </Section>
     </div>
   );
 }

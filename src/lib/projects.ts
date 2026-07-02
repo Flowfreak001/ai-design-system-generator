@@ -1,14 +1,14 @@
-// Data-access layer for projects. Keeps Prisma calls out of components/actions.
+// Data-access layer. Keeps Prisma out of components and server actions.
 
 import { prisma } from "@/lib/db/client";
-import { slugify, shortId } from "@/lib/utils/slug";
 import type { CreateProjectInput } from "@/lib/validators/project";
-import type { GenerationInput } from "@/types";
+import type { AutomationBrief, GenerationInput, ProjectBrief } from "@/types";
+import type { ProjectModel, ProjectInputModel } from "@/generated/prisma/models";
 
 export async function listProjects() {
   return prisma.project.findMany({
-    orderBy: { createdAt: "desc" },
-    include: { _count: { select: { files: true } } },
+    orderBy: { updatedAt: "desc" },
+    include: { _count: { select: { files: true, workflows: true } } },
   });
 }
 
@@ -16,48 +16,66 @@ export async function getProject(id: string) {
   return prisma.project.findUnique({
     where: { id },
     include: {
-      input: true,
-      files: { orderBy: { fileName: "asc" } },
+      inputs: true,
+      files: {
+        orderBy: { name: "asc" },
+        include: { _count: { select: { versions: true } } },
+      },
+      notes: { orderBy: { createdAt: "desc" } },
       agentRuns: {
         orderBy: { createdAt: "desc" },
-        include: { steps: { orderBy: { startedAt: "asc" } } },
+        include: { steps: { orderBy: { createdAt: "asc" } } },
+      },
+      workflows: {
+        include: {
+          nodes: { orderBy: { createdAt: "asc" } },
+          edges: true,
+        },
       },
     },
   });
 }
 
-export async function getProjectFile(projectId: string, fileName: string) {
-  return prisma.generatedFile.findUnique({
-    where: { projectId_fileName: { projectId, fileName } },
+export async function getFileVersions(projectId: string) {
+  return prisma.fileVersion.findMany({
+    where: { file: { projectId } },
+    orderBy: { createdAt: "desc" },
+    include: { file: { select: { name: true } } },
+    take: 50,
   });
 }
 
 export async function createProject(data: CreateProjectInput) {
-  const slug = `${slugify(data.name) || "project"}-${shortId()}`;
+  const brief: ProjectBrief = {
+    businessType: data.businessType,
+    goal: data.goal,
+    targetAudience: data.targetAudience,
+    keyItems: data.keyItems,
+    brandRefs: data.brandRefs,
+    currentTools: data.currentTools,
+    notes: data.notes,
+  };
+
+  const inputs: { category: string; data: object }[] = [{ category: "brief", data: brief }];
+
+  if (data.type === "AUTOMATION_WORKFLOW") {
+    const automation: AutomationBrief = {
+      currentProcess: data.currentProcess,
+      mainPainPoint: data.mainPainPoint,
+      triggerSource: data.triggerSource,
+      aiShouldDo: data.aiShouldDo,
+      needsHumanApproval: data.needsHumanApproval,
+    };
+    inputs.push({ category: "automation", data: automation });
+  }
 
   return prisma.project.create({
     data: {
       name: data.name,
-      slug,
       clientName: data.clientName,
-      businessName: data.businessName,
-      businessType: data.businessType,
-      input: {
-        create: {
-          websiteGoal: data.websiteGoal,
-          targetAudience: data.targetAudience,
-          existingWebsiteUrl: data.existingWebsiteUrl,
-          referenceUrls: data.referenceUrls,
-          competitorUrls: data.competitorUrls,
-          brandColors: data.brandColors,
-          requiredPages: data.requiredPages,
-          servicesProducts: data.servicesProducts,
-          seoKeywords: data.seoKeywords,
-          platformTarget: data.platformTarget,
-          animationPreference: data.animationPreference,
-          notes: data.notes,
-        },
-      },
+      type: data.type,
+      description: data.goal,
+      inputs: { create: inputs },
     },
   });
 }
@@ -66,44 +84,28 @@ export async function deleteProject(id: string) {
   return prisma.project.delete({ where: { id } });
 }
 
-/** Flatten a project + its input into the shape generators consume. */
-export function toGenerationInput(project: {
-  name: string;
-  clientName: string | null;
-  businessName: string | null;
-  businessType: string | null;
-  input: {
-    websiteGoal: string | null;
-    targetAudience: string | null;
-    existingWebsiteUrl: string | null;
-    referenceUrls: string[];
-    competitorUrls: string[];
-    brandColors: string[];
-    requiredPages: string[];
-    servicesProducts: string | null;
-    seoKeywords: string[];
-    platformTarget: string | null;
-    animationPreference: string | null;
-    notes: string | null;
-  } | null;
-}): GenerationInput {
-  const i = project.input;
+export async function addNote(projectId: string, content: string, title?: string) {
+  return prisma.projectNote.create({ data: { projectId, content, title } });
+}
+
+/** Flatten a project + its input records into the generators' input shape. */
+export function toGenerationInput(
+  project: ProjectModel & { inputs: ProjectInputModel[] },
+): GenerationInput {
+  const briefRow = project.inputs.find((i) => i.category === "brief");
+  const autoRow = project.inputs.find((i) => i.category === "automation");
+  const brief = (briefRow?.data ?? { keyItems: [], brandRefs: [], currentTools: [] }) as ProjectBrief;
+
   return {
     projectName: project.name,
     clientName: project.clientName,
-    businessName: project.businessName,
-    businessType: project.businessType,
-    websiteGoal: i?.websiteGoal ?? null,
-    targetAudience: i?.targetAudience ?? null,
-    existingWebsiteUrl: i?.existingWebsiteUrl ?? null,
-    referenceUrls: i?.referenceUrls ?? [],
-    competitorUrls: i?.competitorUrls ?? [],
-    brandColors: i?.brandColors ?? [],
-    requiredPages: i?.requiredPages ?? [],
-    servicesProducts: i?.servicesProducts ?? null,
-    seoKeywords: i?.seoKeywords ?? [],
-    platformTarget: i?.platformTarget ?? null,
-    animationPreference: i?.animationPreference ?? null,
-    notes: i?.notes ?? null,
+    type: project.type,
+    brief: {
+      ...brief,
+      keyItems: brief.keyItems ?? [],
+      brandRefs: brief.brandRefs ?? [],
+      currentTools: brief.currentTools ?? [],
+    },
+    automation: autoRow ? (autoRow.data as AutomationBrief) : undefined,
   };
 }

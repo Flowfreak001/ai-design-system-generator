@@ -1,4 +1,4 @@
-// AI Website Design System Generator — data model
+// Agency Project OS + Small Business Automation Builder — data model
 // Prisma 7 (prisma-client generator → ESM client in src/generated/prisma)
 
 generator client {
@@ -10,155 +10,324 @@ datasource db {
   provider = "postgresql"
 }
 
-// A design-system generation project for a client/business.
-model Project {
-  id           String        @id @default(cuid())
+// ---------------------------------------------------------------
+// Tenancy: Agency → Users, Businesses (clients), Projects
+// ---------------------------------------------------------------
+
+model Agency {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users      User[]
+  businesses Business[]
+  projects   Project[]
+}
+
+model Business {
+  id           String   @id @default(cuid())
+  agencyId     String
   name         String
-  slug         String        @unique
-  clientName   String?
-  businessName String?
-  businessType String?
-  status       ProjectStatus @default(DRAFT)
+  type         String? // plumber, restaurant, real estate, taxi, clinic…
+  website      String?
+  contactName  String?
+  contactEmail String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  input     ProjectInput?
-  files     GeneratedFile[]
-  agentRuns AgentRun[]
+  agency   Agency    @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  projects Project[]
+  leads    Lead[]
 
+  @@index([agencyId])
+}
+
+model User {
+  id        String   @id @default(cuid())
+  agencyId  String?
+  name      String?
+  email     String   @unique
+  role      String   @default("agency_owner")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@index([status])
+  agency Agency? @relation(fields: [agencyId], references: [id])
 }
 
-// The structured brief captured on project creation (1:1 with Project).
-model ProjectInput {
-  id        String  @id @default(cuid())
-  projectId String  @unique
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+// ---------------------------------------------------------------
+// Projects
+// ---------------------------------------------------------------
 
-  websiteGoal         String?
-  targetAudience      String?
-  existingWebsiteUrl  String?
-  referenceUrls       String[] @default([])
-  competitorUrls      String[] @default([])
-  brandColors         String[] @default([])
-  requiredPages       String[] @default([])
-  servicesProducts    String?
-  seoKeywords         String[] @default([])
-  platformTarget      String?
-  animationPreference String?
-  notes               String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-// A generated output artifact (BRAND.md, DESIGN.md, ...).
-model GeneratedFile {
-  id        String  @id @default(cuid())
-  projectId String
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  fileName String
-  fileType FileType   @default(MARKDOWN)
-  content  String     @db.Text
-  status   FileStatus @default(READY)
-  version  Int        @default(1)
-
-  versions FileVersion[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([projectId, fileName])
-  @@index([projectId])
-}
-
-// Historical versions of a generated file.
-model FileVersion {
-  id              String        @id @default(cuid())
-  generatedFileId String
-  generatedFile   GeneratedFile @relation(fields: [generatedFileId], references: [id], onDelete: Cascade)
-
-  version    Int
-  content    String  @db.Text
-  changeNote String?
-
-  createdAt DateTime @default(now())
-
-  @@unique([generatedFileId, version])
-  @@index([generatedFileId])
-}
-
-// A run of the (mock) multi-agent generation pipeline for a project.
-model AgentRun {
-  id        String    @id @default(cuid())
-  projectId String
-  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  status      RunStatus @default(QUEUED)
-  startedAt   DateTime?
-  completedAt DateTime?
-  error       String?
-
-  steps AgentStep[]
-
-  createdAt DateTime @default(now())
-
-  @@index([projectId])
-  @@index([status])
-}
-
-// A single agent's step within an AgentRun.
-model AgentStep {
-  id         String   @id @default(cuid())
-  agentRunId String
-  agentRun   AgentRun @relation(fields: [agentRunId], references: [id], onDelete: Cascade)
-
-  agentName String
-  status    StepStatus @default(PENDING)
-  input     Json?
-  output    Json?
-  error     String?
-
-  startedAt   DateTime?
-  completedAt DateTime?
-
-  @@index([agentRunId])
+enum ProjectType {
+  WEBSITE_APP
+  AUTOMATION_WORKFLOW
 }
 
 enum ProjectStatus {
   DRAFT
-  GENERATING
-  READY
-  FAILED
+  IN_PROGRESS
+  REVIEW
+  DELIVERED
+  ARCHIVED
 }
 
-enum FileType {
-  MARKDOWN
-  JSON
-  CSS
-  HTML
-  PROMPT
+model Project {
+  id          String        @id @default(cuid())
+  agencyId    String?
+  businessId  String?
+  name        String
+  clientName  String?
+  type        ProjectType   @default(WEBSITE_APP)
+  status      ProjectStatus @default(DRAFT)
+  description String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  agency    Agency?         @relation(fields: [agencyId], references: [id])
+  business  Business?       @relation(fields: [businessId], references: [id])
+  inputs    ProjectInput[]
+  files     GeneratedFile[]
+  agentRuns AgentRun[]
+  notes     ProjectNote[]
+  workflows Workflow[]
+
+  @@index([status])
+  @@index([type])
 }
 
-enum FileStatus {
-  DRAFT
-  GENERATING
-  READY
-  STALE
+// Structured inputs, grouped by category (e.g. "brief", "automation").
+model ProjectInput {
+  id        String   @id @default(cuid())
+  projectId String
+  category  String
+  data      Json
+  createdAt DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
 }
 
-enum RunStatus {
-  QUEUED
-  RUNNING
-  COMPLETED
-  FAILED
+// ---------------------------------------------------------------
+// Generated artifacts + versions
+// ---------------------------------------------------------------
+
+model GeneratedFile {
+  id        String   @id @default(cuid())
+  projectId String
+  name      String
+  type      String   @default("markdown")
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project  Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  versions FileVersion[]
+
+  @@unique([projectId, name])
+  @@index([projectId])
 }
 
-enum StepStatus {
+model FileVersion {
+  id        String   @id @default(cuid())
+  fileId    String
+  version   Int
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+
+  file GeneratedFile @relation(fields: [fileId], references: [id], onDelete: Cascade)
+
+  @@unique([fileId, version])
+  @@index([fileId])
+}
+
+// ---------------------------------------------------------------
+// Agent runs (AI pipeline activity, mock for now)
+// ---------------------------------------------------------------
+
+model AgentRun {
+  id        String   @id @default(cuid())
+  projectId String
+  name      String
+  status    String   @default("completed")
+  input     Json?
+  output    Json?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  steps   AgentStep[]
+
+  @@index([projectId])
+}
+
+model AgentStep {
+  id        String   @id @default(cuid())
+  runId     String
+  title     String
+  status    String   @default("completed")
+  detail    String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  run AgentRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId])
+}
+
+// ---------------------------------------------------------------
+// Notes & decisions
+// ---------------------------------------------------------------
+
+model ProjectNote {
+  id        String   @id @default(cuid())
+  projectId String
+  title     String?
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId])
+}
+
+// ---------------------------------------------------------------
+// Workflow foundation (automation projects)
+// ---------------------------------------------------------------
+
+enum WorkflowNodeType {
+  TRIGGER
+  AI_CLASSIFY
+  CONDITION
+  CREATE_LEAD
+  CREATE_TASK
+  SEND_EMAIL
+  HUMAN_APPROVAL
+  END
+}
+
+enum WorkflowRunStatus {
   PENDING
   RUNNING
+  WAITING_APPROVAL
   COMPLETED
   FAILED
+}
+
+model Workflow {
+  id          String   @id @default(cuid())
+  projectId   String
+  name        String
+  description String?
+  isActive    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  nodes   WorkflowNode[]
+  edges   WorkflowEdge[]
+  runs    WorkflowRun[]
+
+  @@index([projectId])
+}
+
+model WorkflowNode {
+  id         String           @id @default(cuid())
+  workflowId String
+  type       WorkflowNodeType
+  title      String
+  config     Json?
+  position   Json? // { order } now; { x, y } for a visual builder later
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@index([workflowId])
+}
+
+model WorkflowEdge {
+  id         String   @id @default(cuid())
+  workflowId String
+  sourceId   String
+  targetId   String
+  label      String? // e.g. "Yes" / "No" off a CONDITION
+  createdAt  DateTime @default(now())
+
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@index([workflowId])
+}
+
+model WorkflowRun {
+  id         String            @id @default(cuid())
+  workflowId String
+  status     WorkflowRunStatus @default(PENDING)
+  input      Json?
+  output     Json?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+
+  workflow  Workflow       @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  steps     WorkflowStep[]
+  approvals Approval[]
+
+  @@index([workflowId])
+  @@index([status])
+}
+
+model WorkflowStep {
+  id        String   @id @default(cuid())
+  runId     String
+  nodeId    String?
+  title     String
+  status    String
+  detail    String?
+  input     Json?
+  output    Json?
+  createdAt DateTime @default(now())
+
+  run WorkflowRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId])
+}
+
+model Approval {
+  id        String   @id @default(cuid())
+  runId     String
+  title     String
+  content   String   @db.Text
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  run WorkflowRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId])
+  @@index([status])
+}
+
+// ---------------------------------------------------------------
+// Leads (small-business side)
+// ---------------------------------------------------------------
+
+model Lead {
+  id         String   @id @default(cuid())
+  businessId String
+  name       String?
+  email      String?
+  phone      String?
+  source     String?
+  status     String   @default("new")
+  summary    String?
+  data       Json?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+  @@index([status])
 }

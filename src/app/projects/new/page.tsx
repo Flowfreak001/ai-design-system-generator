@@ -12,8 +12,8 @@ export default function NewProjectPage() {
       </Link>
       <h1 className="mt-4 text-3xl font-bold tracking-tight">New project</h1>
       <p className="mt-2 text-muted">
-        Capture the brief. The more context you give the agents, the sharper the
-        generated design system.
+        Pick a project type and capture the brief — the generated files and
+        workflow blueprint are built from what you enter here.
       </p>
 
       <div className="mt-10">

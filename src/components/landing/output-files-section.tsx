@@ -1,42 +1,56 @@
 import { Stagger, StaggerItem } from "@/components/ui/motion";
 import { SectionHeading } from "./section";
 
-const OUTPUTS = [
-  { f: "BRAND.md", d: "Positioning, tone of voice, trust signals, conversion message." },
-  { f: "DESIGN.md", d: "Color, type, layout, components, and responsive rules." },
-  { f: "CREATIVE.md", d: "Creative direction, homepage story, hero concept, motion feel." },
-  { f: "CONTENT.md", d: "Content strategy and section-by-section messaging." },
-  { f: "COMPONENTS.md", d: "Reusable component specs and states." },
-  { f: "ANIMATION.md", d: "Motion rules — timing, easing, and do's and don'ts." },
-  { f: "SEO.md", d: "Keyword targeting, page structure, and metadata." },
-  { f: "PROMPT_CLAUDE_CODE.md", d: "A full build prompt tuned for Claude Code." },
-  { f: "PROMPT_CODEX.md", d: "A build prompt tuned for Codex." },
-  { f: "preview.html", d: "A rendered preview of the design system." },
-  { f: "export package", d: "The full set, zipped and ready for your build tool." },
+const WEBSITE = [
+  { f: "PROJECT_BRIEF.md", d: "The structured client brief." },
+  { f: "SCOPE.md", d: "In/out of scope, deliverables, assumptions." },
+  { f: "DESIGN.md", d: "Design direction and rules." },
+  { f: "CONTENT.md", d: "Voice, page content plan, CTAs." },
+  { f: "BUILD_PROMPT.md", d: "Ready prompt for your AI build tool." },
+  { f: "HANDOFF.md", d: "Delivery checklist and sign-off." },
 ];
+
+const AUTOMATION = [
+  { f: "WORKFLOW_AUDIT.md", d: "Current process and where leads leak." },
+  { f: "AUTOMATION_BLUEPRINT.md", d: "The flow: trigger → AI → approval → action." },
+  { f: "TOOLS_STACK.md", d: "What to use, what to skip." },
+  { f: "CLIENT_PROPOSAL.md", d: "A proposal the client can say yes to." },
+  { f: "BUILD_PLAN.md", d: "Phased rollout, week by week." },
+  { f: "HANDOFF.md", d: "How the owner operates it after launch." },
+];
+
+function FileList({ title, items }: { title: string; items: { f: string; d: string }[] }) {
+  return (
+    <div className="card p-5">
+      <p className="eyebrow mb-4">{title}</p>
+      <Stagger className="grid gap-2">
+        {items.map((o) => (
+          <StaggerItem key={o.f}>
+            <div className="flex items-center gap-3 rounded-lg border border-line bg-white/[0.02] px-3.5 py-2.5 transition-colors duration-200 hover:border-line-strong">
+              <span className="shrink-0 rounded-md bg-brand/12 px-2 py-1 font-mono text-[11px] text-brand">
+                {o.f}
+              </span>
+              <span className="truncate text-sm text-muted">{o.d}</span>
+            </div>
+          </StaggerItem>
+        ))}
+      </Stagger>
+    </div>
+  );
+}
 
 export function OutputFilesSection() {
   return (
     <section id="output" className="mx-auto max-w-6xl px-5 sm:px-8 py-24 md:py-32 scroll-mt-20">
-      <div className="grid gap-12 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
-        <SectionHeading
-          eyebrow="Design system output"
-          title={<>Structured files, not a black box.</>}
-          intro="Every project exports a complete set of AI-ready files. Readable, editable, and versioned — so your team and your tools can act on them directly."
-        />
-
-        <Stagger className="grid gap-2.5">
-          {OUTPUTS.map((o) => (
-            <StaggerItem key={o.f}>
-              <div className="flex items-center gap-4 rounded-xl border border-line bg-white/[0.02] px-4 py-3 transition-colors duration-200 hover:border-line-strong">
-                <span className="shrink-0 rounded-md bg-brand/12 px-2 py-1 font-mono text-xs text-brand">
-                  {o.f}
-                </span>
-                <span className="text-sm text-muted">{o.d}</span>
-              </div>
-            </StaggerItem>
-          ))}
-        </Stagger>
+      <SectionHeading
+        eyebrow="Generated documents"
+        title="Real files, versioned, ready to hand over."
+        intro="Each project type generates its own delivery set — built from your actual brief, editable, with full version history."
+        center
+      />
+      <div className="mt-14 grid gap-5 lg:grid-cols-2">
+        <FileList title="Website / App projects" items={WEBSITE} />
+        <FileList title="Automation Workflow projects" items={AUTOMATION} />
       </div>
     </section>
   );

@@ -1,19 +1,23 @@
 @AGENTS.md
 
-# AI Website Design System Generator
+# Project OS — Agency Project OS + Small Business Automation Builder
 
-Generates structured, AI-ready design-system files (tokens, docs, per-tool build
-prompts) for agencies, developers, and AI coding tools. Users create a project,
-add a business brief + reference URLs + assets, run AI agents, generate the
-files, preview, and export.
+An AI-powered project workspace for freelancers and agencies to scope, organize,
+and deliver websites, apps, and small-business automation workflows — from first
+client brief to final handoff. Not a PM-tool clone and not an n8n/Zapier clone:
+a focused, agency-first delivery system with automation workflow foundations.
+
+Two project types: **WEBSITE_APP** (client web builds) and
+**AUTOMATION_WORKFLOW** (leads/bookings/approvals automation for small
+businesses like plumbers, restaurants, real estate, taxi).
 
 ## Stack
 
 - **Next.js 16** (App Router, Turbopack, RSC + Server Actions) · **TypeScript**
-- **Tailwind CSS v4** (CSS `@theme` config in `globals.css`)
+- **Tailwind CSS v4** (CSS `@theme` config in `globals.css`) · **Framer Motion** (light)
 - **Prisma 7** on **PostgreSQL** · **BullMQ + ioredis** (queue) · **zod** (validation)
 - Deployed on **Railway** (provides `DATABASE_URL`, `REDIS_URL`). Never hard-code secrets.
-- Deferred: Playwright (crawler/screenshots), OpenAI API (real agents).
+- Deferred: real AI APIs, external integrations (email/WhatsApp/calendar), auth, uploads.
 
 > Next 16 + Prisma 7 both have breaking changes vs. older training data. See
 > `AGENTS.md`; read `node_modules/next/dist/docs/` before unfamiliar APIs.
@@ -22,11 +26,14 @@ files, preview, and export.
 
 - Connection URL lives in `prisma.config.ts` (`datasource.url`), **not** the
   schema `datasource` block.
-- Client generates to `src/generated/prisma` (git-ignored); import
-  `PrismaClient` from `@/generated/prisma/client`, enums from
-  `@/generated/prisma/enums`.
-- The client **requires a driver adapter** — we pass `@prisma/adapter-pg`
-  (`PrismaPg`) in `src/lib/db/client.ts`.
+- Client generates to `src/generated/prisma` (git-ignored). Import `PrismaClient`
+  from `@/generated/prisma/client`, enums from `@/generated/prisma/enums`, and
+  model row types from `@/generated/prisma/models` as `<Name>Model`
+  (e.g. `ProjectModel`) — plain `Project` is NOT exported.
+- The client **requires a driver adapter** — `@prisma/adapter-pg` in
+  `src/lib/db/client.ts`.
+- After schema changes: `npx prisma generate` AND restart the dev server (a
+  running Next dev process keeps the old client in memory).
 
 ## Commands
 
@@ -36,80 +43,76 @@ npm run build       # production build + typecheck (this is the typecheck)
 npm run db:start    # local userspace Postgres (embedded-postgres) on :5433
 npm run db:stop
 npm run db:migrate  # prisma migrate dev
-npm run db:generate # prisma generate
-npx tsx scripts/seed.ts   # seed a demo project (needs DATABASE_URL)
+npm run db:seed     # seed one project of each type (needs DATABASE_URL)
+npm run worker      # BullMQ worker (requires REDIS_URL)
 ```
 
 Local dev has **no Docker/Redis** (machine can't install them). `db:start` runs
-Postgres in userspace; Redis is absent, so the queue runs **inline** (see below).
+Postgres in userspace; without Redis the queue runs inline via the mock queue.
 
 ## Architecture (`src/`)
 
 ```
-app/            routes + server actions (page.tsx = premium landing, projects/*)
+app/            routes + server actions (page.tsx = landing, projects/*)
 components/
-  landing/      LandingHero, FeatureSection, WorkflowSection, OutputFilesSection,
-                PreviewExportSection, TrustSection, FinalCTA
-  layout/       SiteHeader, SiteFooter
-  projects/     ProjectCard, ProjectForm, ProjectOverview, GeneratedFilesViewer, StatusBadge
-  ui/           Button/LinkButton (micro-interactions), motion primitives (FadeUp,
-                Stagger, StaggerItem, HoverLift) — all respect prefers-reduced-motion
+  landing/      LandingHero, FeatureSection (pillars + use cases),
+                WorkflowSection (how it works), OutputFilesSection, FinalCTA
+  layout/       SiteHeader, SiteFooter ("Project OS" brand)
+  projects/     ProjectCard, ProjectForm (type-aware), ProjectOverview,
+                GeneratedFilesViewer, WorkflowBlueprint, NotesSection,
+                AgentRunTimeline, StatusBadge/TypeBadge
+  ui/           Button/LinkButton, motion primitives (FadeUp, Stagger,
+                StaggerItem, HoverLift) — all respect prefers-reduced-motion
 lib/
-  generators/   BRAND.md, DESIGN.md, CREATIVE.md, PROMPT_CLAUDE_CODE.md — rich
-                templates built from real project input (no filler)
-  generation.ts runGeneration(): AgentRun + AgentStep per agent → GeneratedFile
-                (+ FileVersion history, version bump on regenerate)
+  generators/   two file sets from real input:
+                WEBSITE_APP → PROJECT_BRIEF/SCOPE/DESIGN/CONTENT/BUILD_PROMPT/HANDOFF
+                AUTOMATION_WORKFLOW → WORKFLOW_AUDIT/AUTOMATION_BLUEPRINT/
+                TOOLS_STACK/CLIENT_PROPOSAL/BUILD_PLAN/HANDOFF
+  generation.ts runGeneration(): AgentRun + step-by-step AgentSteps → files +
+                FileVersions; automation projects also get a mock Workflow
+                (nodes + edges: TRIGGER → AI_CLASSIFY → CONDITION → CREATE_LEAD
+                → HUMAN_APPROVAL → SEND_EMAIL → END, with an urgent branch)
+  workflow-suggestions.ts  Project-to-Automation Intelligence: business type →
+                suggested workflows (plumber/restaurant/real estate/taxi/clinic)
   jobs/         startGeneration() → enqueue GENERATE
   queue/        index.ts (abstraction) / mockQueue.ts (inline, local) /
-                redisQueue.ts (BullMQ, only loaded when REDIS_URL set)
+                redisQueue.ts (BullMQ, only imported when REDIS_URL set)
   db/           Prisma 7 client singleton (pg adapter)
-  validators/   zod schemas + PLATFORM_TARGETS / ANIMATION_PREFERENCES constants
-  utils/        slugify, shortId
-types/          GenerationInput, OutputFileName, AGENT_NAMES
+  validators/   zod schemas (createProjectSchema incl. automation fields)
+types/          ProjectBrief, AutomationBrief, GenerationInput, file-set consts
 ```
 
 ### Data model
 
-`Project` (name, slug, client/business, status) 1:1 `ProjectInput` (goal, audience,
-URLs, colors, pages, keywords, platform, animation, notes) 1:N `GeneratedFile`
-(1:N `FileVersion`) and 1:N `AgentRun` (1:N `AgentStep`).
+Tenancy: `Agency` → `User`s, `Business`es (clients, each with `Lead`s),
+`Project`s. A `Project` has typed `ProjectInput` rows (category `brief` /
+`automation`, data as Json), `GeneratedFile`s (→ `FileVersion`s), `AgentRun`s
+(→ `AgentStep`s), `ProjectNote`s, and `Workflow`s (→ `WorkflowNode`/`WorkflowEdge`,
+runs → `WorkflowRun`/`WorkflowStep`/`Approval`). Agency/Business/User/Lead and
+WorkflowRun/Approval are schema-ready but not yet surfaced in UI.
 
-### Generation flow (mock, no real AI yet)
+### Rules
 
-`startGeneration(projectId)` → enqueue → `runGeneration()`: creates an AgentRun,
-runs 4 agents (Brand Strategist, Design Systems, Creative Director, Prompt
-Engineer) each producing its file from real input values, versioning on
-regenerate, then marks the project READY.
-
-### Queue
-
-`enqueue(jobName, payload)`: mockQueue runs the processor inline (local, no
-Redis); redisQueue uses BullMQ (only dynamically imported when `REDIS_URL` is
-set). Worker: `npm run worker` (`src/worker.ts`). Note: bullmq bundles its own
-`ioredis`, so the connection instance is cast to `ConnectionOptions`.
+- Long-running AI/workflow work never lives in the request path conceptually —
+  it goes through `enqueue()` so a worker can own it later.
+- Mutations use Server Actions with zod; DB-reading pages set
+  `export const dynamic = "force-dynamic"`.
+- `params`/`searchParams` are **Promises** — await them.
+- Prisma access stays in `lib/*`, not components.
+- `.env`, `.pg-data`, `src/generated`, `dev-with-path.sh` are git-ignored.
 
 ### Design system (UI)
 
-Dark premium enterprise look — tokens in `globals.css` `@theme` (`canvas`,
-`surface`, `ink`, `muted`, `brand` indigo→violet, `accent` cyan, hairline
-`line`). Plus Jakarta Sans display/body, Geist Mono for code/labels. Helpers:
-`.aurora`, `.text-gradient`, `.eyebrow`, `.card`. Motion: 0.6–0.9s, ease
-`[0.22,1,0.36,1]`, no bounce/spin; `motion.tsx` primitives handle reduced motion.
-
-## Conventions
-
-- Mutations use **Server Actions** (`src/app/projects/actions.ts`) with zod
-  validation; pages are Server Components (`export const dynamic = "force-dynamic"`
-  where they read the DB).
-- `params`/`searchParams` are **Promises** — await them.
-- Keep Prisma access in `lib/projects.ts` / `lib/*`, not in components.
-- No secrets in code; read from env. `.env`, `.pg-data`, `.storage`,
-  `src/generated`, and `dev-with-path.sh` are git-ignored.
+Dark premium look — tokens in `globals.css` `@theme` (`canvas`, `surface`,
+`ink`, `muted`, `brand` indigo→violet, `accent` cyan, hairline `line`).
+Plus Jakarta Sans + Geist Mono. Helpers: `.aurora`, `.text-gradient`,
+`.eyebrow`, `.card`. Motion: light, 0.55–0.9s, ease `[0.22,1,0.36,1]`, no
+bounce/spin.
 
 ## Status
 
-Foundation complete: premium landing page, full project flow (create with 16-field
-brief → generate → view files with agent workflow status), rich mock generators,
-versioned files, queue abstraction, Railway deploy config. Not yet built: real AI
-agents (OpenAI), remaining output files (CONTENT/COMPONENTS/ANIMATION/SEO/other
-PROMPT_*), export ZIP, preview.html rendering, Playwright crawler, uploads, auth.
+Agency OS foundation complete: repositioned landing, type-aware project
+creation, type-specific file generation with versions, agent-run timeline,
+workflow blueprint display, notes/decisions, Railway deploy config + worker.
+Not yet built: real AI agents, workflow execution/approval queue UI, leads UI,
+external integrations, export package, auth, visual workflow builder.

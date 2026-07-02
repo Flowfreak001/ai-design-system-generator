@@ -1,23 +1,11 @@
 import { z } from "zod";
 
-export const PLATFORM_TARGETS = [
-  "Claude Code",
-  "Codex",
-  "Replit",
-  "Lovable",
-  "Bolt",
-  "Cursor",
-  "v0",
-  "Webflow",
-  "Wix Studio",
-  "WordPress",
-  "React/Next.js",
-  "Other",
+export const PROJECT_TYPES = [
+  { value: "WEBSITE_APP", label: "Website / App Project" },
+  { value: "AUTOMATION_WORKFLOW", label: "Automation Workflow Project" },
 ] as const;
 
-export const ANIMATION_PREFERENCES = ["None", "Minimal", "Premium", "Bold"] as const;
-
-// Accepts comma/newline separated strings from textareas → trimmed arrays.
+// Comma/newline separated textarea → trimmed string array.
 const listField = z
   .string()
   .optional()
@@ -36,20 +24,26 @@ const optionalText = z
 export const createProjectSchema = z.object({
   name: z.string().min(1, "Project name is required"),
   clientName: optionalText,
-  businessName: optionalText,
+  type: z.enum(["WEBSITE_APP", "AUTOMATION_WORKFLOW"]).default("WEBSITE_APP"),
   businessType: optionalText,
-  websiteGoal: optionalText,
+  goal: optionalText,
   targetAudience: optionalText,
-  existingWebsiteUrl: optionalText,
-  referenceUrls: listField,
-  competitorUrls: listField,
-  brandColors: listField,
-  requiredPages: listField,
-  servicesProducts: optionalText,
-  seoKeywords: listField,
-  platformTarget: optionalText,
-  animationPreference: optionalText,
+  keyItems: listField,
+  brandRefs: listField,
+  currentTools: listField,
   notes: optionalText,
+  // Automation-only helper fields (ignored for website projects).
+  currentProcess: optionalText,
+  mainPainPoint: optionalText,
+  triggerSource: optionalText,
+  aiShouldDo: optionalText,
+  needsHumanApproval: optionalText,
 });
 
 export type CreateProjectInput = z.infer<typeof createProjectSchema>;
+
+export const createNoteSchema = z.object({
+  projectId: z.string().min(1),
+  title: optionalText,
+  content: z.string().min(1, "Note content is required"),
+});
