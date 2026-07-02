@@ -50,14 +50,27 @@ export class Assumptions {
 
 /** Tokens with graceful fallback + assumption tracking. */
 export function paletteOf(ctx: GeneratorContext, a: Assumptions): { name: string; value: string }[] {
+  // Priority: user-provided brand colors → analyzed tokens → legacy refs → assumed neutral.
+  const { brief } = ctx.input;
+  const provided = [brief.primaryColor, brief.secondaryColor].filter(
+    (c): c is string => Boolean(c && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(c)),
+  );
+  if (provided.length) {
+    return provided.map((value, i) => ({ name: i === 0 ? "primary" : "secondary", value }));
+  }
   const entries = Object.entries(ctx.tokens?.color ?? {});
-  if (entries.length) return entries.map(([name, value]) => ({ name, value: String(value) }));
-  const refs = ctx.input.brief.brandRefs.filter((r) => /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(r));
+  if (entries.length) {
+    a.add("Palette extracted from the analyzed website — confirm it matches current brand assets.");
+    return entries.map(([name, value]) => ({ name, value: String(value) }));
+  }
+  const refs = brief.brandRefs.filter((r) => /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(r));
   if (refs.length) {
-    a.add("Palette taken from brand references in the brief (site analysis had no color data).");
+    a.add("Palette taken from brand references in the brief.");
     return refs.map((value, i) => ({ name: i === 0 ? "primary" : `color-${i + 1}`, value }));
   }
-  a.add("No palette detected — neutral base + one accent proposed; confirm with the client.");
+  a.add(
+    "Brand colors were not provided, so the system recommends a clean neutral palette until final brand assets are available.",
+  );
   return [
     { name: "primary", value: "#111827" },
     { name: "accent", value: "#2563eb" },
@@ -66,9 +79,13 @@ export function paletteOf(ctx: GeneratorContext, a: Assumptions): { name: string
 }
 
 export function fontsOf(ctx: GeneratorContext, a: Assumptions): string[] {
+  // Priority: user preference → analyzed tokens → assumed clean sans.
+  if (ctx.input.brief.fontPreference?.trim()) return [ctx.input.brief.fontPreference.trim()];
   const fonts = Object.values(ctx.tokens?.typography ?? {}).map(String);
   if (fonts.length) return fonts;
-  a.add("No fonts detected from the site — a clean sans (e.g. Inter) is proposed as default.");
+  a.add(
+    "A font was not provided, so the system recommends a clean sans (Inter) until brand typography is confirmed.",
+  );
   return ["Inter"];
 }
 

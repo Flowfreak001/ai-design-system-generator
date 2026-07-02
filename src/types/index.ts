@@ -1,14 +1,33 @@
-// Shared domain types for the Agency Project OS.
+// Shared domain types for the Agency Project OS / Design System Generator.
 
 import type { ProjectType } from "@/generated/prisma/enums";
 
-/** The structured brief captured on project creation (stored as ProjectInput). */
+/** The structured brief captured by the project wizard (stored as ProjectInput). */
 export type ProjectBrief = {
+  // Step 1 — basics
   businessType?: string;
   goal?: string;
   targetAudience?: string;
-  keyItems: string[]; // pages / features / workflows needed
-  brandRefs: string[]; // brand colors / reference links
+  // Step 2 — design references (all optional)
+  referenceUrls: string[];
+  existingWebsiteUrl?: string;
+  competitorUrls: string[];
+  stylePreference?: string;
+  // Step 3 — brand inputs (all optional)
+  primaryColor?: string;
+  secondaryColor?: string;
+  fontPreference?: string;
+  brandPersonality?: string;
+  toneOfVoice?: string;
+  // Step 4 — website structure
+  keyItems: string[]; // required pages / workflows
+  services?: string;
+  ctaGoal?: string;
+  seoKeywords: string[];
+  platformTarget?: string;
+  animationPreference?: string;
+  // Misc / legacy
+  brandRefs: string[]; // legacy free-form refs (colors/URLs mixed)
   currentTools: string[];
   notes?: string;
 };
@@ -54,3 +73,11 @@ export const AUTOMATION_FILES = [
   "BUILD_PLAN.md",
   "HANDOFF.md",
 ] as const;
+
+/** Derived, human-friendly project status for the dashboard/workspace. */
+export type DerivedStatus =
+  | "Draft"
+  | "Ready to Generate"
+  | "Files Generated"
+  | "Preview Ready"
+  | "Exported";

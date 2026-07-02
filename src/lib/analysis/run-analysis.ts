@@ -32,8 +32,13 @@ export async function runWebsiteAnalysis(projectId: string) {
   if (!project) throw new Error("Project not found");
 
   const input = toGenerationInput(project);
-  const refUrl = input.brief.brandRefs.find((r) => /^https?:\/\//i.test(r)) ?? null;
-  const url = project.business?.website || refUrl;
+  const isUrl = (r: string) => /^https?:\/\//i.test(r);
+  const url =
+    input.brief.existingWebsiteUrl?.trim() ||
+    input.brief.referenceUrls.find(isUrl) ||
+    project.business?.website ||
+    input.brief.brandRefs.find(isUrl) ||
+    null;
 
   const run = await prisma.agentRun.create({
     data: {

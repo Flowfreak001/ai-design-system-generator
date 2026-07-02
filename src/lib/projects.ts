@@ -9,7 +9,11 @@ export async function listProjects(agencyId: string) {
   return prisma.project.findMany({
     where: { agencyId },
     orderBy: { updatedAt: "desc" },
-    include: { _count: { select: { files: true, workflows: true } } },
+    include: {
+      inputs: { where: { category: "brief" } },
+      files: { select: { name: true, type: true } },
+      _count: { select: { files: true, workflows: true } },
+    },
   });
 }
 
@@ -52,9 +56,23 @@ export async function createProject(data: CreateProjectInput, agencyId?: string)
     businessType: data.businessType,
     goal: data.goal,
     targetAudience: data.targetAudience,
+    referenceUrls: data.referenceUrls,
+    existingWebsiteUrl: data.existingWebsiteUrl,
+    competitorUrls: data.competitorUrls,
+    stylePreference: data.stylePreference,
+    primaryColor: data.primaryColor,
+    secondaryColor: data.secondaryColor,
+    fontPreference: data.fontPreference,
+    brandPersonality: data.brandPersonality,
+    toneOfVoice: data.toneOfVoice,
     keyItems: data.keyItems,
-    brandRefs: data.brandRefs,
-    currentTools: data.currentTools,
+    services: data.services,
+    ctaGoal: data.ctaGoal,
+    seoKeywords: data.seoKeywords,
+    platformTarget: data.platformTarget,
+    animationPreference: data.animationPreference,
+    brandRefs: [data.primaryColor, data.secondaryColor].filter(Boolean) as string[],
+    currentTools: [],
     notes: data.notes,
   };
 
@@ -72,7 +90,7 @@ export async function createProject(data: CreateProjectInput, agencyId?: string)
   }
 
   // Attach to a client when provided; inherit its name for display.
-  let clientName = data.clientName;
+  let clientName = data.clientName ?? data.businessName;
   if (data.businessId) {
     const business = await prisma.business.findUnique({
       where: { id: data.businessId },
@@ -117,7 +135,7 @@ export function toGenerationInput(
 ): GenerationInput {
   const briefRow = project.inputs.find((i) => i.category === "brief");
   const autoRow = project.inputs.find((i) => i.category === "automation");
-  const brief = (briefRow?.data ?? { keyItems: [], brandRefs: [], currentTools: [] }) as ProjectBrief;
+  const brief = (briefRow?.data ?? {}) as Partial<ProjectBrief>;
 
   return {
     projectName: project.name,
@@ -128,6 +146,9 @@ export function toGenerationInput(
       keyItems: brief.keyItems ?? [],
       brandRefs: brief.brandRefs ?? [],
       currentTools: brief.currentTools ?? [],
+      referenceUrls: brief.referenceUrls ?? [],
+      competitorUrls: brief.competitorUrls ?? [],
+      seoKeywords: brief.seoKeywords ?? [],
     },
     automation: autoRow ? (autoRow.data as AutomationBrief) : undefined,
   };

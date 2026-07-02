@@ -1,4 +1,4 @@
-// Dev seed — one project of each type, with generated files.
+// Dev seed — demo login + clients + one project of each type.
 // Run: npm run db:seed
 import "dotenv/config";
 import { createProject } from "../src/lib/projects";
@@ -28,45 +28,72 @@ async function main() {
     stage: "Onboarding", services: ["Automation", "SEO"],
   });
 
-  const site = await createProject({
-    name: "Aurora Marketing Site",
-    businessId: aurora.id,
-    clientName: "Aurora Inc.",
-    type: "WEBSITE_APP",
-    businessType: "SaaS",
-    goal: "Generate qualified sign-ups",
-    targetAudience: "Freelancers and small studios",
-    keyItems: ["Home", "Pricing", "Features", "About", "Contact"],
-    brandRefs: ["#6D5EF6", "https://linear.app"],
-    currentTools: ["Stripe", "Notion"],
-    notes: "Premium, trustworthy, developer-friendly tone.",
+  const base = {
+    clientName: undefined,
+    targetAudience: undefined,
+    referenceUrls: [] as string[],
+    existingWebsiteUrl: undefined,
+    competitorUrls: [] as string[],
+    stylePreference: undefined,
+    primaryColor: undefined,
+    secondaryColor: undefined,
+    fontPreference: undefined,
+    brandPersonality: undefined,
+    toneOfVoice: undefined,
+    services: undefined,
+    ctaGoal: undefined,
+    seoKeywords: [] as string[],
+    animationPreference: undefined,
+    notes: undefined,
     currentProcess: undefined,
     mainPainPoint: undefined,
     triggerSource: undefined,
     aiShouldDo: undefined,
     needsHumanApproval: undefined,
-  }, agencyId);
+  };
+
+  const site = await createProject(
+    {
+      ...base,
+      name: "Aurora Marketing Site",
+      businessId: aurora.id,
+      type: "WEBSITE_APP",
+      businessName: "Aurora",
+      businessType: "SaaS",
+      goal: "Generate qualified sign-ups",
+      targetAudience: "Freelancers and small studios",
+      keyItems: ["Home", "Pricing", "Features", "About", "Contact"],
+      platformTarget: "Claude Code",
+      referenceUrls: ["https://linear.app"],
+      primaryColor: "#6D5EF6",
+      animationPreference: "Premium",
+      notes: "Premium, trustworthy, developer-friendly tone.",
+    },
+    agencyId,
+  );
   await runGeneration(site.id);
   console.log(`seeded WEBSITE_APP project ${site.id}`);
 
-  const auto = await createProject({
-    name: "Acme Plumbing — Enquiry Automation",
-    businessId: acme.id,
-    clientName: "Acme Plumbing",
-    type: "AUTOMATION_WORKFLOW",
-    businessType: "Plumber",
-    goal: "Stop losing emergency calls and quote requests",
-    targetAudience: "Homeowners and landlords in the metro area",
-    keyItems: ["Emergency enquiry workflow", "Quote follow-up", "Review requests"],
-    brandRefs: [],
-    currentTools: ["WhatsApp Business", "Google Calendar"],
-    notes: "Owner answers everything personally today.",
-    currentProcess: "Calls and WhatsApp messages answered by the owner between jobs",
-    mainPainPoint: "Enquiries missed while on site; quotes never followed up",
-    triggerSource: "Website form / WhatsApp",
-    aiShouldDo: "Read enquiries, classify urgency, draft replies, schedule follow-ups",
-    needsHumanApproval: "All outgoing replies and quotes",
-  }, agencyId);
+  const auto = await createProject(
+    {
+      ...base,
+      name: "Acme Plumbing — Enquiry Automation",
+      businessId: acme.id,
+      type: "AUTOMATION_WORKFLOW",
+      businessName: "Acme Plumbing",
+      businessType: "Plumber",
+      goal: "Stop losing emergency calls and quote requests",
+      targetAudience: "Homeowners and landlords in the metro area",
+      keyItems: ["Emergency enquiry workflow", "Quote follow-up", "Review requests"],
+      platformTarget: "Claude Code",
+      currentProcess: "Calls and WhatsApp messages answered by the owner between jobs",
+      mainPainPoint: "Enquiries missed while on site; quotes never followed up",
+      triggerSource: "Website form / WhatsApp",
+      aiShouldDo: "Read enquiries, classify urgency, draft replies, schedule follow-ups",
+      needsHumanApproval: "All outgoing replies and quotes",
+    },
+    agencyId,
+  );
   await runGeneration(auto.id);
   console.log(`seeded AUTOMATION_WORKFLOW project ${auto.id}`);
   process.exit(0);

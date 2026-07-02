@@ -19,7 +19,11 @@ export async function getClient(id: string, agencyId: string) {
     include: {
       projects: {
         orderBy: { updatedAt: "desc" },
-        include: { _count: { select: { files: true, workflows: true } } },
+        include: {
+          inputs: { where: { category: "brief" } },
+          files: { select: { name: true, type: true } },
+          _count: { select: { files: true, workflows: true } },
+        },
       },
       _count: { select: { leads: true } },
     },

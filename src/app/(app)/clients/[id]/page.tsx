@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { getClient } from "@/lib/clients";
 import { ProjectCard } from "@/components/projects/project-card";
+import { deriveStatus } from "@/lib/status";
+import type { ProjectBrief } from "@/types";
 import { LinkButton } from "@/components/ui/button";
 import { FadeUp } from "@/components/ui/motion";
 
@@ -95,9 +97,28 @@ export default async function ClientDetailPage({
           </div>
         ) : (
           <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {client.projects.map((p) => (
-              <ProjectCard key={p.id} project={p} />
-            ))}
+            {client.projects.map((p) => {
+              const brief = (p.inputs[0]?.data ?? {}) as Partial<ProjectBrief>;
+              const hasReferenceUrls = Boolean(
+                brief.referenceUrls?.length || brief.existingWebsiteUrl || brief.competitorUrls?.length,
+              );
+              return (
+                <ProjectCard
+                  key={p.id}
+                  project={{
+                    id: p.id,
+                    name: p.name,
+                    clientName: p.clientName,
+                    businessType: brief.businessType ?? null,
+                    type: p.type,
+                    updatedAt: p.updatedAt,
+                    fileCount: p._count.files,
+                    hasReferenceUrls,
+                    derivedStatus: deriveStatus({ status: p.status, files: p.files, hasReferenceUrls }),
+                  }}
+                />
+              );
+            })}
           </div>
         )}
       </div>

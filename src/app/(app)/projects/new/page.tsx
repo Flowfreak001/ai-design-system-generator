@@ -2,9 +2,9 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { requireUser } from "@/lib/auth";
 import { listClients } from "@/lib/clients";
-import { ProjectForm } from "@/components/projects/project-form";
+import { ProjectWizard } from "@/components/projects/project-wizard";
 
-export const metadata: Metadata = { title: "New project" };
+export const metadata: Metadata = { title: "New design system" };
 
 export default async function NewProjectPage({
   searchParams,
@@ -20,13 +20,13 @@ export default async function NewProjectPage({
       <Link href="/projects" className="text-sm text-muted transition-colors hover:text-ink">
         ← Projects
       </Link>
-      <h2 className="mt-3 text-[26px] font-semibold tracking-[-0.02em]">New Project</h2>
+      <h2 className="mt-3 text-[26px] font-semibold tracking-[-0.02em]">Create New Design System</h2>
       <p className="mt-1 text-sm text-muted">
-        Pick the client and project type — generated files and the workflow
-        blueprint are built from this brief.
+        Five quick steps. Only the basics are required — everything else is
+        optional and the system fills gaps with clear assumptions.
       </p>
       <div className="mt-8">
-        <ProjectForm
+        <ProjectWizard
           clients={clients.map((c) => ({ id: c.id, name: c.name }))}
           defaultClientId={client}
         />

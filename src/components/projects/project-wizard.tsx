@@ -1,0 +1,373 @@
+"use client";
+
+// Multi-step project creation wizard. All step panels stay mounted (hidden,
+// not unmounted) inside one form, so values persist and submit as one
+// FormData. Only 6 fields are required; everything else is optional and the
+// Review step lists what's missing so users know what will be assumed.
+
+import { useActionState, useRef, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { createProjectAction, type FormState } from "@/app/(app)/projects/actions";
+import { Button } from "@/components/ui/button";
+import {
+  PLATFORM_TARGETS,
+  ANIMATION_PREFERENCES,
+  STYLE_PREFERENCES,
+} from "@/lib/validators/project";
+
+const STEPS = [
+  { id: 1, label: "Basics" },
+  { id: 2, label: "References" },
+  { id: 3, label: "Brand" },
+  { id: 4, label: "Structure" },
+  { id: 5, label: "Review" },
+];
+
+// Required fields per step (names must match inputs below).
+const REQUIRED: Record<number, string[]> = {
+  1: ["name", "businessName", "businessType", "goal"],
+  2: [],
+  3: [],
+  4: ["keyItems", "platformTarget"],
+};
+
+const OPTIONAL_LABELS: [string, string][] = [
+  ["clientName", "Client name"],
+  ["targetAudience", "Target audience"],
+  ["referenceUrls", "Reference websites"],
+  ["existingWebsiteUrl", "Existing website"],
+  ["competitorUrls", "Competitor URLs"],
+  ["stylePreference", "Style preference"],
+  ["primaryColor", "Primary color"],
+  ["secondaryColor", "Secondary color"],
+  ["fontPreference", "Font preference"],
+  ["brandPersonality", "Brand personality"],
+  ["toneOfVoice", "Tone of voice"],
+  ["services", "Services / products"],
+  ["ctaGoal", "CTA goal"],
+  ["seoKeywords", "SEO keywords"],
+];
+
+const inputCls =
+  "w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink " +
+  "placeholder:text-faint transition-colors duration-200 " +
+  "focus:border-accent/50 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent";
+
+function Field({
+  label,
+  name,
+  required,
+  placeholder,
+  hint,
+  type = "text",
+}: {
+  label: string;
+  name: string;
+  required?: boolean;
+  placeholder?: string;
+  hint?: string;
+  type?: string;
+}) {
+  return (
+    <div>
+      <label htmlFor={name} className="mb-1.5 block text-sm font-medium">
+        {label} {required ? <span className="text-accent">*</span> : <span className="text-faint text-xs font-normal">optional</span>}
+      </label>
+      <input id={name} name={name} type={type} placeholder={placeholder} className={inputCls} />
+      {hint && <p className="mt-1 text-xs text-faint">{hint}</p>}
+    </div>
+  );
+}
+
+function Area({
+  label,
+  name,
+  required,
+  placeholder,
+  hint,
+  rows = 2,
+}: {
+  label: string;
+  name: string;
+  required?: boolean;
+  placeholder?: string;
+  hint?: string;
+  rows?: number;
+}) {
+  return (
+    <div>
+      <label htmlFor={name} className="mb-1.5 block text-sm font-medium">
+        {label} {required ? <span className="text-accent">*</span> : <span className="text-faint text-xs font-normal">optional</span>}
+      </label>
+      <textarea id={name} name={name} rows={rows} placeholder={placeholder} className={inputCls} />
+      {hint && <p className="mt-1 text-xs text-faint">{hint}</p>}
+    </div>
+  );
+}
+
+function Select({
+  label,
+  name,
+  options,
+  required,
+  placeholder = "Select…",
+}: {
+  label: string;
+  name: string;
+  options: readonly string[];
+  required?: boolean;
+  placeholder?: string;
+}) {
+  return (
+    <div>
+      <label htmlFor={name} className="mb-1.5 block text-sm font-medium">
+        {label} {required ? <span className="text-accent">*</span> : <span className="text-faint text-xs font-normal">optional</span>}
+      </label>
+      <select id={name} name={name} defaultValue="" className={`${inputCls} cursor-pointer`}>
+        <option value="" disabled={required}>
+          {placeholder}
+        </option>
+        {options.map((o) => (
+          <option key={o} value={o}>
+            {o}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+export function ProjectWizard({
+  clients = [],
+  defaultClientId,
+}: {
+  clients?: { id: string; name: string }[];
+  defaultClientId?: string;
+}) {
+  const [state, formAction, pending] = useActionState<FormState, FormData>(
+    createProjectAction,
+    undefined,
+  );
+  const [step, setStep] = useState(1);
+  const [stepError, setStepError] = useState<string | null>(null);
+  const [summary, setSummary] = useState<Record<string, string>>({});
+  const formRef = useRef<HTMLFormElement>(null);
+  const reduce = useReducedMotion();
+
+  const readForm = (): Record<string, string> => {
+    const fd = new FormData(formRef.current ?? undefined);
+    const out: Record<string, string> = {};
+    fd.forEach((v, k) => {
+      if (typeof v === "string" && v.trim()) out[k] = v.trim();
+    });
+    return out;
+  };
+
+  const goTo = (next: number) => {
+    if (next > step) {
+      const values = readForm();
+      for (const s of Object.keys(REQUIRED).map(Number)) {
+        if (s >= next) break;
+        const missing = REQUIRED[s].find((f) => !values[f]);
+        if (missing) {
+          setStep(s);
+          setStepError("Fill the required fields marked * to continue.");
+          return;
+        }
+      }
+    }
+    setStepError(null);
+    if (next === 5) setSummary(readForm());
+    setStep(next);
+  };
+
+  const missingOptionals = OPTIONAL_LABELS.filter(([k]) => !summary[k]).map(([, l]) => l);
+  const panel = (n: number) => (n === step ? "" : "hidden");
+
+  return (
+    <form ref={formRef} action={formAction} className="grid gap-6">
+      {/* Progress */}
+      <ol className="flex items-center gap-1" aria-label="Progress">
+        {STEPS.map((s, i) => {
+          const done = step > s.id;
+          const active = step === s.id;
+          return (
+            <li key={s.id} className="flex flex-1 items-center gap-1">
+              <button
+                type="button"
+                onClick={() => goTo(s.id)}
+                className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-medium transition-colors duration-200 ${
+                  active
+                    ? "bg-accent text-white"
+                    : done
+                      ? "bg-accent-soft text-accent"
+                      : "bg-panel text-faint"
+                }`}
+              >
+                <span>{done ? "✓" : s.id}</span>
+                <span className="hidden sm:inline">{s.label}</span>
+              </button>
+              {i < STEPS.length - 1 && <span className="h-px flex-1 bg-line" aria-hidden="true" />}
+            </li>
+          );
+        })}
+      </ol>
+
+      {(state?.error || stepError) && (
+        <p role="alert" className="rounded-xl border border-danger/30 bg-danger-soft px-4 py-3 text-sm text-danger">
+          {state?.error ?? stepError}
+        </p>
+      )}
+
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={step}
+          initial={{ opacity: 0, y: reduce ? 0 : 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+        >
+          {/* All panels stay mounted; visibility toggles so FormData persists. */}
+          <div className={panel(1)}>
+            <div className="card grid gap-5 p-6">
+              <div>
+                <h3 className="text-base font-semibold">Basic details</h3>
+                <p className="mt-1 text-[13px] text-muted">Who is this design system for?</p>
+              </div>
+              <Field label="Project name" name="name" required placeholder="Simba Car Hire — new website" />
+              <div className="grid gap-5 sm:grid-cols-2">
+                <Field label="Business name" name="businessName" required placeholder="Simba Car Hire" />
+                <Field label="Business type" name="businessType" required placeholder="Car rental, plumber, restaurant…" />
+              </div>
+              <Area label="Website goal" name="goal" required placeholder="What should the website achieve? e.g. Generate booking enquiries" />
+              <Area label="Target audience" name="targetAudience" placeholder="Who are the customers?" />
+              <div className="grid gap-5 sm:grid-cols-2">
+                <Field label="Client name" name="clientName" placeholder="Contact person" />
+                {clients.length > 0 && (
+                  <div>
+                    <label htmlFor="businessId" className="mb-1.5 block text-sm font-medium">
+                      Link to client <span className="text-faint text-xs font-normal">optional</span>
+                    </label>
+                    <select id="businessId" name="businessId" defaultValue={defaultClientId ?? ""} className={`${inputCls} cursor-pointer`}>
+                      <option value="">No client link</option>
+                      {clients.map((c) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+              <input type="hidden" name="type" value="WEBSITE_APP" />
+            </div>
+          </div>
+
+          <div className={panel(2)}>
+            <div className="card grid gap-5 p-6">
+              <div>
+                <h3 className="text-base font-semibold">Design references</h3>
+                <p className="mt-1 text-[13px] text-muted">
+                  Reference websites help us understand the design style. They are optional but recommended.
+                </p>
+              </div>
+              <Area label="Reference website URLs" name="referenceUrls" placeholder="One per line — sites whose style you like" />
+              <Field label="Existing website URL" name="existingWebsiteUrl" placeholder="https://… (if the business already has a site)" />
+              <Area label="Competitor URLs" name="competitorUrls" placeholder="One per line" />
+              <Select label="Style preference" name="stylePreference" options={STYLE_PREFERENCES} />
+            </div>
+          </div>
+
+          <div className={panel(3)}>
+            <div className="card grid gap-5 p-6">
+              <div>
+                <h3 className="text-base font-semibold">Brand inputs</h3>
+                <p className="mt-1 text-[13px] text-muted">
+                  If you don&apos;t have brand colors or a logo yet, leave this blank — the system will create clear assumptions.
+                </p>
+              </div>
+              <div className="rounded-xl border border-dashed border-line-strong bg-panel px-4 py-6 text-center text-sm text-muted">
+                Logo upload coming soon — files aren&apos;t required to generate.
+              </div>
+              <div className="grid gap-5 sm:grid-cols-2">
+                <Field label="Primary color" name="primaryColor" placeholder="#1E5AFF" />
+                <Field label="Secondary color" name="secondaryColor" placeholder="#0B1B3F" />
+              </div>
+              <Field label="Font preference" name="fontPreference" placeholder="e.g. Inter, Manrope, 'something modern'" />
+              <div className="grid gap-5 sm:grid-cols-2">
+                <Field label="Brand personality" name="brandPersonality" placeholder="e.g. dependable, friendly, premium" />
+                <Field label="Tone of voice" name="toneOfVoice" placeholder="e.g. plain-spoken and warm" />
+              </div>
+            </div>
+          </div>
+
+          <div className={panel(4)}>
+            <div className="card grid gap-5 p-6">
+              <div>
+                <h3 className="text-base font-semibold">Website structure</h3>
+                <p className="mt-1 text-[13px] text-muted">What should the site contain, and where will it be built?</p>
+              </div>
+              <Area label="Required pages" name="keyItems" required placeholder="Home, Fleet, Pricing, Locations, Contact…" hint="One per line or comma-separated." />
+              <Area label="Services / products" name="services" placeholder="What does the business offer?" />
+              <Field label="CTA goal" name="ctaGoal" placeholder="e.g. Book a car, Request a quote" />
+              <Area label="SEO keywords" name="seoKeywords" placeholder="One per line or comma-separated" />
+              <div className="grid gap-5 sm:grid-cols-2">
+                <Select label="Platform target" name="platformTarget" options={PLATFORM_TARGETS} required />
+                <Select label="Animation preference" name="animationPreference" options={ANIMATION_PREFERENCES} />
+              </div>
+              <Area label="Notes" name="notes" placeholder="Anything else worth knowing…" />
+            </div>
+          </div>
+
+          <div className={panel(5)}>
+            <div className="grid gap-4">
+              <div className="card p-6">
+                <h3 className="text-base font-semibold">Review &amp; create</h3>
+                <dl className="mt-4 grid gap-2.5">
+                  {[
+                    ["Project", summary.name],
+                    ["Business", `${summary.businessName ?? ""}${summary.businessType ? ` · ${summary.businessType}` : ""}`],
+                    ["Goal", summary.goal],
+                    ["Audience", summary.targetAudience],
+                    ["References", summary.referenceUrls ?? summary.existingWebsiteUrl],
+                    ["Brand colors", [summary.primaryColor, summary.secondaryColor].filter(Boolean).join(", ")],
+                    ["Pages", summary.keyItems],
+                    ["Platform", summary.platformTarget],
+                  ]
+                    .filter(([, v]) => v)
+                    .map(([k, v]) => (
+                      <div key={k} className="grid grid-cols-[110px_1fr] gap-3 text-sm">
+                        <dt className="font-mono text-[11px] uppercase tracking-wider text-faint pt-0.5">{k}</dt>
+                        <dd className="text-body">{v}</dd>
+                      </div>
+                    ))}
+                </dl>
+              </div>
+              {missingOptionals.length > 0 && (
+                <div className="rounded-xl border border-warning/25 bg-warning-soft px-4 py-3">
+                  <p className="text-sm font-medium text-warning">
+                    Not provided (the system will make clear assumptions):
+                  </p>
+                  <p className="mt-1 text-[13px] text-body">{missingOptionals.join(" · ")}</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Nav */}
+      <div className="flex items-center justify-between">
+        <Button type="button" variant="ghost" onClick={() => goTo(step - 1)} className={step === 1 ? "invisible" : ""}>
+          ← Back
+        </Button>
+        {step < 5 ? (
+          <Button type="button" onClick={() => goTo(step + 1)}>
+            Continue →
+          </Button>
+        ) : (
+          <Button type="submit" size="lg" disabled={pending} className="disabled:opacity-50">
+            {pending ? "Creating…" : "Create Design System Project"}
+          </Button>
+        )}
+      </div>
+    </form>
+  );
+}

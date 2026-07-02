@@ -20,8 +20,9 @@ export function generateBrandMd(ctx: GeneratorContext): MdArtifact {
   if (!ctx.website) a.add("No website analysis — existing brand voice could not be sampled.");
 
   const anim = ctx.animation?.globalMotionStyle;
-  const toneWords =
-    anim && /expressive|choreographed/i.test(anim)
+  const toneWords = brief.toneOfVoice?.trim()
+    ? `Client-specified: ${brief.toneOfVoice.trim()}.`
+    : anim && /expressive|choreographed/i.test(anim)
       ? "Confident and energetic — the current site leans expressive; keep copy punchy."
       : "Confident, clear, and credible — short sentences, concrete benefits, no hype.";
 
@@ -59,6 +60,7 @@ Every design and copy decision below should be validated against this audience f
 
 ## Tone of voice
 - ${toneWords}
+${brief.brandPersonality?.trim() ? `- Brand personality: ${brief.brandPersonality.trim()}.` : ""}
 - Speak to outcomes ("get your quote in minutes"), not features.
 - Plain language over jargon; technical detail only where it builds trust.
 
