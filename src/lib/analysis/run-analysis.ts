@@ -141,15 +141,21 @@ export async function runWebsiteAnalysis(projectId: string) {
 
     const website = analyzeWebsiteStructure(source, url);
     let { visual, tokens } = analyzeVisualAndTokens(source, url);
+    await step(
+      "Analyzed static CSS",
+      `${Object.keys(tokens.color ?? {}).length} color tokens, ` +
+        `${website.sectionsDetected.length} page sections, ` +
+        `${website.navigationLinks?.length ?? 0} nav links detected from the stylesheet + markup.`,
+    );
     const animation = source
       ? extractAnimationAnalysis(source, url as string)
       : url
         ? fallbackAnimationAnalysis(url, "site could not be fetched")
         : await analyzeAnimations(null);
 
-    // Rendered-page probe (real browser). Optional: falls back cleanly when
-    // no browser is available in the environment (e.g. web dyno on Railway).
-    const probe = url ? await runRenderedProbe(url) : null;
+    // Rendered-page probe (real browser). Streams live sub-steps as it works.
+    // Optional: falls back cleanly when no browser is available (e.g. Railway).
+    const probe = url ? await runRenderedProbe(url, async (t, d) => { await step(t, d); }) : null;
     if (probe) {
       tokens = mergeRendered(tokens, probe) as typeof tokens;
       animation.scrollAnimations.push(...probe.scrollFindings);

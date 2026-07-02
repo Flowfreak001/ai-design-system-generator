@@ -203,7 +203,17 @@ function rankCrawlCandidates(links: { url: string; text: string }[]): string[] {
     .slice(0, 3);
 }
 
-export async function runRenderedProbe(url: string): Promise<RenderedProbeResult | null> {
+/** Optional progress reporter so callers can stream live sub-steps. */
+export type ProbeProgress = (title: string, detail: string) => Promise<void> | void;
+
+export async function runRenderedProbe(url: string, onProgress?: ProbeProgress): Promise<RenderedProbeResult | null> {
+  const report = async (title: string, detail: string) => {
+    try {
+      await onProgress?.(title, detail);
+    } catch {
+      /* progress reporting must never break the probe */
+    }
+  };
   let browser: import("playwright").Browser | null = null;
   try {
     const { chromium } = await import("playwright");
@@ -214,14 +224,17 @@ export async function runRenderedProbe(url: string): Promise<RenderedProbeResult
     await page.addInitScript(() => {
       (globalThis as unknown as Record<string, unknown>).__name = (f: unknown) => f;
     });
+    await report("Launched headless browser", "Opening the page in a real Chromium browser…");
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: NAV_TIMEOUT });
     // Let hydration finish: many sites mount hero forms/inputs client-side.
+    await report("Loading the live page", `Rendering ${url} and waiting for fonts, scripts, and hydration to settle…`);
     await page.waitForLoadState("networkidle", { timeout: 8000 }).catch(() => {});
     await page
       .waitForSelector("input[type='email'], input[type='text'], input[type='search']", { timeout: 4000, state: "attached" })
       .catch(() => {});
     await page.waitForTimeout(2500); // let fonts/animations/lazy CSS settle
 
+    await report("Measuring computed styles", "Reading painted colors, typography, buttons, inputs, cards, and container width from the rendered DOM…");
     // ---- Measure the rendered page in one evaluate -----------------------
     const raw = await page.evaluate(() => {
       const firstFamily = (ff: string) => ff.split(",")[0].replace(/["']/g, "").trim();
@@ -468,7 +481,15 @@ export async function runRenderedProbe(url: string): Promise<RenderedProbeResult
       };
     });
 
+    await report(
+      "Measured the page",
+      `${raw.bg.length} painted colors · body ${raw.bodyFamily ?? "?"} ${raw.bodySizePx ?? "?"}px · ` +
+        `${raw.button ? "primary CTA found" : "no CTA isolated"} · ${raw.inputSpec ? "input measured" : "no input"} · ` +
+        `${raw.internalLinks?.length ?? 0} internal links.`,
+    );
+
     // ---- Scroll probe: verify reveal/sticky behavior ----------------------
+    await report("Scrolling to verify motion", "Scrolling the page to detect real scroll-reveal and sticky/pinned sections…");
     const before = new Map(raw.marks.map((m) => [m.i, m]));
     await page.mouse.wheel(0, 900);
     await page.waitForTimeout(900);
@@ -517,12 +538,20 @@ export async function runRenderedProbe(url: string): Promise<RenderedProbeResult
     }
 
     // ---- FAQ: landing page first, then shallow-crawl key subpages ----------
+    await report("Scanning for FAQ content", "Reading structured data and accordions on the landing page…");
     let faq = await page.evaluate(faqScanner);
     let faqSourceUrl: string | undefined = faq.length ? url : undefined;
     if (faq.length === 0) {
       const candidates = rankCrawlCandidates(raw.internalLinks ?? []);
+      if (candidates.length) {
+        await report(
+          "No FAQ on the landing page",
+          `Shallow-crawling ${candidates.length} key subpage${candidates.length === 1 ? "" : "s"} (${candidates.map((u) => u.replace(/^https?:\/\//, "").replace(/\/$/, "")).join(", ")})…`,
+        );
+      }
       for (const candidate of candidates) {
         try {
+          await report("Crawling subpage", `Checking ${candidate.replace(/^https?:\/\//, "").replace(/\/$/, "")} for an FAQ…`);
           await page.goto(candidate, { waitUntil: "domcontentloaded", timeout: 15000 });
           await page.waitForLoadState("networkidle", { timeout: 6000 }).catch(() => {});
           await page.waitForTimeout(1500);
