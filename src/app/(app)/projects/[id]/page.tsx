@@ -7,6 +7,7 @@ import {
   generateAction,
   deleteProjectAction,
   analyzeWebsiteAction,
+  updateReferencesAction,
   generateMdAction,
   generatePreviewAction,
 } from "../actions";
@@ -19,6 +20,7 @@ import { NotesSection } from "@/components/projects/notes-section";
 import { AgentRunTimeline } from "@/components/projects/agent-run-timeline";
 import { WorkspaceTabs } from "@/components/projects/workspace-tabs";
 import { ActionDialog } from "@/components/projects/action-dialog";
+import { ReferencesEditor } from "@/components/projects/references-editor";
 import { Button } from "@/components/ui/button";
 import { FadeUp } from "@/components/ui/motion";
 
@@ -79,6 +81,7 @@ export default async function ProjectWorkspacePage({
   const generateMd = generateMdAction.bind(null, id);
   const generatePreview = generatePreviewAction.bind(null, id);
   const analyze = analyzeWebsiteAction.bind(null, id);
+  const updateReferences = updateReferencesAction.bind(null, id);
   const generateDelivery = generateAction.bind(null, id);
   const remove = deleteProjectAction.bind(null, id);
 
@@ -236,39 +239,14 @@ export default async function ProjectWorkspacePage({
   );
 
   const references = (
-    <div className="grid gap-4">
-      {refUrls.length === 0 ? (
-        <div className="card flex flex-col items-center p-12 text-center">
-          <p className="text-sm font-medium text-ink">No reference URLs yet</p>
-          <p className="mt-1 max-w-sm text-sm text-muted">
-            Add reference websites to improve design accuracy — the system can
-            analyze their colors, structure, and animation patterns.
-          </p>
-        </div>
-      ) : (
-        <div className="card divide-y divide-line">
-          {refUrls.map((r, i) => (
-            <div key={i} className="flex items-center justify-between gap-3 px-5 py-3">
-              <span className="rounded-full bg-panel px-2.5 py-0.5 font-mono text-[11px] text-muted">{r.label}</span>
-              <a href={r.url} target="_blank" rel="noreferrer" className="min-w-0 flex-1 truncate text-right font-mono text-xs text-accent hover:underline">
-                {r.url}
-              </a>
-            </div>
-          ))}
-        </div>
-      )}
-      {hasReferenceUrls && (
-        <ActionDialog
-          projectId={id}
-          trigger="button"
-          title="Analyze References"
-          description="Scan the reference site for tokens, metrics, and motion."
-          confirmText="Scan the reference website in a real browser and refresh the four analysis files. Run it now?"
-          runName="Website analysis run"
-          action={analyze}
-        />
-      )}
-    </div>
+    <ReferencesEditor
+      projectId={id}
+      existingWebsiteUrl={b.existingWebsiteUrl ?? undefined}
+      referenceUrls={b.referenceUrls}
+      competitorUrls={b.competitorUrls}
+      save={updateReferences}
+      analyze={analyze}
+    />
   );
 
   const analysis = (

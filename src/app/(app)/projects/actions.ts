@@ -9,6 +9,8 @@ import { runWebsiteAnalysis } from "@/lib/analysis/run-analysis";
 import { runMdGeneration } from "@/lib/md-generation";
 import { runPreviewGeneration } from "@/lib/preview";
 import { requireUser } from "@/lib/auth";
+import { prisma } from "@/lib/db/client";
+import { z } from "zod";
 
 export type FormState = { error?: string } | undefined;
 
@@ -86,6 +88,36 @@ export async function generatePreviewAction(projectId: string) {
   if (!user.agencyId || !(await ownsProject(projectId, user.agencyId))) return;
   await runPreviewGeneration(projectId);
   revalidatePath(`/projects/${projectId}`);
+}
+
+const urlListSchema = z.array(z.string().url("Each reference must be a valid URL (https://…)")).max(10);
+
+/** Update the brief's reference/existing/competitor URLs so analysis can be
+ *  re-run against a different site without recreating the project. */
+export async function updateReferencesAction(
+  projectId: string,
+  data: { existingWebsiteUrl?: string; referenceUrls: string[]; competitorUrls: string[] },
+): Promise<{ error?: string }> {
+  const user = await requireUser();
+  if (!user.agencyId || !(await ownsProject(projectId, user.agencyId))) return { error: "Not found" };
+
+  const clean = (urls: string[]) => urls.map((u) => u.trim()).filter(Boolean);
+  const refs = urlListSchema.safeParse(clean(data.referenceUrls));
+  const comps = urlListSchema.safeParse(clean(data.competitorUrls));
+  const existing = data.existingWebsiteUrl?.trim() || undefined;
+  if (existing && !z.string().url().safeParse(existing).success) return { error: "Existing website must be a valid URL." };
+  if (!refs.success) return { error: refs.error.issues[0]?.message ?? "Invalid reference URL" };
+  if (!comps.success) return { error: comps.error.issues[0]?.message ?? "Invalid competitor URL" };
+
+  const input = await prisma.projectInput.findFirst({ where: { projectId, category: "brief" } });
+  if (!input) return { error: "Project brief not found." };
+  const brief = (input.data ?? {}) as Record<string, unknown>;
+  await prisma.projectInput.update({
+    where: { id: input.id },
+    data: { data: { ...brief, existingWebsiteUrl: existing ?? null, referenceUrls: refs.data, competitorUrls: comps.data } },
+  });
+  revalidatePath(`/projects/${projectId}`);
+  return {};
 }
 
 export async function analyzeWebsiteAction(projectId: string) {
