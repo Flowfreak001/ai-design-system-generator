@@ -3,6 +3,7 @@
 import "dotenv/config";
 import { createProject } from "../src/lib/projects";
 import { registerUser } from "../src/lib/auth";
+import { createClient } from "../src/lib/clients";
 import { runGeneration } from "../src/lib/generation";
 
 async function main() {
@@ -16,8 +17,20 @@ async function main() {
   if (reg.error || !reg.user?.agencyId) throw new Error(reg.error ?? "seed user failed");
   const agencyId = reg.user.agencyId;
 
+  const aurora = await createClient(agencyId, {
+    name: "Aurora Inc.", type: "SaaS", website: "https://aurora.example",
+    contactName: "Maya Chen", contactEmail: "maya@aurora.example",
+    stage: "Active", services: ["Web Design", "Content"],
+  });
+  const acme = await createClient(agencyId, {
+    name: "Acme Plumbing", type: "Plumber", website: "https://acmeplumbing.example",
+    contactName: "Ravi Patel", contactEmail: "ravi@acmeplumbing.example",
+    stage: "Onboarding", services: ["Automation", "SEO"],
+  });
+
   const site = await createProject({
     name: "Aurora Marketing Site",
+    businessId: aurora.id,
     clientName: "Aurora Inc.",
     type: "WEBSITE_APP",
     businessType: "SaaS",
@@ -38,6 +51,7 @@ async function main() {
 
   const auto = await createProject({
     name: "Acme Plumbing — Enquiry Automation",
+    businessId: acme.id,
     clientName: "Acme Plumbing",
     type: "AUTOMATION_WORKFLOW",
     businessType: "Plumber",

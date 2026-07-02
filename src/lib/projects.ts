@@ -70,13 +70,27 @@ export async function createProject(data: CreateProjectInput, agencyId?: string)
     inputs.push({ category: "automation", data: automation });
   }
 
+  // Attach to a client when provided; inherit its name for display.
+  let clientName = data.clientName;
+  if (data.businessId) {
+    const business = await prisma.business.findUnique({
+      where: { id: data.businessId },
+      select: { name: true, agencyId: true },
+    });
+    if (!business || (agencyId && business.agencyId !== agencyId)) {
+      throw new Error("Client not found");
+    }
+    clientName = clientName ?? business.name;
+  }
+
   return prisma.project.create({
     data: {
       name: data.name,
-      clientName: data.clientName,
+      clientName,
       type: data.type,
       description: data.goal,
       agencyId,
+      businessId: data.businessId,
       inputs: { create: inputs },
     },
   });

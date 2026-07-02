@@ -33,6 +33,8 @@ model Business {
   website      String?
   contactName  String?
   contactEmail String?
+  stage        String   @default("Onboarding") // Onboarding | Active | Paused | Completed
+  services     String[] @default([]) // e.g. SEO, PPC, Web Design, Automation
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 

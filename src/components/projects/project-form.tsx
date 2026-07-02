@@ -65,7 +65,13 @@ function Group({ title, children }: { title: string; children: React.ReactNode }
   );
 }
 
-export function ProjectForm() {
+export function ProjectForm({
+  clients = [],
+  defaultClientId,
+}: {
+  clients?: { id: string; name: string }[];
+  defaultClientId?: string;
+}) {
   const [state, formAction, pending] = useActionState<FormState, FormData>(
     createProjectAction,
     undefined,
@@ -119,10 +125,38 @@ export function ProjectForm() {
 
       <Group title="Basics">
         <Field label="Project name" name="name" required placeholder="Acme Plumbing — enquiry automation" />
-        <div className="grid gap-5 sm:grid-cols-2">
-          <Field label="Client / business name" name="clientName" placeholder="Acme Plumbing" />
-          <Field label="Business type" name="businessType" placeholder="Plumber, restaurant, real estate…" />
+        <div>
+          <label htmlFor="businessId" className="mb-1.5 block text-sm font-medium">
+            Client <span className="text-accent">*</span>
+          </label>
+          {clients.length ? (
+            <select
+              id="businessId"
+              name="businessId"
+              required
+              defaultValue={defaultClientId ?? ""}
+              className={`${inputCls} cursor-pointer`}
+            >
+              <option value="" disabled>
+                Select a client…
+              </option>
+              {clients.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <p className="rounded-xl border border-line bg-panel px-3.5 py-2.5 text-sm text-muted">
+              No clients yet —{" "}
+              <a href="/clients/new" className="text-accent hover:underline">
+                add a client first
+              </a>
+              , then create their project.
+            </p>
+          )}
         </div>
+        <Field label="Business type" name="businessType" placeholder="Plumber, restaurant, real estate…" />
       </Group>
 
       <Group title="Goals & audience">

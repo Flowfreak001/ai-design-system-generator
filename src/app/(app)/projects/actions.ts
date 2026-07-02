@@ -22,6 +22,7 @@ export async function createProjectAction(
 
   const parsed = createProjectSchema.safeParse({
     name: str(formData, "name"),
+    businessId: str(formData, "businessId"),
     clientName: str(formData, "clientName"),
     type: str(formData, "type"),
     businessType: str(formData, "businessType"),

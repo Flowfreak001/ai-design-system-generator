@@ -23,6 +23,7 @@ const optionalText = z
 
 export const createProjectSchema = z.object({
   name: z.string().min(1, "Project name is required"),
+  businessId: optionalText,
   clientName: optionalText,
   type: z.enum(["WEBSITE_APP", "AUTOMATION_WORKFLOW"]).default("WEBSITE_APP"),
   businessType: optionalText,
