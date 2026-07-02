@@ -169,7 +169,7 @@ ${fontLink ? `<link rel="preconnect" href="https://fonts.googleapis.com" /><link
   * { box-sizing:border-box; margin:0; }
   body { font-family:'${esc(bodyFont)}', ui-sans-serif, system-ui, sans-serif; background:var(--bg); color:var(--ink); padding:32px 24px; }
   .grid { max-width:880px; margin:0 auto; display:grid; gap:20px; }
-  .block { background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px; }
+  .block { background:${esc(cardFill)}; border:1px solid var(--line); border-radius:var(--radius); padding:20px; }
   .label { font:600 10px/1 ui-monospace,monospace; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin-bottom:12px; }
   .cap { margin-top:12px; font:400 11px/1.6 ui-monospace,monospace; color:var(--muted); }
   .row { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
