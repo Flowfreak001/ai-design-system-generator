@@ -22,7 +22,13 @@ export function generateComponentPreviewHtml(data: PreviewData): string {
   const name = input.clientName || input.projectName;
   const c = (tokens?.color ?? {}) as Record<string, string>;
   const m = tokens?.metrics ?? null;
-  const probe = (tokens as unknown as { renderedProbe?: { button?: Record<string, unknown> | null } })?.renderedProbe;
+  const probe = (tokens as unknown as {
+    renderedProbe?: {
+      button?: Record<string, unknown> | null;
+      content?: { headings?: { text: string; sizePx: number }[]; navItems?: string[]; ctaText?: string; bodySample?: string };
+    };
+  })?.renderedProbe;
+  const live = probe?.content;
 
   const bg = c.background ?? input.brief.primaryColor ?? "#fafaf8";
   const isDark = lum(bg) < 0.5;
@@ -50,13 +56,17 @@ export function generateComponentPreviewHtml(data: PreviewData): string {
     .split(/[,\n;]+/)
     .map((s) => s.trim())
     .filter(Boolean);
-  const navItems = (brief.keyItems.length ? brief.keyItems : servicesFromBrief).slice(0, 4);
+  // Live-site copy wins over brief reconstructions when the probe captured it.
+  const navItems = (live?.navItems?.length ? live.navItems : brief.keyItems.length ? brief.keyItems : servicesFromBrief).slice(0, 4);
   if (!navItems.length) navItems.push(brief.businessType?.trim() ?? name);
-  const cardTitle = servicesFromBrief[0] ?? brief.keyItems[0] ?? brief.businessType?.trim() ?? name;
-  const cardBody = brief.goal?.trim()
-    ? `Supports the core goal: ${brief.goal.trim().replace(/\.$/, "").toLowerCase()}.`
-    : `Copy to be written for ${brief.targetAudience?.trim() || "the target audience"}.`;
-  const ctaLabel = brief.ctaGoal?.trim() || brief.goal?.trim() || name;
+  const liveSubheading = (live?.headings ?? []).filter((h) => h.sizePx <= 30)[0]?.text;
+  const cardTitle = liveSubheading ?? servicesFromBrief[0] ?? brief.keyItems[0] ?? brief.businessType?.trim() ?? name;
+  const cardBody = live?.bodySample
+    ? live.bodySample.slice(0, 140)
+    : brief.goal?.trim()
+      ? `Supports the core goal: ${brief.goal.trim().replace(/\.$/, "").toLowerCase()}.`
+      : `Copy to be written for ${brief.targetAudience?.trim() || "the target audience"}.`;
+  const ctaLabel = live?.ctaText || brief.ctaGoal?.trim() || brief.goal?.trim() || name;
   const faq1q = `What does ${name} offer?`;
   const faq1a = servicesFromBrief.length
     ? servicesFromBrief.slice(0, 4).join(", ") + "."

@@ -75,6 +75,7 @@ function mergeRendered(
     renderedProbe: {
       palette: probe.palette,
       button: probe.button ?? null,
+      content: probe.content,
     },
   };
 }

@@ -33,7 +33,14 @@ export function generatePreviewHtml(data: PreviewData): string {
   const name = input.clientName || input.projectName;
   const c = (tokens?.color ?? {}) as Record<string, string>;
   const m = tokens?.metrics ?? null;
-  const probe = (tokens as unknown as { renderedProbe?: { palette?: { value: string; weight: number; role: string }[]; button?: Record<string, unknown> | null } })?.renderedProbe;
+  const probe = (tokens as unknown as {
+    renderedProbe?: {
+      palette?: { value: string; weight: number; role: string }[];
+      button?: Record<string, unknown> | null;
+      content?: { headings?: { text: string; sizePx: number }[]; navItems?: string[]; ctaText?: string; bodySample?: string };
+    };
+  })?.renderedProbe;
+  const live = probe?.content;
   const assumed: string[] = [];
 
   // ---- Theme derived from extraction -------------------------------------
@@ -89,9 +96,13 @@ export function generatePreviewHtml(data: PreviewData): string {
   }
 
   const typeScale = (m?.typeScale ?? []).slice(-4);
-  const heroHeadline = input.brief.goal?.trim()
-    ? input.brief.goal.trim().replace(/\.$/, "")
-    : `Built for ${input.brief.targetAudience?.trim() || "your customers"}`;
+  // Hero headline: the live site's largest rendered heading when the probe
+  // captured one, otherwise the brief's goal.
+  const largestLiveHeading = (live?.headings ?? []).slice().sort((a, b) => b.sizePx - a.sizePx)[0]?.text;
+  const heroHeadline = largestLiveHeading
+    ?? (input.brief.goal?.trim()
+      ? input.brief.goal.trim().replace(/\.$/, "")
+      : `Built for ${input.brief.targetAudience?.trim() || "your customers"}`);
 
   // Spec cells — engineered numbers from real metrics
   const specCells: { v: string; l: string }[] = [];
@@ -133,9 +144,31 @@ export function generatePreviewHtml(data: PreviewData): string {
     brief.targetAudience?.trim() ? `for ${brief.targetAudience.trim()}` : null,
     tone ? `— ${tone.toLowerCase()} in every interaction` : null,
   ].filter(Boolean).join(" ") || `${name} — ${brief.businessType?.trim() || "brand"} design system.`;
-  const ctaLabel = brief.ctaGoal?.trim() || heroHeadline;
-  if (!brief.ctaGoal?.trim()) assumed.push("No CTA goal in the brief — the project goal is used as the CTA label.");
-  const navItems = brief.keyItems.length ? brief.keyItems.slice(0, 5) : services.slice(0, 4);
+  // Live-site copy wins over brief reconstructions when the probe captured it.
+  const ctaLabel = live?.ctaText || brief.ctaGoal?.trim() || heroHeadline;
+  if (!live?.ctaText && !brief.ctaGoal?.trim()) assumed.push("No CTA measurable and no CTA goal in the brief — the project goal is used as the CTA label.");
+  const navItems = live?.navItems?.length
+    ? live.navItems.slice(0, 5)
+    : brief.keyItems.length ? brief.keyItems.slice(0, 5) : services.slice(0, 4);
+  const bodySample = live?.bodySample || heroSupport;
+  // For each measured display size, prefer the heading text actually rendered
+  // at (or nearest to) that size on the live page.
+  const liveHeadings = live?.headings ?? [];
+  const usedHeading = new Set<number>();
+  const liveTextFor = (px: number): string | null => {
+    let best = -1, bestDiff = 7;
+    for (let i = 0; i < liveHeadings.length; i++) {
+      if (usedHeading.has(i)) continue;
+      const diff = Math.abs(liveHeadings[i].sizePx - px);
+      if (diff < bestDiff) { bestDiff = diff; best = i; }
+    }
+    if (best === -1) return null;
+    usedHeading.add(best);
+    return liveHeadings[best].text;
+  };
+  // Card titles: real sub-headings (h3-scale) from the live page when present.
+  const liveCardTitles = liveHeadings.filter((h) => h.sizePx <= 30).map((h) => h.text).slice(0, 3);
+  const cardTitles = liveCardTitles.length ? liveCardTitles : services;
   const cardCopy = (i: number) =>
     keywords[i]
       ? `Positioned around “${keywords[i]}” — copy from the brief's SEO focus.`
@@ -164,17 +197,19 @@ export function generatePreviewHtml(data: PreviewData): string {
     ...keywords,
   ].filter(Boolean);
   const lhFor = (px: number) => (px >= 64 ? 1.0 : px >= 48 ? 1.05 : px >= 36 ? 1.1 : px >= 28 ? 1.15 : px >= 22 ? 1.3 : 1.4);
-  const typeRamp: TypeRow[] = displaySizes.slice(0, 7).map((px, i) => ({
-    role: `${displaySlug}-${px}`,
-    source: "measured from rendered h1/h2",
-    px,
-    w: px >= 22 ? Math.max(headingW, 600) : 400,
-    lh: lhFor(px),
-    ls: "0",
-    upper: px >= 28,
-    text: displayTexts[i] ?? `${name} — design in motion`,
-    isDisplay: true,
-  } as TypeRow & { isDisplay: boolean }));
+  const typeRamp: TypeRow[] = displaySizes.slice(0, 7).map((px, i) => {
+    const liveText = liveTextFor(px);
+    return {
+      role: `${displaySlug}-${px}`,
+      source: liveText ? "text + size measured from live headings" : "size measured from rendered h1/h2",
+      px,
+      w: px >= 22 ? Math.max(headingW, 600) : 400,
+      lh: lhFor(px),
+      ls: "0",
+      upper: px >= 28,
+      text: liveText ?? displayTexts[i] ?? `${name} — design in motion`,
+    };
+  });
   if (!typeRamp.length) {
     assumed.push("No heading sizes measurable — a default display ramp is shown.");
     typeRamp.push(
@@ -185,10 +220,10 @@ export function generatePreviewHtml(data: PreviewData): string {
   const displayRoles = new Set(typeRamp.map((r) => r.role));
   const btnPxRow = 14;
   typeRamp.push(
-    { role: `${bodySlug}-${bodyPx}`, source: m?.bodyFontSizePx ? "measured rendered body text" : "assumed body size", px: bodyPx, w: 400, lh, ls: "0", upper: false, text: heroSupport },
+    { role: `${bodySlug}-${bodyPx}`, source: live?.bodySample ? "text + size measured from live body copy" : m?.bodyFontSizePx ? "measured rendered body text" : "assumed body size", px: bodyPx, w: 400, lh, ls: "0", upper: false, text: bodySample },
     { role: `${bodySlug}-${Math.max(bodyPx - 2, 12)}-FINE`, source: "derived from measured body size", px: Math.max(bodyPx - 2, 12), w: 400, lh, ls: "0", upper: false, text: brief.notes?.trim() || `${name} · ${brief.businessType?.trim() || "brand"} — fine print and footer text.`, mutedRow: true },
     { role: `${bodySlug}-${btnPxRow}-CTA`, source: measuredBtn ? "measured from the live primary CTA" : "derived — CTA not isolated", px: btnPxRow, w: btnW, lh: 1.0, ls: "1.5px", upper: true, text: ctaLabel },
-    { role: `${bodySlug}-${btnPxRow}-NAV`, source: "derived from measured body metrics", px: btnPxRow, w: 400, lh: 1.4, ls: "0.5px", upper: false, text: navItems.join(" · ") },
+    { role: `${bodySlug}-${btnPxRow}-NAV`, source: live?.navItems?.length ? "labels measured from the live site nav" : "derived from the brief's key pages", px: btnPxRow, w: 400, lh: 1.4, ls: "0.5px", upper: false, text: navItems.join(" · ") },
   );
   const isDisplayRole = (r: TypeRow) => displayRoles.has(r.role);
 
@@ -308,17 +343,17 @@ ${fontLink ? `<link rel="preconnect" href="https://fonts.googleapis.com" /><link
 
   ${sec("04", "Cards & containers",
     "Photo-led card grid",
-    `Cards use the brand accents over imagery, radius ${radius}${m?.spacingBase ? `, ${m.spacingBase}px spacing rhythm (measured)` : ""}; titles set in ${displayFont}. Card names come from the brief's services and key pages.`,
-    `<div class="cards">${services.map((s, i) => `
+    `Cards use the brand accents over imagery, radius ${radius}${m?.spacingBase ? `, ${m.spacingBase}px spacing rhythm (measured)` : ""}; titles set in ${displayFont}. ${liveCardTitles.length ? "Card titles are real sub-headings from the live site." : "Card names come from the brief's services and key pages."}`,
+    `<div class="cards">${cardTitles.map((s, i) => `
       <div class="pcard"><div class="ph" style="background:linear-gradient(150deg, ${esc(accents[i % Math.max(accents.length, 1)] ?? mix(bg, ink, 0.2))}, ${esc(mix(bg, ink, 0.05))})"></div>
       <div class="pd"><div class="tag">${esc(input.brief.businessType ?? "offer")} · 0${i + 1}</div><h3>${esc(s)}</h3><p>${esc(cardCopy(i))}</p></div></div>`).join("")}
     </div>`)}
 
   ${sec("05", "Hero example",
     "One outcome, one action",
-    `Headline and CTA are the brief's goal${brief.targetAudience?.trim() ? `; audience: ${brief.targetAudience.trim()}` : ""}.`,
+    `${largestLiveHeading ? "Headline, support copy, and CTA are the live site's own rendered text." : "Headline and CTA are the brief's goal."}${brief.targetAudience?.trim() ? ` Audience: ${brief.targetAudience.trim()}.` : ""}`,
     `<div class="hero"><h3>${esc(heroHeadline)}</h3>
-      <p>${esc(heroSupport)}</p>
+      <p>${esc(bodySample)}</p>
       <a class="btn primary" href="#">${esc(ctaLabel)}</a>
       &nbsp;&nbsp;<a class="btn outline" href="#">${esc(navItems[1] ?? services[0])}</a></div>`)}
 

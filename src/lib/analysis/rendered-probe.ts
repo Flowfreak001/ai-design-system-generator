@@ -30,6 +30,14 @@ export type RenderedProbeResult = {
     transitionMs?: number;
   };
   containerWidth?: number;
+  /** Real rendered copy from the live page, so previews can show the site's
+   *  actual headings/nav/CTA text rather than reconstructed placeholders. */
+  content: {
+    headings: { text: string; sizePx: number }[];
+    navItems: string[];
+    ctaText?: string;
+    bodySample?: string;
+  };
   scrollFindings: AnimationFinding[];
   stickyFindings: AnimationFinding[];
 };
@@ -73,16 +81,38 @@ export async function runRenderedProbe(url: string): Promise<RenderedProbeResult
           : undefined;
 
       // Headings
-      const hs = [...document.querySelectorAll("h1, h2")].slice(0, 12);
+      const hs = [...document.querySelectorAll("h1, h2, h3")].slice(0, 24);
       const headingSizes = new Set<number>();
       let headingWeight = 0;
       let headingFamily = "";
+      const headingTexts: { text: string; sizePx: number }[] = [];
       for (const h of hs) {
         const cs = getComputedStyle(h);
-        headingSizes.add(Math.round(parseFloat(cs.fontSize)));
-        headingWeight = Math.max(headingWeight, parseInt(cs.fontWeight, 10) || 0);
-        if (!headingFamily) headingFamily = firstFamily(cs.fontFamily);
+        const px = Math.round(parseFloat(cs.fontSize));
+        const text = (h as HTMLElement).innerText?.trim().replace(/\s+/g, " ") ?? "";
+        if (h.tagName !== "H3") {
+          headingSizes.add(px);
+          headingWeight = Math.max(headingWeight, parseInt(cs.fontWeight, 10) || 0);
+          if (!headingFamily) headingFamily = firstFamily(cs.fontFamily);
+        }
+        if (text.length > 2 && text.length < 120) headingTexts.push({ text, sizePx: px });
       }
+
+      // Real nav labels from the header/nav
+      const navItems = [...document.querySelectorAll("header a, nav a")]
+        .map((a) => (a as HTMLElement).innerText?.trim().replace(/\s+/g, " ") ?? "")
+        .filter((t) => t.length > 1 && t.length < 26 && !/^https?:/.test(t))
+        .filter((t, i, arr) => arr.indexOf(t) === i)
+        .slice(0, 8);
+
+      // Representative body copy: longest visible paragraph
+      let bodySample = "";
+      for (const p of [...document.querySelectorAll("p")].slice(0, 120)) {
+        const t = (p as HTMLElement).innerText?.trim().replace(/\s+/g, " ") ?? "";
+        const r = p.getBoundingClientRect();
+        if (r.width > 100 && t.length > bodySample.length) bodySample = t;
+      }
+      bodySample = bodySample.slice(0, 220);
 
       // Painted palette: backgrounds weighted by element area, text by length.
       // Also tally real font families by rendered text length.
@@ -130,6 +160,7 @@ export async function runRenderedProbe(url: string): Promise<RenderedProbeResult
         if (sat > bestScore) {
           bestScore = sat;
           button = {
+            text: (el as HTMLElement).innerText?.trim().replace(/\s+/g, " "),
             background: cs.backgroundColor,
             color: cs.color,
             radius: cs.borderRadius,
@@ -181,6 +212,9 @@ export async function runRenderedProbe(url: string): Promise<RenderedProbeResult
         txt: [...txt.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8),
         button,
         containerWidth,
+        headingTexts,
+        navItems,
+        bodySample,
         marks,
       };
     });
@@ -269,6 +303,12 @@ export async function runRenderedProbe(url: string): Promise<RenderedProbeResult
           }
         : undefined,
       containerWidth: raw.containerWidth,
+      content: {
+        headings: raw.headingTexts,
+        navItems: raw.navItems,
+        ctaText: (raw.button?.text as string) || undefined,
+        bodySample: raw.bodySample || undefined,
+      },
       scrollFindings,
       stickyFindings,
     };
