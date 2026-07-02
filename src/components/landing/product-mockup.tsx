@@ -3,8 +3,8 @@
 
 import { WorkflowNodeCard, NodeConnector } from "@/components/workflow/workflow-node";
 
-const NAV = ["Dashboard", "Projects", "Workflows", "Approvals", "Leads"];
-const FILES = ["PROJECT_BRIEF.md", "SCOPE.md", "AUTOMATION_BLUEPRINT.md", "HANDOFF.md"];
+const NAV = ["Dashboard", "Projects", "Workflows", "Approvals", "Leads", "Templates"];
+const FILES = ["PROJECT_BRIEF.md", "SCOPE.md", "AUTOMATION_BLUEPRINT.md", "CLIENT_PROPOSAL.md", "HANDOFF.md"];
 
 export function ProductMockup() {
   return (
@@ -17,9 +17,9 @@ export function ProductMockup() {
         <span className="ml-3 font-mono text-[11px] text-muted">projectos — acme-plumbing</span>
       </div>
 
-      <div className="grid grid-cols-[96px_1fr] sm:grid-cols-[120px_1fr_150px]">
+      <div className="grid grid-cols-[96px_1fr] sm:grid-cols-[124px_1fr_156px]">
         {/* sidebar */}
-        <aside className="border-r border-line bg-surface p-2.5">
+        <aside className="flex flex-col border-r border-line bg-surface p-2.5">
           {NAV.map((n, i) => (
             <div
               key={n}
@@ -30,15 +30,20 @@ export function ProductMockup() {
               {n}
             </div>
           ))}
+          <div className="mt-auto rounded-md bg-panel px-2 py-1.5 font-mono text-[9px] text-faint">
+            demo@agency.dev
+          </div>
         </aside>
 
         {/* workflow canvas */}
-        <div className="canvas-grid p-3 sm:p-4">
-          <div className="mx-auto flex max-w-[240px] flex-col items-center">
+        <div className="canvas-grid p-4 sm:p-5">
+          <div className="mx-auto flex max-w-[250px] flex-col items-center">
             <WorkflowNodeCard compact kind="TRIGGER" title="Website form submitted" />
             <NodeConnector />
             <WorkflowNodeCard compact kind="AI_CLASSIFY" title="Classify enquiry urgency" />
             <NodeConnector label="Urgent" />
+            <WorkflowNodeCard compact kind="CREATE_LEAD" title="Save lead & alert owner" />
+            <NodeConnector />
             <WorkflowNodeCard compact kind="HUMAN_APPROVAL" title="Owner approves reply" status="Waiting" />
             <NodeConnector />
             <WorkflowNodeCard compact kind="SEND_EMAIL" title="Send response" />
@@ -46,7 +51,7 @@ export function ProductMockup() {
         </div>
 
         {/* files + activity */}
-        <aside className="hidden border-l border-line bg-surface p-2.5 sm:block">
+        <aside className="hidden flex-col border-l border-line bg-surface p-2.5 sm:flex">
           <p className="px-1 pb-1.5 font-mono text-[10px] uppercase tracking-wider text-faint">
             Generated files
           </p>
@@ -63,6 +68,9 @@ export function ProductMockup() {
           </div>
           <div className="mt-1 rounded-md bg-success-soft px-2 py-1.5 text-[10px] leading-snug text-success">
             6 files generated
+          </div>
+          <div className="mt-1 rounded-md bg-info-soft px-2 py-1.5 text-[10px] leading-snug text-info">
+            Workflow run completed
           </div>
         </aside>
       </div>
