@@ -18,7 +18,7 @@ export function WorkspaceTabs({ panels, initial }: { panels: WorkspacePanel[]; i
       <div
         role="tablist"
         aria-label="Project sections"
-        className="sticky top-16 z-30 -mx-5 flex gap-1 overflow-x-auto border-b border-line bg-canvas/90 px-5 py-2 backdrop-blur sm:-mx-8 sm:px-8"
+        className="sticky top-14 z-30 -mx-5 flex gap-1 overflow-x-auto border-b border-line bg-canvas/90 px-5 py-2 backdrop-blur sm:-mx-8 sm:px-8"
       >
         {panels.map((p) => {
           const on = p.id === active;

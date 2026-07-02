@@ -122,9 +122,12 @@ export function DashboardShell({
 }) {
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   useEffect(() => {
     setCollapsed(localStorage.getItem("pos-sidebar") === "collapsed");
   }, []);
+  // Close the mobile drawer on navigation.
+  useEffect(() => setMobileOpen(false), [pathname]);
   const toggle = () => {
     const next = !collapsed;
     setCollapsed(next);
@@ -137,9 +140,73 @@ export function DashboardShell({
     .map((s) => s[0]?.toUpperCase() ?? "")
     .join("");
 
+  const nav = (isCollapsed: boolean) => (
+    <nav className={`mt-1 flex-1 overflow-y-auto ${isCollapsed ? "px-2.5" : "px-3"}`} aria-label="App">
+      {NAV_GROUPS.map((group) => (
+        <div key={group.title} className="mb-4">
+          {!isCollapsed && (
+            <p className="px-2.5 pb-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-faint">
+              {group.title}
+            </p>
+          )}
+          <div className="grid gap-0.5">
+            {group.items.map((item) => {
+              if (item.soon) {
+                return (
+                  <span key={item.label} className={navItemCls(false, true, isCollapsed)} aria-disabled="true" title={`${item.label} — coming soon`}>
+                    {ICONS[item.icon]}
+                    {!isCollapsed && item.label}
+                    {!isCollapsed && (
+                      <span className="ml-auto rounded-full border border-line px-1.5 py-px text-[9.5px] font-medium uppercase tracking-wide text-faint">
+                        soon
+                      </span>
+                    )}
+                  </span>
+                );
+              }
+              const active = pathname.startsWith(item.href!);
+              return (
+                <Link key={item.label} href={item.href!} aria-current={active ? "page" : undefined} title={isCollapsed ? item.label : undefined} className={navItemCls(active, false, isCollapsed)}>
+                  {active && <span aria-hidden="true" className={`absolute h-4 w-[3px] rounded-full bg-accent ${isCollapsed ? "-left-1.5" : "-left-3"}`} />}
+                  {ICONS[item.icon]}
+                  {!isCollapsed && item.label}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </nav>
+  );
+
+  const userCard = (isCollapsed: boolean) => (
+    <div className={`border-t border-line ${isCollapsed ? "p-2" : "p-3"}`}>
+      <div className={`flex items-center gap-2.5 rounded-lg ${isCollapsed ? "flex-col px-0 py-1" : "px-2 py-1.5"}`}>
+        <span title={user.email} className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-accent text-[11px] font-semibold text-white">
+          {initials}
+        </span>
+        {!isCollapsed && (
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-[13px] font-medium leading-tight text-ink">{user.name ?? "Account"}</span>
+            <span className="block truncate text-[11.5px] leading-tight text-muted">{user.email}</span>
+          </span>
+        )}
+        <form action={signOutAction}>
+          <button
+            type="submit"
+            title="Sign out"
+            className="grid h-8 w-8 cursor-pointer place-items-center rounded-lg text-muted transition-colors hover:bg-panel hover:text-ink"
+          >
+            {ICONS.logout}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+
   return (
     <div className="flex min-h-screen flex-1">
-      {/* Sidebar */}
+      {/* Desktop sidebar */}
       <aside className={`sticky top-0 hidden h-screen shrink-0 flex-col border-r border-line bg-surface transition-[width] duration-200 md:flex ${collapsed ? "w-[64px]" : "w-[216px]"}`}>
         <div className={`flex items-center pt-4 pb-3 ${collapsed ? "flex-col gap-2 px-0" : "justify-between gap-1 pl-3.5 pr-2"}`}>
           <Link href="/" className="flex min-w-0 items-center gap-2.5" aria-label="Project OS home">
@@ -159,81 +226,66 @@ export function DashboardShell({
             </svg>
           </button>
         </div>
-
-        <nav className={`mt-1 flex-1 overflow-y-auto ${collapsed ? "px-2.5" : "px-3"}`} aria-label="App">
-          {NAV_GROUPS.map((group) => (
-            <div key={group.title} className="mb-4">
-              {!collapsed && (
-                <p className="px-2.5 pb-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-faint">
-                  {group.title}
-                </p>
-              )}
-              <div className="grid gap-0.5">
-                {group.items.map((item) => {
-                  if (item.soon) {
-                    return (
-                      <span key={item.label} className={navItemCls(false, true, collapsed)} aria-disabled="true" title={`${item.label} — coming soon`}>
-                        {ICONS[item.icon]}
-                        {!collapsed && item.label}
-                        {!collapsed && (
-                          <span className="ml-auto rounded-full border border-line px-1.5 py-px text-[9.5px] font-medium uppercase tracking-wide text-faint">
-                            soon
-                          </span>
-                        )}
-                      </span>
-                    );
-                  }
-                  const active = pathname.startsWith(item.href!);
-                  return (
-                    <Link key={item.label} href={item.href!} aria-current={active ? "page" : undefined} title={collapsed ? item.label : undefined} className={navItemCls(active, false, collapsed)}>
-                      {active && <span aria-hidden="true" className={`absolute h-4 w-[3px] rounded-full bg-accent ${collapsed ? "-left-1.5" : "-left-3"}`} />}
-                      {ICONS[item.icon]}
-                      {!collapsed && item.label}
-                    </Link>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </nav>
-
-        {/* User */}
-        <div className={`border-t border-line ${collapsed ? "p-2" : "p-3"}`}>
-          <div className={`flex items-center gap-2.5 rounded-lg ${collapsed ? "flex-col px-0 py-1" : "px-2 py-1.5"}`}>
-            <span title={user.email} className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-accent text-[11px] font-semibold text-white">
-              {initials}
-            </span>
-            {!collapsed && (
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-[13px] font-medium leading-tight text-ink">{user.name ?? "Account"}</span>
-                <span className="block truncate text-[11.5px] leading-tight text-muted">{user.email}</span>
-              </span>
-            )}
-            <form action={signOutAction}>
-              <button
-                type="submit"
-                title="Sign out"
-                className="grid h-8 w-8 cursor-pointer place-items-center rounded-lg text-muted transition-colors hover:bg-panel hover:text-ink"
-              >
-                {ICONS.logout}
-              </button>
-            </form>
-          </div>
-        </div>
+        {nav(collapsed)}
+        {userCard(collapsed)}
       </aside>
+
+      {/* Mobile drawer */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-50 md:hidden" role="dialog" aria-modal="true" aria-label="Navigation">
+          <button
+            type="button"
+            aria-label="Close navigation"
+            onClick={() => setMobileOpen(false)}
+            className="absolute inset-0 bg-ink/30 backdrop-blur-[2px]"
+          />
+          <aside className="absolute inset-y-0 left-0 flex w-[260px] max-w-[85vw] flex-col border-r border-line bg-surface shadow-xl animate-in slide-in-from-left duration-200">
+            <div className="flex items-center justify-between pt-4 pb-3 pl-3.5 pr-2">
+              <Link href="/" className="flex min-w-0 items-center gap-2.5" aria-label="Project OS home">
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-accent text-[15px] text-white">◆</span>
+                <span className="truncate text-[14px] font-semibold text-ink">Project OS</span>
+              </Link>
+              <button
+                type="button"
+                onClick={() => setMobileOpen(false)}
+                aria-label="Close navigation"
+                className="grid h-7 w-7 cursor-pointer place-items-center rounded-md text-muted hover:bg-panel hover:text-ink"
+              >
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="m6 6 12 12M18 6 6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                </svg>
+              </button>
+            </div>
+            {nav(false)}
+            {userCard(false)}
+          </aside>
+        </div>
+      )}
 
       {/* Main column */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-40 flex h-14 items-center justify-between gap-4 border-b border-line bg-canvas/90 px-5 backdrop-blur sm:px-8">
-          <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1.5 text-[13.5px]">
-            {crumbs.map((c, i) => (
-              <span key={c} className="flex items-center gap-1.5">
-                {i > 0 && <span className="text-faint">/</span>}
-                <span className={i === crumbs.length - 1 ? "font-medium text-ink" : "text-muted"}>{c}</span>
-              </span>
-            ))}
-          </nav>
-          <div className="flex items-center gap-3">
+        <header className="sticky top-0 z-40 flex h-14 items-center justify-between gap-3 border-b border-line bg-canvas/90 px-4 backdrop-blur sm:px-8">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => setMobileOpen(true)}
+              aria-label="Open navigation"
+              className="grid h-8 w-8 shrink-0 cursor-pointer place-items-center rounded-lg text-body hover:bg-panel md:hidden"
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M4 6.5h16M4 12h16M4 17.5h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              </svg>
+            </button>
+            <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1.5 truncate text-[13.5px]">
+              {crumbs.map((c, i) => (
+                <span key={c} className="flex min-w-0 items-center gap-1.5">
+                  {i > 0 && <span className="text-faint">/</span>}
+                  <span className={`truncate ${i === crumbs.length - 1 ? "font-medium text-ink" : "text-muted"}`}>{c}</span>
+                </span>
+              ))}
+            </nav>
+          </div>
+          <div className="flex shrink-0 items-center gap-3">
             <input
               type="search"
               placeholder="Search…"
@@ -241,7 +293,8 @@ export function DashboardShell({
               className="hidden w-56 rounded-lg border border-line bg-surface px-3.5 py-1.5 text-[13px] placeholder:text-faint focus:border-accent/50 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent lg:block"
             />
             <LinkButton href="/projects/new" size="md" className="h-8 px-3 text-[13px]">
-              New project
+              <span className="hidden sm:inline">New project</span>
+              <span className="sm:hidden" aria-hidden="true">+</span>
             </LinkButton>
           </div>
         </header>
