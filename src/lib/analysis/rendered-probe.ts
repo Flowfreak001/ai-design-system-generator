@@ -68,6 +68,8 @@ export type RenderedProbeResult = {
     navItems: string[];
     ctaText?: string;
     bodySample?: string;
+    /** Real FAQ question/answer pairs found on the page, when present. */
+    faq: { q: string; a: string }[];
   };
   scrollFindings: AnimationFinding[];
   stickyFindings: AnimationFinding[];
@@ -221,6 +223,49 @@ export async function runRenderedProbe(url: string): Promise<RenderedProbeResult
         }
       }
 
+      // Real FAQ pairs: native <details>, then FAQ-classed sections, then any
+      // question-heading followed by a paragraph.
+      const faq: { q: string; a: string }[] = [];
+      // textContent (not innerText) so collapsed accordion answers still read.
+      const cleanTxt = (el: Element | null) =>
+        (el?.textContent ?? "").trim().replace(/\s+/g, " ");
+      const pushFaq = (q: string, a: string) => {
+        if (q.length < 8 || q.length > 140 || a.length < 20) return;
+        if (faq.some((f) => f.q === q)) return;
+        faq.push({ q, a: a.slice(0, 260) });
+      };
+      // 1) Native <details>/<summary>
+      for (const d of [...document.querySelectorAll("details")].slice(0, 20)) {
+        const q = cleanTxt(d.querySelector("summary"));
+        const a = cleanTxt(d).replace(q, "").trim();
+        pushFaq(q, a);
+      }
+      // 2) ARIA accordions: question button + aria-controls answer panel
+      if (faq.length < 3) {
+        for (const b of [...document.querySelectorAll("[aria-expanded]")].slice(0, 60)) {
+          const q = cleanTxt(b);
+          if (!/\?/.test(q)) continue;
+          const panelId = b.getAttribute("aria-controls");
+          const panel = panelId ? document.getElementById(panelId) : b.parentElement?.nextElementSibling ?? b.nextElementSibling;
+          const a = cleanTxt(panel ?? null);
+          pushFaq(q.replace(/\s*\?.*$/, "?"), a);
+          if (faq.length >= 3) break;
+        }
+      }
+      // 3) Question headings followed by a paragraph
+      if (faq.length < 3) {
+        const faqRoot = document.querySelector("[class*='faq' i], [id*='faq' i], [data-testid*='faq' i]");
+        const scope = faqRoot ?? document;
+        for (const h of [...scope.querySelectorAll("h2, h3, h4, [role='button']")].slice(0, 200)) {
+          const q = cleanTxt(h);
+          if (!/\?$/.test(q)) continue;
+          const next = h.nextElementSibling ?? h.parentElement?.nextElementSibling;
+          const a = cleanTxt(next && /^(p|div)$/i.test(next.tagName) ? next : null);
+          pushFaq(q, a);
+          if (faq.length >= 3) break;
+        }
+      }
+
       // Component specs: first visible text input, most common card pattern,
       // and the header/nav bar — all from computed styles.
       let inputSpec: Record<string, unknown> | null = null;
@@ -327,6 +372,7 @@ export async function runRenderedProbe(url: string): Promise<RenderedProbeResult
         headingTexts,
         navItems,
         bodySample,
+        faq,
         marks,
       };
     });
@@ -455,6 +501,7 @@ export async function runRenderedProbe(url: string): Promise<RenderedProbeResult
         navItems: raw.navItems,
         ctaText: (raw.button?.text as string) || undefined,
         bodySample: raw.bodySample || undefined,
+        faq: raw.faq,
       },
       scrollFindings,
       stickyFindings,

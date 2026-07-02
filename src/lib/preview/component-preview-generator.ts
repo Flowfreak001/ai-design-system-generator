@@ -31,7 +31,7 @@ export function generateComponentPreviewHtml(data: PreviewData): string {
   const probe = (tokens as unknown as {
     renderedProbe?: {
       button?: Record<string, unknown> | null;
-      content?: { headings?: { text: string; sizePx: number }[]; navItems?: string[]; ctaText?: string; bodySample?: string };
+      content?: { headings?: { text: string; sizePx: number }[]; navItems?: string[]; ctaText?: string; bodySample?: string; faq?: { q: string; a: string }[] };
       components?: { input?: InputSpec; card?: CardSpec; nav?: NavSpec };
       headingTransform?: string;
     };
@@ -112,6 +112,27 @@ export function generateComponentPreviewHtml(data: PreviewData): string {
       : `Copy to be written for ${brief.targetAudience?.trim() || "the target audience"}.`;
   const ctaLabel = live?.ctaText || brief.ctaGoal?.trim() || brief.goal?.trim() || name;
   const badgeSources = accents.length ? accents : [accent];
+
+  // FAQ: real Q&A scraped from the live page when present; otherwise derive
+  // pairs whose answers actually answer the question (offering = services or
+  // business type — never the project goal sentence).
+  const offering = servicesFromBrief.length
+    ? servicesFromBrief.slice(0, 4).join(", ")
+    : brief.businessType?.trim()
+      ? `${name} is a ${brief.businessType.trim().toLowerCase()}${brief.targetAudience?.trim() ? ` built for ${brief.targetAudience.trim()}` : ""}.`
+      : `See the ${name} brief for the offering.`;
+  const faqPairs: { q: string; a: string }[] = live?.faq?.length
+    ? live.faq.slice(0, 3)
+    : [
+        { q: `What does ${name} offer?`, a: offering },
+        {
+          q: "How do I get started?",
+          a: `${ctaLabel}${brief.goal?.trim() ? ` — ${brief.goal.trim().replace(/\.$/, "").toLowerCase()}` : ""}.`,
+        },
+      ];
+  const faqCap = live?.faq?.length
+    ? "questions and answers taken from the live reference site"
+    : "no FAQ found on the reference site — pairs derived from the brief";
 
   const fontLink = [...new Set([bodyFont, displayFont])]
     .filter((f) => !/^(inter)$/i.test(f))
@@ -202,10 +223,9 @@ ${fontLink ? `<link rel="preconnect" href="https://fonts.googleapis.com" /><link
     <div class="row">${badgeSources.slice(0, 3).map((a, i) => `<span class="badge" style="background:${esc(mix(bg, a, 0.16))};color:${esc(a)}">${esc(["New", "Active", "Beta"][i])}</span>`).join("")}
       <span class="badge" style="background:${esc(mix(bg, "#22a06b", 0.16))};color:#22a06b">Completed</span></div>`)}
 
-  ${block("FAQ accordion", "content derived from the brief; chevron behavior standard", `
-    <div class="faq">
-      <details open><summary>What does ${esc(name)} offer?</summary><p>${esc(servicesFromBrief.length ? servicesFromBrief.slice(0, 4).join(", ") + "." : brief.goal?.trim() || `Details from the ${name} brief.`)}</p></details>
-      <details><summary>${esc(brief.targetAudience?.trim() ? `Is this for ${brief.targetAudience.trim()}?` : "How do I get started?")}</summary><p>${esc(brief.ctaGoal?.trim() ? `Yes — ${brief.ctaGoal.trim().replace(/\.$/, "").toLowerCase()}.` : brief.goal?.trim() || `See the ${name} brief for details.`)}</p></details>
+  ${block("FAQ accordion", faqCap, `
+    <div class="faq">${faqPairs.map((f, i) => `
+      <details${i === 0 ? " open" : ""}><summary>${esc(f.q)}</summary><p>${esc(f.a)}</p></details>`).join("")}
     </div>`)}
 </div>
 </body>
