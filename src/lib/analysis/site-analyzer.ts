@@ -2,6 +2,8 @@
 // Produces WEBSITE_ANALYSIS.json, VISUAL_ANALYSIS.json, DESIGN_TOKENS.json
 // from fetched HTML/CSS heuristics, with honest confidence + fallbacks.
 
+import { extractStyleMetrics, type StyleMetrics } from "./style-metrics";
+
 export type SiteSource = { html: string; css: string };
 
 const strip = (s: string) => s.replace(/\s+/g, " ").trim();
@@ -205,6 +207,7 @@ export function analyzeVisualAndTokens(source: SiteSource | null, url: string | 
         typography: {} as Record<string, string>,
         radius: {} as Record<string, string>,
         shadow: {} as Record<string, string>,
+        metrics: null as StyleMetrics | null,
       },
     };
   }
@@ -273,6 +276,7 @@ export function analyzeVisualAndTokens(source: SiteSource | null, url: string | 
     typography: tokenTypography,
     radius: Object.fromEntries(radii.slice(0, 3).map((r, i) => [`radius-${i + 1}`, r.value])),
     shadow: Object.fromEntries(shadows.slice(0, 2).map((s2, i) => [`shadow-${i + 1}`, s2.value])),
+    metrics: extractStyleMetrics(css) as StyleMetrics | null,
   };
 
   return { visual, tokens };

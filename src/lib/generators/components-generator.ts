@@ -13,19 +13,26 @@ export function generateComponentsMd(ctx: GeneratorContext): MdArtifact {
   const palette = paletteOf(ctx, a);
   const fonts = fontsOf(ctx, a);
   const accent = palette[1]?.value ?? palette[0]?.value;
-  const radius = Object.values(ctx.tokens?.radius ?? {})[0] ?? "12px";
+  const m = ctx.tokens?.metrics ?? null;
+  const radius = m?.button?.radius ?? Object.values(ctx.tokens?.radius ?? {})[0];
+  if (!radius) a.add("No radius measurable — 12px proposed for cards/buttons.");
+  const radiusText = radius ? `${String(radius)} (measured)` : "12px (assumed)";
+  const btnBits = [
+    m?.button?.fontWeight ? `weight ${m.button.fontWeight} (measured)` : null,
+    m?.button?.transitionMs ? `${m.button.transitionMs}ms transitions (measured)` : null,
+  ].filter(Boolean).join(", ");
   const hasTestimonials = ctx.website?.sectionsDetected.includes("testimonials");
   const hasPricing = ctx.website?.sectionsDetected.includes("pricing");
   const hasFaq = ctx.website?.sectionsDetected.includes("faq");
   const hover = ctx.animation?.hoverInteractions.length
-    ? "Match the current site's hover behavior (transitions detected) — standardize to 200–300ms."
-    : "150–300ms color/shadow transitions; ≤4px lift on cards.";
+    ? `Match the reference site's measured hover behavior${m?.button?.transitionMs ? ` (~${m.button.transitionMs}ms)` : ""} — keep it consistent everywhere.`
+    : "150–300ms color/shadow transitions; ≤4px lift on cards (assumed — no hover data measured).";
 
   const content = `# COMPONENTS — ${who(ctx)}
 
 ${analysisConfidenceNote(ctx)}
 
-Shared rules: font **${fonts[0]}**, accent \`${accent}\`, radius ${String(radius)}, 4/8px spacing rhythm, 44px minimum touch targets, visible focus rings.
+Shared rules: font **${fonts[0]}**, accent \`${accent}\`, radius ${radiusText}${btnBits ? `, ${btnBits}` : ""}, ${m?.spacingBase ? `${m.spacingBase}px spacing rhythm (measured)` : "4/8px spacing rhythm (assumed)"}, 44px minimum touch targets, visible focus rings.
 
 ## Navbar
 - Sticky; transparent → bordered on scroll. Logo left, ≤5 links, filled accent CTA right.

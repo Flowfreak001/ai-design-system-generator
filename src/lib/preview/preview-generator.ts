@@ -45,7 +45,12 @@ export function generatePreviewHtml(data: PreviewData): string {
   const accent = byName.accent ?? byName.primary ?? palette[1]?.value ?? palette[0].value;
   const dark = byName.ink ?? palette[0].value;
   const font = String(tokens?.typography?.primary ?? Object.values(tokens?.typography ?? {})[0] ?? "Inter");
-  const radius = String(Object.values(tokens?.radius ?? {})[0] ?? "12px");
+  const metrics = tokens?.metrics ?? null;
+  const radius = String(metrics?.button?.radius ?? Object.values(tokens?.radius ?? {})[0] ?? "12px");
+  const bodyPx = metrics?.bodyFontSizePx ?? 16;
+  const btnPad = metrics?.button?.paddingY !== undefined
+    ? `${metrics.button.paddingY}px ${metrics.button.paddingX ?? Math.round((metrics.button.paddingY ?? 12) * 1.8)}px`
+    : "12px 22px";
   const services = input.brief.keyItems.slice(0, 3);
   while (services.length < 3) services.push(["Core service", "Second service", "Third service"][services.length]);
 
@@ -75,7 +80,7 @@ export function generatePreviewHtml(data: PreviewData): string {
 <style>
   :root { --accent:${esc(accent)}; --dark:${esc(dark)}; --radius:${esc(radius)}; }
   * { box-sizing:border-box; margin:0; }
-  body { font-family:${esc(font)}, ui-sans-serif, system-ui, sans-serif; background:#fafaf8; color:#26282e; line-height:1.6; }
+  body { font-family:${esc(font)}, ui-sans-serif, system-ui, sans-serif; background:#fafaf8; color:#26282e; line-height:${metrics?.bodyLineHeight ?? 1.6}; font-size:${bodyPx}px; }
   .wrap { max-width:960px; margin:0 auto; padding:40px 24px; }
   section { margin-bottom:48px; }
   .label { font:600 11px/1 ui-monospace,monospace; letter-spacing:.14em; text-transform:uppercase; color:#8a8f9a; margin-bottom:14px; }
@@ -87,7 +92,7 @@ export function generatePreviewHtml(data: PreviewData): string {
   .swatch .chip { width:84px; height:56px; border-radius:10px; border:1px solid #e6e2dd; margin-bottom:6px; }
   .swatch code { display:block; font-size:11px; color:#26282e; }
   .type h1 { font-size:44px; line-height:1.08; } .type h2 { font-size:30px; margin-top:10px; } .type p { max-width:60ch; margin-top:10px; }
-  .btn { display:inline-block; padding:12px 22px; border-radius:10px; font-weight:600; font-size:14px; text-decoration:none; margin-right:10px; }
+  .btn { display:inline-block; padding:${btnPad}; border-radius:${esc(radius)}; font-weight:${metrics?.button?.fontWeight ?? 600}; font-size:14px; text-decoration:none; margin-right:10px; }
   .btn.primary { background:var(--accent); color:#fff; }
   .btn.secondary { background:#fff; color:#101115; border:1px solid #d6d1ca; }
   .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; }
