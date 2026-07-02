@@ -2,10 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProject, getFileVersions, toGenerationInput } from "@/lib/projects";
 import { requireUser } from "@/lib/auth";
-import { generateAction, deleteProjectAction, analyzeWebsiteAction, generateMdAction } from "../actions";
+import { generateAction, deleteProjectAction, analyzeWebsiteAction, generateMdAction, generatePreviewAction } from "../actions";
 import { StatusBadge, TypeBadge } from "@/components/projects/status-badge";
 import { ProjectOverview } from "@/components/projects/project-overview";
 import { GeneratedFilesViewer } from "@/components/projects/generated-files-viewer";
+import { PreviewPanel } from "@/components/projects/preview-panel";
+import { ExportPanel } from "@/components/projects/export-panel";
 import { WorkflowBlueprint } from "@/components/projects/workflow-blueprint";
 import { NotesSection } from "@/components/projects/notes-section";
 import { AgentRunTimeline } from "@/components/projects/agent-run-timeline";
@@ -50,6 +52,9 @@ export default async function ProjectDetailPage({
   const generate = generateAction.bind(null, id);
   const analyze = analyzeWebsiteAction.bind(null, id);
   const generateMd = generateMdAction.bind(null, id);
+  const generatePreview = generatePreviewAction.bind(null, id);
+  const previewHtml = project.files.find((f) => f.name === "preview.html")?.content ?? null;
+  const componentHtml = project.files.find((f) => f.name === "component-preview.html")?.content ?? null;
   const analyzeUrl = project.business?.website || gen.brief.brandRefs.find((r) => /^https?:\/\//i.test(r)) || null;
   const remove = deleteProjectAction.bind(null, id);
 
@@ -57,6 +62,8 @@ export default async function ProjectDetailPage({
     { id: "overview", label: "Overview" },
     { id: "files", label: "Files" },
     ...(isAutomation ? [{ id: "workflow", label: "Workflow" }] : []),
+    { id: "preview", label: "Preview" },
+    { id: "export", label: "Export" },
     { id: "notes", label: "Notes" },
     { id: "runs", label: "Agent runs" },
     { id: "versions", label: "Versions" },
@@ -142,6 +149,28 @@ export default async function ProjectDetailPage({
           )}
         </Section>
       )}
+
+      <Section id="preview" title="Design preview">
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <p className="text-sm text-muted">
+            Rendered from the generated tokens and files — brand, palette,
+            type, components, and motion notes in one visual sheet.
+          </p>
+          <form action={generatePreview}>
+            <Button type="submit" variant="secondary">
+              {previewHtml ? "Regenerate Preview" : "Generate Preview"}
+            </Button>
+          </form>
+        </div>
+        <PreviewPanel previewHtml={previewHtml} componentHtml={componentHtml} />
+      </Section>
+
+      <Section id="export" title="Export">
+        <ExportPanel
+          projectId={id}
+          files={project.files.map((f) => ({ id: f.id, name: f.name, type: f.type, content: f.content }))}
+        />
+      </Section>
 
       <Section id="notes" title="Notes & decisions">
         <NotesSection projectId={id} notes={project.notes} />

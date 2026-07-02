@@ -7,6 +7,7 @@ import { createProject, deleteProject, addNote, ownsProject } from "@/lib/projec
 import { startGeneration } from "@/lib/jobs";
 import { runWebsiteAnalysis } from "@/lib/analysis/run-analysis";
 import { runMdGeneration } from "@/lib/md-generation";
+import { runPreviewGeneration } from "@/lib/preview";
 import { requireUser } from "@/lib/auth";
 
 export type FormState = { error?: string } | undefined;
@@ -61,6 +62,13 @@ export async function generateMdAction(projectId: string) {
   const user = await requireUser();
   if (!user.agencyId || !(await ownsProject(projectId, user.agencyId))) return;
   await runMdGeneration(projectId);
+  revalidatePath(`/projects/${projectId}`);
+}
+
+export async function generatePreviewAction(projectId: string) {
+  const user = await requireUser();
+  if (!user.agencyId || !(await ownsProject(projectId, user.agencyId))) return;
+  await runPreviewGeneration(projectId);
   revalidatePath(`/projects/${projectId}`);
 }
 
