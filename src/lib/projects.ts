@@ -1,17 +1,14 @@
-// Data-access layer for projects + their generated files. Keeps Prisma calls
-// out of components and server actions so they stay thin.
+// Data-access layer for projects. Keeps Prisma calls out of components/actions.
 
 import { prisma } from "@/lib/db/client";
-import { runPipeline } from "@/lib/agents";
-import { generateAll } from "@/lib/generators";
-import type { BusinessBrief, GenerationContext } from "@/types";
+import { slugify, shortId } from "@/lib/utils/slug";
 import type { CreateProjectInput } from "@/lib/validators/project";
-import { FileKind } from "@/generated/prisma/enums";
+import type { GenerationInput } from "@/types";
 
 export async function listProjects() {
   return prisma.project.findMany({
     orderBy: { createdAt: "desc" },
-    include: { _count: { select: { files: true, referenceUrls: true } } },
+    include: { _count: { select: { files: true } } },
   });
 }
 
@@ -19,41 +16,47 @@ export async function getProject(id: string) {
   return prisma.project.findUnique({
     where: { id },
     include: {
-      referenceUrls: true,
-      files: { orderBy: { name: "asc" } },
-      _count: { select: { files: true } },
+      input: true,
+      files: { orderBy: { fileName: "asc" } },
+      agentRuns: {
+        orderBy: { createdAt: "desc" },
+        include: { steps: { orderBy: { startedAt: "asc" } } },
+      },
     },
   });
 }
 
-export async function getProjectFile(projectId: string, name: string) {
+export async function getProjectFile(projectId: string, fileName: string) {
   return prisma.generatedFile.findUnique({
-    where: { projectId_name: { projectId, name } },
+    where: { projectId_fileName: { projectId, fileName } },
   });
 }
 
-export async function createProject(input: CreateProjectInput) {
-  const brief: BusinessBrief = {
-    businessName: input.brief?.businessName ?? input.name,
-    clientName: input.clientName,
-    industry: input.brief?.industry,
-    audience: input.brief?.audience,
-    goals: input.brief?.goals ?? [],
-    tone: input.brief?.tone ?? [],
-    notes: input.brief?.notes,
-  };
+export async function createProject(data: CreateProjectInput) {
+  const slug = `${slugify(data.name) || "project"}-${shortId()}`;
 
   return prisma.project.create({
     data: {
-      name: input.name,
-      clientName: input.clientName,
-      businessDetails: brief,
-      referenceUrls: {
-        create: input.referenceUrls.map((r) => ({
-          url: r.url,
-          type: r.type,
-          notes: r.notes,
-        })),
+      name: data.name,
+      slug,
+      clientName: data.clientName,
+      businessName: data.businessName,
+      businessType: data.businessType,
+      input: {
+        create: {
+          websiteGoal: data.websiteGoal,
+          targetAudience: data.targetAudience,
+          existingWebsiteUrl: data.existingWebsiteUrl,
+          referenceUrls: data.referenceUrls,
+          competitorUrls: data.competitorUrls,
+          brandColors: data.brandColors,
+          requiredPages: data.requiredPages,
+          servicesProducts: data.servicesProducts,
+          seoKeywords: data.seoKeywords,
+          platformTarget: data.platformTarget,
+          animationPreference: data.animationPreference,
+          notes: data.notes,
+        },
       },
     },
   });
@@ -63,57 +66,44 @@ export async function deleteProject(id: string) {
   return prisma.project.delete({ where: { id } });
 }
 
-// Map an output filename to a FileKind for storage/filtering.
-function fileKindFor(name: string): FileKind {
-  if (name.endsWith(".json")) return FileKind.JSON;
-  if (name.endsWith(".css")) return FileKind.CSS;
-  if (name.endsWith(".html")) return FileKind.HTML;
-  if (name.startsWith("PROMPT_")) return FileKind.PROMPT;
-  if (/_REPORT|ANALYSIS/.test(name)) return FileKind.REPORT;
-  return FileKind.MARKDOWN;
-}
-
-/**
- * Mock generation: runs the (stubbed) agent pipeline, produces every registered
- * artifact, and upserts them as GeneratedFile rows. No real AI yet — the
- * structured files (JSON/CSS/theme/preview) are real; prose is placeholder.
- */
-export async function generateMockFiles(projectId: string) {
-  const project = await prisma.project.findUnique({ where: { id: projectId } });
-  if (!project) throw new Error("Project not found");
-
-  const brief = (project.businessDetails as BusinessBrief | null) ?? {
-    businessName: project.name,
+/** Flatten a project + its input into the shape generators consume. */
+export function toGenerationInput(project: {
+  name: string;
+  clientName: string | null;
+  businessName: string | null;
+  businessType: string | null;
+  input: {
+    websiteGoal: string | null;
+    targetAudience: string | null;
+    existingWebsiteUrl: string | null;
+    referenceUrls: string[];
+    competitorUrls: string[];
+    brandColors: string[];
+    requiredPages: string[];
+    servicesProducts: string | null;
+    seoKeywords: string[];
+    platformTarget: string | null;
+    animationPreference: string | null;
+    notes: string | null;
+  } | null;
+}): GenerationInput {
+  const i = project.input;
+  return {
+    projectName: project.name,
+    clientName: project.clientName,
+    businessName: project.businessName,
+    businessType: project.businessType,
+    websiteGoal: i?.websiteGoal ?? null,
+    targetAudience: i?.targetAudience ?? null,
+    existingWebsiteUrl: i?.existingWebsiteUrl ?? null,
+    referenceUrls: i?.referenceUrls ?? [],
+    competitorUrls: i?.competitorUrls ?? [],
+    brandColors: i?.brandColors ?? [],
+    requiredPages: i?.requiredPages ?? [],
+    servicesProducts: i?.servicesProducts ?? null,
+    seoKeywords: i?.seoKeywords ?? [],
+    platformTarget: i?.platformTarget ?? null,
+    animationPreference: i?.animationPreference ?? null,
+    notes: i?.notes ?? null,
   };
-
-  await prisma.project.update({
-    where: { id: projectId },
-    data: { status: "GENERATING" },
-  });
-
-  const baseCtx: GenerationContext = { projectId, brief };
-  const ctx = await runPipeline(baseCtx);
-  const artifacts = generateAll(ctx);
-
-  await prisma.$transaction([
-    ...artifacts.map((a) =>
-      prisma.generatedFile.upsert({
-        where: { projectId_name: { projectId, name: a.name } },
-        create: {
-          projectId,
-          name: a.name,
-          kind: fileKindFor(a.name),
-          content: a.content,
-          mimeType: a.mimeType,
-        },
-        update: { content: a.content, mimeType: a.mimeType },
-      }),
-    ),
-    prisma.project.update({
-      where: { id: projectId },
-      data: { status: "READY" },
-    }),
-  ]);
-
-  return artifacts.length;
 }

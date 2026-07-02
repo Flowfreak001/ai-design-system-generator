@@ -46,34 +46,55 @@ Postgres in userspace; Redis is absent, so the queue runs **inline** (see below)
 ## Architecture (`src/`)
 
 ```
-app/            routes + API + server actions (projects/actions.ts)
-components/     UI
+app/            routes + server actions (page.tsx = premium landing, projects/*)
+components/
+  landing/      LandingHero, FeatureSection, WorkflowSection, OutputFilesSection,
+                PreviewExportSection, TrustSection, FinalCTA
+  layout/       SiteHeader, SiteFooter
+  projects/     ProjectCard, ProjectForm, ProjectOverview, GeneratedFilesViewer, StatusBadge
+  ui/           Button/LinkButton (micro-interactions), motion primitives (FadeUp,
+                Stagger, StaggerItem, HoverLift) — all respect prefers-reduced-motion
 lib/
-  agents/       AI pipeline stages — research → website → visual → tokens (STUBBED)
-  generators/   registry mapping every OutputFileName → content generator
-  queue/        enqueue(): BullMQ when REDIS_URL set, else runs inline
+  generators/   BRAND.md, DESIGN.md, CREATIVE.md, PROMPT_CLAUDE_CODE.md — rich
+                templates built from real project input (no filler)
+  generation.ts runGeneration(): AgentRun + AgentStep per agent → GeneratedFile
+                (+ FileVersion history, version bump on regenerate)
+  jobs/         startGeneration() → enqueue GENERATE
+  queue/        index.ts (abstraction) / mockQueue.ts (inline, local) /
+                redisQueue.ts (BullMQ, only loaded when REDIS_URL set)
   db/           Prisma 7 client singleton (pg adapter)
-  validators/   zod schemas (createProjectSchema, ...)
-  storage/      asset adapter (local fs now; swap for cloud)
-  projects.ts   data-access + generateMockFiles()
-types/          BusinessBrief, DesignTokens, OutputFileName (30 artifacts), GenerationContext
-prompts/        per-tool prompt templates
+  validators/   zod schemas + PLATFORM_TARGETS / ANIMATION_PREFERENCES constants
+  utils/        slugify, shortId
+types/          GenerationInput, OutputFileName, AGENT_NAMES
 ```
+
+### Data model
+
+`Project` (name, slug, client/business, status) 1:1 `ProjectInput` (goal, audience,
+URLs, colors, pages, keywords, platform, animation, notes) 1:N `GeneratedFile`
+(1:N `FileVersion`) and 1:N `AgentRun` (1:N `AgentStep`).
 
 ### Generation flow (mock, no real AI yet)
 
-`generateMockFiles(projectId)` → load brief → `runPipeline()` (stub agents fill
-research/analysis/tokens) → `generateAll()` produces all artifacts → upsert
-`GeneratedFile` rows → set project `READY`. Structured files (JSON/CSS/theme/
-preview) are already real; markdown/prompt bodies are placeholders until the
-OpenAI-backed agents are wired.
+`startGeneration(projectId)` → enqueue → `runGeneration()`: creates an AgentRun,
+runs 4 agents (Brand Strategist, Design Systems, Creative Director, Prompt
+Engineer) each producing its file from real input values, versioning on
+regenerate, then marks the project READY.
 
 ### Queue
 
-`enqueue(type, payload)` uses BullMQ (`src/lib/queue/bullmq.ts`) only when
-`REDIS_URL` is set; otherwise it runs the registered processor inline so the app
-is fully functional locally. Note: bullmq bundles its own `ioredis`, so the
-connection instance is cast to `ConnectionOptions` (dual-package hazard).
+`enqueue(jobName, payload)`: mockQueue runs the processor inline (local, no
+Redis); redisQueue uses BullMQ (only dynamically imported when `REDIS_URL` is
+set). Worker: `npm run worker` (`src/worker.ts`). Note: bullmq bundles its own
+`ioredis`, so the connection instance is cast to `ConnectionOptions`.
+
+### Design system (UI)
+
+Dark premium enterprise look — tokens in `globals.css` `@theme` (`canvas`,
+`surface`, `ink`, `muted`, `brand` indigo→violet, `accent` cyan, hairline
+`line`). Plus Jakarta Sans display/body, Geist Mono for code/labels. Helpers:
+`.aurora`, `.text-gradient`, `.eyebrow`, `.card`. Motion: 0.6–0.9s, ease
+`[0.22,1,0.36,1]`, no bounce/spin; `motion.tsx` primitives handle reduced motion.
 
 ## Conventions
 
@@ -87,6 +108,8 @@ connection instance is cast to `ConnectionOptions` (dual-package hazard).
 
 ## Status
 
-Foundation: schema, module structure, types, and the project create/list/detail
-UI + mock generation are done and build-verified. Not yet built: real AI agents,
-Playwright crawler, asset upload UI, QA reports, export ZIP, auth.
+Foundation complete: premium landing page, full project flow (create with 16-field
+brief → generate → view files with agent workflow status), rich mock generators,
+versioned files, queue abstraction, Railway deploy config. Not yet built: real AI
+agents (OpenAI), remaining output files (CONTENT/COMPONENTS/ANIMATION/SEO/other
+PROMPT_*), export ZIP, preview.html rendering, Playwright crawler, uploads, auth.

@@ -1,191 +1,250 @@
-// Generator registry — maps each output artifact to a pure function that turns
-// a GenerationContext into file content. Real prose/prompt bodies come from the
-// AI agents later; the structured files (JSON/CSS/theme) are already real.
+// File generators — produce professional, structured markdown from the actual
+// project input (no vague filler). Each generator maps to one output artifact.
+// Real AI agents will later replace these deterministic templates.
 
-import type {
-  GenerationContext,
-  GeneratedArtifact,
-  OutputFileName,
-  DesignTokens,
-} from "@/types";
+import type { GenerationInput, GeneratedArtifact, OutputFileName } from "@/types";
 
-type Generator = (ctx: GenerationContext) => GeneratedArtifact;
+type Generator = (input: GenerationInput) => GeneratedArtifact;
 
-// ---- Structured, already-real generators --------------------------------
+// ---- helpers ------------------------------------------------------------
 
-const projectBrief: Generator = (ctx) => ({
-  name: "PROJECT_BRIEF.json",
-  mimeType: "application/json",
-  content: JSON.stringify({ projectId: ctx.projectId, ...ctx.brief }, null, 2),
-});
+const orNa = (v?: string | null) => (v && v.trim() ? v.trim() : "_Not specified_");
+const list = (items: string[], fallback = "_Not specified_") =>
+  items.length ? items.map((i) => `- ${i}`).join("\n") : fallback;
+const inline = (items: string[], fallback = "not specified") =>
+  items.length ? items.join(", ") : fallback;
 
-const designTokens: Generator = (ctx) => ({
-  name: "DESIGN_TOKENS.json",
-  mimeType: "application/json",
-  content: JSON.stringify(ctx.tokens ?? {}, null, 2),
-});
+function biz(input: GenerationInput) {
+  return input.businessName || input.projectName || "the business";
+}
 
-const tokensCss: Generator = (ctx) => ({
-  name: "tokens.css",
-  mimeType: "text/css",
-  content: tokensToCss(ctx.tokens),
-});
+// ---- BRAND.md -----------------------------------------------------------
 
-const tailwindTheme: Generator = (ctx) => ({
-  name: "tailwind.theme.json",
-  mimeType: "application/json",
-  content: JSON.stringify(tokensToTailwind(ctx.tokens), null, 2),
-});
+const brand: Generator = (input) => {
+  const name = biz(input);
+  const audience = orNa(input.targetAudience);
+  const content = `# BRAND — ${name}
 
-const previewHtml: Generator = (ctx) => ({
-  name: "preview.html",
-  mimeType: "text/html",
-  content: renderPreview(ctx),
-});
+## Brand overview
+${name}${input.businessType ? ` is a ${input.businessType.toLowerCase()}` : ""} building a web presence with a clear, conversion-focused design system. This document defines how the brand should sound and feel across every page.
 
-const componentPreviewHtml: Generator = (ctx) => ({
-  name: "component-preview.html",
-  mimeType: "text/html",
-  content: renderPreview(ctx, true),
-});
+## Business positioning
+- **Primary goal:** ${orNa(input.websiteGoal)}
+- **Category:** ${orNa(input.businessType)}
+- **Offering:** ${orNa(input.servicesProducts)}
+- **Positioning statement:** For ${input.targetAudience?.trim() || "its audience"}, ${name} delivers ${input.servicesProducts?.trim() || "its core offering"} with a premium, trustworthy experience.
 
-// ---- Markdown docs + tool prompts (bodies filled by agents later) --------
+## Target audience
+${audience}
 
-const DOC_FILES: OutputFileName[] = [
-  "RESEARCH_REPORT.md",
-  "WEBSITE_ANALYSIS.md",
-  "VISUAL_ANALYSIS.md",
+Design and copy decisions should be validated against this audience first.
+
+## Tone of voice
+- Confident, clear, and credible — never hypey.
+- ${input.animationPreference === "Bold" ? "Energetic and expressive" : input.animationPreference === "Minimal" || input.animationPreference === "None" ? "Calm, precise, and understated" : "Polished and premium"}.
+- Short sentences. Concrete benefits over adjectives.
+
+## Trust signals
+- Clear outcomes and specifics (numbers, named results) over vague claims.
+- Consistent visual system across every page.
+- Social proof, security/quality cues, and transparent next steps near each CTA.
+
+## Words to use
+${list([
+  "clear",
+  "premium",
+  input.businessType ? input.businessType.toLowerCase() : "professional",
+  "trusted",
+  "results",
+  ...input.seoKeywords.slice(0, 4),
+])}
+
+## Words to avoid
+- "revolutionary", "world-class", "cutting-edge" (unearned superlatives)
+- "cheap", "basic", "simple" when describing the product
+- Filler that doesn't state a concrete benefit
+
+## Conversion message
+Lead with the outcome for ${input.targetAudience?.trim() || "the visitor"}: what they get, why it's credible, and the single next step. Primary CTA: **${input.websiteGoal?.trim() ? deriveCta(input.websiteGoal) : "Get started"}**.
+`;
+  return { fileName: "BRAND.md", fileType: "MARKDOWN", content };
+};
+
+function deriveCta(goal: string) {
+  const g = goal.toLowerCase();
+  if (g.includes("lead") || g.includes("contact")) return "Book a call";
+  if (g.includes("sign") || g.includes("trial") || g.includes("saas")) return "Start free";
+  if (g.includes("sell") || g.includes("ecommerce") || g.includes("buy")) return "Shop now";
+  return "Get started";
+}
+
+// ---- DESIGN.md ----------------------------------------------------------
+
+const design: Generator = (input) => {
+  const colors = input.brandColors;
+  const anim = input.animationPreference || "Premium";
+  const content = `# DESIGN — ${biz(input)}
+
+## Visual style
+A premium, modern, high-contrast system. Generous whitespace, strong typographic
+hierarchy, elegant cards, and soft gradients used sparingly for depth.
+Animation intensity: **${anim}**.
+
+## Color usage
+${colors.length
+    ? `Brand palette:\n${list(colors)}\n\n- Use the first color as the primary brand/accent.\n- Reserve accents for CTAs and key highlights; keep large surfaces neutral.`
+    : "- No brand colors supplied — default to a neutral base (near-white / near-black) with a single confident accent for CTAs.\n- Maintain WCAG AA contrast (4.5:1 for body text)."}
+
+## Typography direction
+- One strong sans for display + body; a monospace for code/file names.
+- Scale: clear jumps (e.g. 14 / 16 / 20 / 32 / 48+). Tight leading on headings, 1.5–1.7 on body.
+- Weight for hierarchy: 600–800 headings, 400–500 body.
+
+## Layout rules
+- Max content width ~1200px; consistent 4/8px spacing rhythm.
+- Sections breathe: generous vertical padding, one idea per section.
+- Required pages: ${inline(input.requiredPages, "Home (others TBD)")}.
+
+## Buttons
+- Primary: solid accent, medium radius, clear hover (subtle lift + shade), 250–300ms.
+- Secondary: outline/ghost. Min touch target 44px. Visible focus ring.
+
+## Cards
+- Soft border + subtle shadow; elevate slightly on hover (translateY, never bounce).
+- Consistent padding and radius across the system.
+
+## Forms
+- Visible labels (not placeholder-only), helper text, inline validation on blur.
+- Errors below the field; clear focus states; comfortable input height (≥44px).
+
+## Navigation
+- Sticky, condenses on scroll. 4–6 primary items max. Clear active state.
+
+## Footer
+- Grouped links, brand line, legal. Calm, low-contrast, well-spaced.
+
+## Responsive rules
+- Mobile-first. Breakpoints ~640 / 768 / 1024 / 1280.
+- No horizontal scroll; stack cards; keep tap targets ≥44px.
+
+## Design do's and don'ts
+**Do:** strong hierarchy, consistent spacing, restrained palette, accessible contrast.
+**Don't:** random colors, cramped sections, weak hierarchy, cheap/flashy animation.
+`;
+  return { fileName: "DESIGN.md", fileType: "MARKDOWN", content };
+};
+
+// ---- CREATIVE.md --------------------------------------------------------
+
+const creative: Generator = (input) => {
+  const name = biz(input);
+  const anim = input.animationPreference || "Premium";
+  const content = `# CREATIVE — ${name}
+
+## Creative direction
+Position ${name} as a premium, credible ${input.businessType?.toLowerCase() || "brand"}.
+Every section should feel intentional and product-ready — editorial, not template.
+
+## Visual mood
+${anim === "Bold" ? "Confident and expressive; larger type, richer gradients." : anim === "Minimal" || anim === "None" ? "Quiet and precise; lots of space, minimal ornament." : "Premium and polished; soft gradients, elegant depth, restrained motion."}
+
+## Homepage story
+1. Hook: the outcome for ${input.targetAudience?.trim() || "the visitor"}.
+2. Proof: why it's credible.
+3. How it works.
+4. What they get.
+5. Clear final call to action: ${orNa(input.websiteGoal)}.
+
+## Hero concept
+A bold headline stating the core value, a one-line subhead, two CTAs, and a
+supporting visual (product/preview). Entrance animation: staggered fade-up.
+
+## Section flow
+${list(
+  input.requiredPages.length
+    ? input.requiredPages
+    : ["Hero", "Features", "How it works", "Output / proof", "Trust", "Final CTA"],
+)}
+
+## Image direction
+- Real product/preview imagery over generic stock.
+- Consistent treatment (duotone or soft-gradient overlays) tied to the palette.
+
+## Animation feel
+- ${anim} intensity. Fade-up on sections, subtle card lift, button micro-interactions.
+- Smooth (250–400ms), controlled easing. No bouncing, spinning, or flashy effects.
+- Respect \`prefers-reduced-motion\`.
+
+## Creative do's and don'ts
+**Do:** one orchestrated moment per view, cohesive mood, purposeful motion.
+**Don't:** decorative-only animation, clashing styles, stock-photo clutter.
+`;
+  return { fileName: "CREATIVE.md", fileType: "MARKDOWN", content };
+};
+
+// ---- PROMPT_CLAUDE_CODE.md ---------------------------------------------
+
+const promptClaudeCode: Generator = (input) => {
+  const name = biz(input);
+  const platform = input.platformTarget || "Claude Code";
+  const content = `# PROMPT — Claude Code build prompt for ${name}
+
+## Full build prompt
+> Build a production-ready ${input.businessType?.toLowerCase() || "marketing"} website for **${name}**
+> targeting ${input.targetAudience?.trim() || "its audience"}. Primary goal:
+> ${input.websiteGoal?.trim() || "convert visitors"}. Target platform: ${platform}.
+> Apply the accompanying BRAND.md, DESIGN.md, and CREATIVE.md exactly.
+
+## Page requirements
+${list(input.requiredPages.length ? input.requiredPages : ["Home"], "- Home")}
+
+Offering to represent: ${orNa(input.servicesProducts)}.
+
+## Design rules
+- Follow DESIGN.md: palette (${inline(input.brandColors, "neutral base + one accent")}), typographic hierarchy, elegant cards, soft gradients.
+- High contrast, generous spacing, consistent 4/8px rhythm.
+
+## Animation rules
+- Intensity: ${input.animationPreference || "Premium"}. Fade-up on sections, subtle card lift, button micro-interactions, smooth tab/preview transitions.
+- 250–400ms, controlled easing. No bounce/spin/flash. Respect \`prefers-reduced-motion\`.
+
+## SEO rules
+- Unique title + meta description per page. One \`<h1>\` per page; semantic headings.
+- Target keywords: ${inline(input.seoKeywords, "derive from services + audience")}.
+- Open Graph + Twitter tags; clean slugs; sitemap + robots.
+
+## Responsive rules
+- Mobile-first; breakpoints 640 / 768 / 1024 / 1280. No horizontal scroll. Tap targets ≥44px.
+
+## What not to do
+- No generic template look, no random colors, no weak hierarchy.
+- No cheap/flashy animation. No unrelated placeholder content.
+
+## Output expectations
+- A clean, componentized ${platform} project that matches the design system.
+- Accessible (WCAG AA), responsive, and production-ready — not a rough draft.
+${input.existingWebsiteUrl ? `\n_Reference the existing site for continuity: ${input.existingWebsiteUrl}_` : ""}
+${input.competitorUrls.length ? `\n_Competitors to differentiate from: ${inline(input.competitorUrls)}_` : ""}
+`;
+  return { fileName: "PROMPT_CLAUDE_CODE.md", fileType: "PROMPT", content };
+};
+
+// ---- registry -----------------------------------------------------------
+
+export const generators: Record<OutputFileName, Generator> = {
+  "BRAND.md": brand,
+  "DESIGN.md": design,
+  "CREATIVE.md": creative,
+  "PROMPT_CLAUDE_CODE.md": promptClaudeCode,
+};
+
+export const OUTPUT_ORDER: OutputFileName[] = [
   "BRAND.md",
   "DESIGN.md",
   "CREATIVE.md",
-  "UX.md",
-  "CONTENT.md",
-  "COPY_GUIDE.md",
-  "COMPONENTS.md",
-  "ANIMATION.md",
-  "SEO.md",
-  "ACCESSIBILITY.md",
-];
-
-const PROMPT_FILES: OutputFileName[] = [
-  "PROMPT_CODEX.md",
   "PROMPT_CLAUDE_CODE.md",
-  "PROMPT_REPLIT.md",
-  "PROMPT_LOVABLE.md",
-  "PROMPT_BOLT.md",
-  "PROMPT_CURSOR.md",
-  "PROMPT_V0.md",
-  "PROMPT_WEBFLOW.md",
-  "PROMPT_WIX.md",
-  "PROMPT_WORDPRESS.md",
 ];
 
-function docGenerator(name: OutputFileName): Generator {
-  return (ctx) => ({
-    name,
-    mimeType: "text/markdown",
-    content:
-      `# ${name.replace(/\.md$/, "").replace(/_/g, " ")}\n\n` +
-      `> Draft for **${ctx.brief.businessName}**. Prose generated by the AI agents (not yet wired).\n\n` +
-      injectedAnalysis(name, ctx),
-  });
-}
-
-function promptGenerator(name: OutputFileName): Generator {
-  const tool = name.replace(/^PROMPT_/, "").replace(/\.md$/, "").replace(/_/g, " ");
-  return (ctx) => ({
-    name,
-    mimeType: "text/markdown",
-    content:
-      `# ${tool} build prompt\n\n` +
-      `Use this prompt in **${tool}** to build ${ctx.brief.businessName}'s site using the generated design system.\n\n` +
-      "```\n" +
-      `Build a website for ${ctx.brief.businessName}. Apply DESIGN_TOKENS.json exactly — ` +
-      `colors, type scale, spacing, and motion. Follow BRAND.md, UX.md, and ACCESSIBILITY.md.\n` +
-      "```\n\n_Prompt bodies are elaborated by the AI agents (not yet wired)._\n",
-  });
-}
-
-// Surface any analysis the pipeline produced into the relevant doc.
-function injectedAnalysis(name: OutputFileName, ctx: GenerationContext): string {
-  if (name === "RESEARCH_REPORT.md" && ctx.research) return ctx.research;
-  if (name === "WEBSITE_ANALYSIS.md" && ctx.websiteAnalysis) return ctx.websiteAnalysis;
-  if (name === "VISUAL_ANALYSIS.md" && ctx.visualAnalysis) return ctx.visualAnalysis;
-  return "_Section pending._";
-}
-
-// ---- Registry -----------------------------------------------------------
-
-export const generators = new Map<OutputFileName, Generator>([
-  ["PROJECT_BRIEF.json", projectBrief],
-  ["DESIGN_TOKENS.json", designTokens],
-  ["tokens.css", tokensCss],
-  ["tailwind.theme.json", tailwindTheme],
-  ["preview.html", previewHtml],
-  ["component-preview.html", componentPreviewHtml],
-  ...DOC_FILES.map((n) => [n, docGenerator(n)] as const),
-  ...PROMPT_FILES.map((n) => [n, promptGenerator(n)] as const),
-]);
-
-/** Run every registered generator for a context. */
-export function generateAll(ctx: GenerationContext): GeneratedArtifact[] {
-  return [...generators.values()].map((g) => g(ctx));
-}
-
-export function generateOne(name: OutputFileName, ctx: GenerationContext): GeneratedArtifact {
-  const g = generators.get(name);
-  if (!g) throw new Error(`No generator registered for "${name}"`);
-  return g(ctx);
-}
-
-// ---- Helpers ------------------------------------------------------------
-
-function tokensToCss(tokens?: DesignTokens): string {
-  if (!tokens) return ":root {}\n";
-  const lines: string[] = [":root {"];
-  for (const [k, v] of Object.entries(tokens.color)) lines.push(`  --color-${k}: ${v};`);
-  for (const [k, v] of Object.entries(tokens.typography.scale)) lines.push(`  --text-${k}: ${v};`);
-  for (const [k, v] of Object.entries(tokens.spacing)) lines.push(`  --space-${k}: ${v};`);
-  for (const [k, v] of Object.entries(tokens.radius)) lines.push(`  --radius-${k}: ${v};`);
-  lines.push("}");
-  return lines.join("\n") + "\n";
-}
-
-function tokensToTailwind(tokens?: DesignTokens) {
-  if (!tokens) return { theme: { extend: {} } };
-  return {
-    theme: {
-      extend: {
-        colors: tokens.color,
-        spacing: tokens.spacing,
-        borderRadius: tokens.radius,
-        fontFamily: tokens.typography.fontFamilies,
-      },
-    },
-  };
-}
-
-function renderPreview(ctx: GenerationContext, componentsOnly = false): string {
-  const t = ctx.tokens;
-  const primary = t?.color["brand-500"] ?? "#4F46E5";
-  const heading = t?.typography.fontFamilies.display ?? "sans-serif";
-  return `<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>${ctx.brief.businessName} — ${componentsOnly ? "Components" : "Preview"}</title>
-<style>
-  :root { --primary: ${primary}; }
-  body { font-family: ${heading}, system-ui, sans-serif; margin: 0; padding: 3rem; color: #111; }
-  .btn { background: var(--primary); color: #fff; padding: .75rem 1.25rem; border-radius: 8px; border: 0; }
-</style>
-</head>
-<body>
-  <h1>${ctx.brief.businessName}</h1>
-  <p>${componentsOnly ? "Component preview" : "Design system preview"} — generated from DESIGN_TOKENS.json.</p>
-  <button class="btn">Primary action</button>
-</body>
-</html>
-`;
+export function generateAll(input: GenerationInput): GeneratedArtifact[] {
+  return OUTPUT_ORDER.map((name) => generators[name](input));
 }

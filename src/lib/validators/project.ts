@@ -1,31 +1,55 @@
 import { z } from "zod";
 
-// Input validation for project creation + editing. Keep these as the single
-// source of truth for request shapes; route handlers parse with them.
+export const PLATFORM_TARGETS = [
+  "Claude Code",
+  "Codex",
+  "Replit",
+  "Lovable",
+  "Bolt",
+  "Cursor",
+  "v0",
+  "Webflow",
+  "Wix Studio",
+  "WordPress",
+  "React/Next.js",
+  "Other",
+] as const;
 
-export const businessBriefSchema = z.object({
-  businessName: z.string().min(1, "Business name is required"),
-  clientName: z.string().optional(),
-  industry: z.string().optional(),
-  audience: z.string().optional(),
-  goals: z.array(z.string()).default([]),
-  tone: z.array(z.string()).default([]),
-  notes: z.string().optional(),
-});
+export const ANIMATION_PREFERENCES = ["None", "Minimal", "Premium", "Bold"] as const;
 
-export const referenceUrlSchema = z.object({
-  url: z.string().url("Must be a valid URL"),
-  type: z.enum(["PRIMARY", "REFERENCE"]).default("REFERENCE"),
-  notes: z.string().optional(),
-});
+// Accepts comma/newline separated strings from textareas → trimmed arrays.
+const listField = z
+  .string()
+  .optional()
+  .transform((v) =>
+    (v ?? "")
+      .split(/[\n,]/)
+      .map((s) => s.trim())
+      .filter(Boolean),
+  );
+
+const optionalText = z
+  .string()
+  .optional()
+  .transform((v) => (v && v.trim() ? v.trim() : undefined));
 
 export const createProjectSchema = z.object({
   name: z.string().min(1, "Project name is required"),
-  clientName: z.string().optional(),
-  brief: businessBriefSchema.optional(),
-  referenceUrls: z.array(referenceUrlSchema).default([]),
+  clientName: optionalText,
+  businessName: optionalText,
+  businessType: optionalText,
+  websiteGoal: optionalText,
+  targetAudience: optionalText,
+  existingWebsiteUrl: optionalText,
+  referenceUrls: listField,
+  competitorUrls: listField,
+  brandColors: listField,
+  requiredPages: listField,
+  servicesProducts: optionalText,
+  seoKeywords: listField,
+  platformTarget: optionalText,
+  animationPreference: optionalText,
+  notes: optionalText,
 });
 
 export type CreateProjectInput = z.infer<typeof createProjectSchema>;
-export type BusinessBriefInput = z.infer<typeof businessBriefSchema>;
-export type ReferenceUrlInput = z.infer<typeof referenceUrlSchema>;

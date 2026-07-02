@@ -1,68 +1,46 @@
-import Link from "next/link";
 import { listProjects } from "@/lib/projects";
+import { ProjectCard } from "@/components/projects/project-card";
+import { LinkButton } from "@/components/ui/button";
+import { FadeUp, Stagger, StaggerItem } from "@/components/ui/motion";
 
 export const dynamic = "force-dynamic";
-
-const STATUS_STYLES: Record<string, string> = {
-  DRAFT: "bg-gray-100 text-gray-600",
-  RESEARCHING: "bg-blue-100 text-blue-700",
-  ANALYZING: "bg-blue-100 text-blue-700",
-  GENERATING: "bg-amber-100 text-amber-700",
-  READY: "bg-green-100 text-green-700",
-  FAILED: "bg-red-100 text-red-700",
-};
 
 export default async function ProjectsPage() {
   const projects = await listProjects();
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-12">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">Projects</h1>
-        <Link
-          href="/projects/new"
-          className="rounded-md bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700"
-        >
-          New project
-        </Link>
-      </div>
+    <div className="mx-auto max-w-6xl px-5 sm:px-8 pt-28 md:pt-32 pb-24">
+      <FadeUp className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="eyebrow">Dashboard</p>
+          <h1 className="mt-3 text-3xl font-bold tracking-tight">Projects</h1>
+          <p className="mt-2 text-muted">Every design system you&apos;ve generated.</p>
+        </div>
+        <LinkButton href="/projects/new">New project</LinkButton>
+      </FadeUp>
 
       {projects.length === 0 ? (
-        <div className="mt-10 rounded-lg border border-dashed border-gray-300 bg-white p-12 text-center">
-          <p className="text-gray-600">No projects yet.</p>
-          <Link
-            href="/projects/new"
-            className="mt-4 inline-block rounded-md bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700"
-          >
+        <FadeUp className="card mt-12 flex flex-col items-center justify-center px-6 py-20 text-center">
+          <span className="grid h-12 w-12 place-items-center rounded-xl border border-line-strong bg-white/[0.03] text-brand text-lg">
+            ◆
+          </span>
+          <h2 className="mt-5 text-lg font-semibold">No projects yet</h2>
+          <p className="mt-2 max-w-sm text-sm text-muted">
+            Create your first project to capture a brief and generate an
+            AI-ready design system.
+          </p>
+          <LinkButton href="/projects/new" className="mt-6">
             Create your first project
-          </Link>
-        </div>
+          </LinkButton>
+        </FadeUp>
       ) : (
-        <ul className="mt-8 grid gap-3">
+        <Stagger className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {projects.map((p) => (
-            <li key={p.id}>
-              <Link
-                href={`/projects/${p.id}`}
-                className="flex items-center justify-between rounded-lg border border-gray-200 bg-white px-5 py-4 hover:border-gray-300 hover:shadow-sm transition"
-              >
-                <div>
-                  <p className="font-medium">{p.name}</p>
-                  <p className="mt-0.5 text-sm text-gray-500">
-                    {p.clientName ? `${p.clientName} · ` : ""}
-                    {p._count.files} files · {p._count.referenceUrls} URLs
-                  </p>
-                </div>
-                <span
-                  className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                    STATUS_STYLES[p.status] ?? "bg-gray-100 text-gray-600"
-                  }`}
-                >
-                  {p.status}
-                </span>
-              </Link>
-            </li>
+            <StaggerItem key={p.id}>
+              <ProjectCard project={p} />
+            </StaggerItem>
           ))}
-        </ul>
+        </Stagger>
       )}
     </div>
   );

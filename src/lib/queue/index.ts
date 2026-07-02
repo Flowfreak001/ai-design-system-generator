@@ -1,21 +1,21 @@
-// Job queue abstraction.
+// Queue abstraction.
 //
-// On Railway (REDIS_URL set) jobs are enqueued to BullMQ and processed by a
-// separate worker. Locally (REDIS_URL empty — Redis can't run here without
-// Docker) the same jobs execute INLINE so the app is fully functional in dev.
-//
-// Processors are registered per JobType and are the single source of truth for
-// what a job does, regardless of transport.
-
-import type { JobType } from "@/generated/prisma/enums";
+// Local dev has no Redis, so jobs run through the MOCK queue (inline execution).
+// In production, setting REDIS_URL switches to the Redis/BullMQ queue processed
+// by the worker (src/worker.ts). Callers use the same `enqueue()` either way;
+// swapping transports never touches call sites.
 
 export type JobPayload = { projectId: string; [k: string]: unknown };
 export type JobProcessor = (payload: JobPayload) => Promise<void>;
 
-const processors = new Map<JobType, JobProcessor>();
+const processors = new Map<string, JobProcessor>();
 
-export function registerProcessor(type: JobType, fn: JobProcessor) {
-  processors.set(type, fn);
+export function registerProcessor(jobName: string, fn: JobProcessor) {
+  processors.set(jobName, fn);
+}
+
+export function getProcessor(jobName: string): JobProcessor | undefined {
+  return processors.get(jobName);
 }
 
 export function hasRedis(): boolean {
@@ -23,23 +23,13 @@ export function hasRedis(): boolean {
 }
 
 /**
- * Enqueue a job. Returns the transport job id when using BullMQ, or null when
- * it ran inline. Callers persist a Job row separately for status tracking.
+ * Enqueue a job. Returns the transport job id (Redis) or null (ran inline).
  */
-export async function enqueue(type: JobType, payload: JobPayload): Promise<string | null> {
+export async function enqueue(jobName: string, payload: JobPayload): Promise<string | null> {
   if (hasRedis()) {
-    const { getQueue } = await import("./bullmq");
-    const job = await getQueue().add(type, payload);
-    return job.id ?? null;
+    const { enqueueRedis } = await import("./redisQueue");
+    return enqueueRedis(jobName, payload);
   }
-  // Inline fallback — run now.
-  const fn = processors.get(type);
-  if (!fn) throw new Error(`No processor registered for job type "${type}"`);
-  await fn(payload);
-  return null;
-}
-
-/** Used by the worker process to look up a processor by type. */
-export function getProcessor(type: JobType): JobProcessor | undefined {
-  return processors.get(type);
+  const { enqueueMock } = await import("./mockQueue");
+  return enqueueMock(jobName, payload);
 }

@@ -8,27 +8,32 @@ import { startGeneration } from "@/lib/jobs";
 
 export type FormState = { error?: string } | undefined;
 
-/** Create a project from the new-project form, then redirect to its detail page. */
+const str = (fd: FormData, k: string) => {
+  const v = fd.get(k);
+  return typeof v === "string" ? v : undefined;
+};
+
 export async function createProjectAction(
   _prev: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const referenceUrls = String(formData.get("referenceUrls") ?? "")
-    .split(/[\n,]/)
-    .map((s) => s.trim())
-    .filter(Boolean)
-    .map((url) => ({ url, type: "REFERENCE" as const }));
-
   const parsed = createProjectSchema.safeParse({
-    name: formData.get("name"),
-    clientName: formData.get("clientName") || undefined,
-    brief: {
-      businessName: formData.get("businessName") || formData.get("name"),
-      industry: formData.get("industry") || undefined,
-      audience: formData.get("audience") || undefined,
-      notes: formData.get("notes") || undefined,
-    },
-    referenceUrls,
+    name: str(formData, "name"),
+    clientName: str(formData, "clientName"),
+    businessName: str(formData, "businessName"),
+    businessType: str(formData, "businessType"),
+    websiteGoal: str(formData, "websiteGoal"),
+    targetAudience: str(formData, "targetAudience"),
+    existingWebsiteUrl: str(formData, "existingWebsiteUrl"),
+    referenceUrls: str(formData, "referenceUrls"),
+    competitorUrls: str(formData, "competitorUrls"),
+    brandColors: str(formData, "brandColors"),
+    requiredPages: str(formData, "requiredPages"),
+    servicesProducts: str(formData, "servicesProducts"),
+    seoKeywords: str(formData, "seoKeywords"),
+    platformTarget: str(formData, "platformTarget"),
+    animationPreference: str(formData, "animationPreference"),
+    notes: str(formData, "notes"),
   });
 
   if (!parsed.success) {
@@ -41,8 +46,7 @@ export async function createProjectAction(
 }
 
 export async function generateAction(projectId: string) {
-  // Enqueues a GENERATE job. Runs inline when there's no Redis, or via the
-  // BullMQ worker when REDIS_URL is set.
+  // Inline when no Redis; BullMQ worker when REDIS_URL is set.
   await startGeneration(projectId);
   revalidatePath(`/projects/${projectId}`);
 }

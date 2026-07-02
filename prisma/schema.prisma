@@ -10,19 +10,19 @@ datasource db {
   provider = "postgresql"
 }
 
-// A single design-system generation project for a client/business.
+// A design-system generation project for a client/business.
 model Project {
-  id              String        @id @default(cuid())
-  name            String
-  clientName      String?
-  // Freeform business/client brief captured from the create form.
-  businessDetails Json?
-  status          ProjectStatus @default(DRAFT)
+  id           String        @id @default(cuid())
+  name         String
+  slug         String        @unique
+  clientName   String?
+  businessName String?
+  businessType String?
+  status       ProjectStatus @default(DRAFT)
 
-  referenceUrls ReferenceUrl[]
-  assets        Asset[]
-  files         GeneratedFile[]
-  jobs          Job[]
+  input     ProjectInput?
+  files     GeneratedFile[]
+  agentRuns AgentRun[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -30,123 +30,134 @@ model Project {
   @@index([status])
 }
 
-// Website / reference URLs to crawl + analyze (Playwright worker, later).
-model ReferenceUrl {
+// The structured brief captured on project creation (1:1 with Project).
+model ProjectInput {
   id        String  @id @default(cuid())
-  projectId String
+  projectId String  @unique
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-  url   String
-  type  UrlType @default(REFERENCE)
-  notes String?
+  websiteGoal         String?
+  targetAudience      String?
+  existingWebsiteUrl  String?
+  referenceUrls       String[] @default([])
+  competitorUrls      String[] @default([])
+  brandColors         String[] @default([])
+  requiredPages       String[] @default([])
+  servicesProducts    String?
+  seoKeywords         String[] @default([])
+  platformTarget      String?
+  animationPreference String?
+  notes               String?
 
   createdAt DateTime @default(now())
-
-  @@index([projectId])
+  updatedAt DateTime @updatedAt
 }
 
-// Uploaded assets / screenshots for visual analysis.
-model Asset {
-  id        String  @id @default(cuid())
-  projectId String
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-
-  kind       AssetKind @default(SCREENSHOT)
-  filename   String
-  mimeType   String
-  // Opaque key resolved by the storage adapter (local fs now, blob later).
-  storageKey String
-  sizeBytes  Int?
-
-  createdAt DateTime @default(now())
-
-  @@index([projectId])
-}
-
-// One generated output file (e.g. DESIGN_TOKENS.json, BRAND.md, tokens.css).
+// A generated output artifact (BRAND.md, DESIGN.md, ...).
 model GeneratedFile {
   id        String  @id @default(cuid())
   projectId String
   project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-  // Canonical output filename, unique per project.
-  name String
-  kind FileKind
-  // Inline content for text/markdown/json; large binaries use storageKey.
-  content    String? @db.Text
-  storageKey String?
-  mimeType   String  @default("text/markdown")
+  fileName String
+  fileType FileType   @default(MARKDOWN)
+  content  String     @db.Text
+  status   FileStatus @default(READY)
+  version  Int        @default(1)
+
+  versions FileVersion[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([projectId, name])
+  @@unique([projectId, fileName])
   @@index([projectId])
 }
 
-// A background job (BullMQ on Railway; inline fallback locally).
-model Job {
-  id        String  @id @default(cuid())
+// Historical versions of a generated file.
+model FileVersion {
+  id              String        @id @default(cuid())
+  generatedFileId String
+  generatedFile   GeneratedFile @relation(fields: [generatedFileId], references: [id], onDelete: Cascade)
+
+  version    Int
+  content    String  @db.Text
+  changeNote String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([generatedFileId, version])
+  @@index([generatedFileId])
+}
+
+// A run of the (mock) multi-agent generation pipeline for a project.
+model AgentRun {
+  id        String    @id @default(cuid())
   projectId String
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-  type     JobType
-  status   JobStatus @default(QUEUED)
-  progress Int       @default(0)
-  // Opaque BullMQ job id when enqueued to Redis.
-  queueJobId String?
-  error      String?
+  status      RunStatus @default(QUEUED)
+  startedAt   DateTime?
+  completedAt DateTime?
+  error       String?
 
-  startedAt  DateTime?
-  finishedAt DateTime?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  steps AgentStep[]
+
+  createdAt DateTime @default(now())
 
   @@index([projectId])
   @@index([status])
 }
 
+// A single agent's step within an AgentRun.
+model AgentStep {
+  id         String   @id @default(cuid())
+  agentRunId String
+  agentRun   AgentRun @relation(fields: [agentRunId], references: [id], onDelete: Cascade)
+
+  agentName String
+  status    StepStatus @default(PENDING)
+  input     Json?
+  output    Json?
+  error     String?
+
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  @@index([agentRunId])
+}
+
 enum ProjectStatus {
   DRAFT
-  RESEARCHING
-  ANALYZING
   GENERATING
   READY
   FAILED
 }
 
-enum UrlType {
-  PRIMARY // the client's own site
-  REFERENCE // inspiration / competitor
-}
-
-enum AssetKind {
-  SCREENSHOT
-  LOGO
-  BRAND_ASSET
-  OTHER
-}
-
-enum FileKind {
-  JSON
+enum FileType {
   MARKDOWN
+  JSON
   CSS
   HTML
   PROMPT
-  REPORT
 }
 
-enum JobType {
-  RESEARCH
-  CRAWL
-  VISUAL_ANALYSIS
-  GENERATE
-  QA
-  EXPORT
+enum FileStatus {
+  DRAFT
+  GENERATING
+  READY
+  STALE
 }
 
-enum JobStatus {
+enum RunStatus {
   QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum StepStatus {
+  PENDING
   RUNNING
   COMPLETED
   FAILED

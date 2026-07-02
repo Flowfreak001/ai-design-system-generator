@@ -1,15 +1,36 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Plus_Jakarta_Sans, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { SiteHeader } from "@/components/layout/site-header";
+import { SiteFooter } from "@/components/layout/site-footer";
 
-const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] });
-const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
+const display = Plus_Jakarta_Sans({
+  variable: "--font-display",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  display: "swap",
+});
+
+const mono = Geist_Mono({
+  variable: "--font-mono-code",
+  subsets: ["latin"],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
-  title: "AI Design System Generator",
+  metadataBase: new URL("https://ai-design-system-generator.up.railway.app"),
+  title: {
+    default: "AI Design System Generator — Multi-agent design intelligence",
+    template: "%s · ADSG",
+  },
   description:
-    "Create AI-ready design system files for agencies, developers, and AI coding tools.",
+    "Generate AI-ready website design system files — brand, design, creative, content, animation, SEO, and platform-specific prompts — from structured project input.",
+  openGraph: {
+    title: "AI Design System Generator",
+    description:
+      "A multi-agent design intelligence system that turns a brief into an AI-ready design system.",
+    type: "website",
+  },
 };
 
 export default function RootLayout({
@@ -18,28 +39,12 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${display.variable} ${mono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-gray-50 text-gray-900">
-        <header className="border-b border-gray-200 bg-white">
-          <div className="mx-auto flex max-w-5xl items-center justify-between px-6 h-14">
-            <Link href="/" className="font-semibold tracking-tight">
-              ADSG<span className="text-indigo-600">.</span>
-            </Link>
-            <nav className="flex items-center gap-6 text-sm">
-              <Link href="/projects" className="text-gray-600 hover:text-gray-900">
-                Projects
-              </Link>
-              <Link
-                href="/projects/new"
-                className="rounded-md bg-indigo-600 px-3 py-1.5 text-white hover:bg-indigo-700"
-              >
-                New project
-              </Link>
-            </nav>
-          </div>
-        </header>
+      <body className="min-h-full flex flex-col bg-canvas text-ink">
+        <SiteHeader />
         <main className="flex-1">{children}</main>
+        <SiteFooter />
       </body>
     </html>
   );

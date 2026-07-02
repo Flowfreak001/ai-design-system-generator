@@ -1,26 +1,113 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ============================================================
+   AI Design System Generator — dark, premium design tokens.
+   Enterprise-grade: high contrast, soft gradients, elegant surfaces.
+   ============================================================ */
+
+@theme {
+  /* Surfaces (dark) */
+  --color-canvas: #08090d;
+  --color-surface: #0e1017;
+  --color-surface-2: #14172130;
+  --color-elevated: #171b26;
+
+  /* Text */
+  --color-ink: #f5f7fb;
+  --color-muted: #a3adbe;
+  --color-faint: #6b7484;
+
+  /* Lines */
+  --color-line: #ffffff14; /* 8% white */
+  --color-line-strong: #ffffff26; /* ~15% white */
+
+  /* Brand — indigo → violet → cyan */
+  --color-brand: #7c6cf7;
+  --color-brand-600: #6d5ef6;
+  --color-brand-2: #a855f7;
+  --color-accent: #22d3ee;
+
+  /* Semantic */
+  --color-success: #34d399;
+  --color-warning: #fbbf24;
+  --color-danger: #f87171;
+
+  /* Fonts (variables set by next/font in layout) */
+  --font-sans: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-mono-code), ui-monospace, monospace;
+
+  /* Fluid display scale */
+  --text-display: clamp(2.6rem, 6vw, 4.6rem);
+  --text-display--line-height: 1.02;
+  --text-h2: clamp(1.9rem, 3.4vw, 2.9rem);
+  --text-h2--line-height: 1.08;
+
+  /* Motion */
+  --ease-premium: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  background: var(--color-canvas);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+  background: var(--color-canvas);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Ambient hero gradient wash */
+.aurora {
+  background:
+    radial-gradient(60% 50% at 20% 0%, rgba(124, 108, 247, 0.22), transparent 70%),
+    radial-gradient(50% 45% at 85% 10%, rgba(168, 85, 247, 0.16), transparent 70%),
+    radial-gradient(45% 40% at 60% 30%, rgba(34, 211, 238, 0.1), transparent 70%);
+}
+
+/* Gradient text for accents */
+.text-gradient {
+  background: linear-gradient(100deg, #c7bfff 0%, #a855f7 45%, #22d3ee 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Eyebrow / mono label */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+/* Elegant card surface with hairline + subtle depth */
+.card {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.015));
+  border: 1px solid var(--color-line);
+  border-radius: 16px;
+}
+
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Global focus ring (accessibility) */
+:where(a, button, input, textarea, select, [tabindex]):focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Reduced motion — disable non-essential motion/transitions */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }

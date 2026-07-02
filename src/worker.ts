@@ -7,9 +7,8 @@
 
 import "dotenv/config";
 import { Worker, type ConnectionOptions } from "bullmq";
-import { QUEUE_NAME, getConnection } from "@/lib/queue/bullmq";
+import { QUEUE_NAME, getConnection } from "@/lib/queue/redisQueue";
 import { getProcessor } from "@/lib/queue";
-import type { JobType } from "@/generated/prisma/enums";
 import "@/lib/jobs"; // side effect: registers processors
 
 if (!process.env.REDIS_URL) {
@@ -20,7 +19,7 @@ if (!process.env.REDIS_URL) {
 const worker = new Worker(
   QUEUE_NAME,
   async (job) => {
-    const fn = getProcessor(job.name as JobType);
+    const fn = getProcessor(job.name);
     if (!fn) throw new Error(`No processor registered for "${job.name}"`);
     await fn(job.data);
   },

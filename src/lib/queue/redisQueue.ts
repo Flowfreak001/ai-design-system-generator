@@ -1,8 +1,9 @@
-// BullMQ transport — only imported when REDIS_URL is set (see ./index.ts).
-// Kept isolated so the local/inline path never loads ioredis or BullMQ.
+// Redis/BullMQ queue — production transport. Only imported when REDIS_URL is
+// set (see ./index.ts), so local dev never loads ioredis or BullMQ.
 
 import { Queue, type ConnectionOptions } from "bullmq";
 import IORedis from "ioredis";
+import type { JobPayload } from "./index";
 
 export const QUEUE_NAME = "adsg-jobs";
 
@@ -20,11 +21,15 @@ export function getConnection(): IORedis {
 
 export function getQueue(): Queue {
   if (!queue) {
-    // Cast bridges the dual-package ioredis type mismatch (bullmq bundles its
-    // own ioredis copy); the instance is runtime-compatible.
     queue = new Queue(QUEUE_NAME, {
+      // Cast bridges bullmq's bundled-ioredis type (dual-package hazard).
       connection: getConnection() as unknown as ConnectionOptions,
     });
   }
   return queue;
+}
+
+export async function enqueueRedis(jobName: string, payload: JobPayload): Promise<string | null> {
+  const job = await getQueue().add(jobName, payload);
+  return job.id ?? null;
 }
