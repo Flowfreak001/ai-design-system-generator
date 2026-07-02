@@ -163,7 +163,11 @@ export async function runWebsiteAnalysis(projectId: string) {
         `Measured computed styles in headless Chromium: ${probe.palette.length} painted colors, ` +
           `body ${probe.typography.bodyFamily ?? "?"} ${probe.typography.bodySizePx ?? "?"}px, ` +
           `${probe.button ? "primary CTA measured" : "no CTA isolated"}, ` +
-          `${probe.scrollFindings.length + probe.stickyFindings.length} scroll behaviors verified.`,
+          `${probe.scrollFindings.length + probe.stickyFindings.length} scroll behaviors verified` +
+          (probe.content.faq.length
+            ? `, ${probe.content.faq.length} FAQ pairs${probe.content.faqSourceUrl && probe.content.faqSourceUrl !== url ? ` (crawled from ${probe.content.faqSourceUrl.replace(/^https?:\/\//, "")})` : ""}`
+            : "") +
+          ".",
       );
     } else {
       await step(

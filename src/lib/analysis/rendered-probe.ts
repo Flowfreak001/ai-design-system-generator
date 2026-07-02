@@ -68,8 +68,10 @@ export type RenderedProbeResult = {
     navItems: string[];
     ctaText?: string;
     bodySample?: string;
-    /** Real FAQ question/answer pairs found on the page, when present. */
+    /** Real FAQ question/answer pairs found on the page or a crawled subpage. */
     faq: { q: string; a: string }[];
+    /** URL the FAQ was actually found on (landing page or a crawled subpage). */
+    faqSourceUrl?: string;
   };
   scrollFindings: AnimationFinding[];
   stickyFindings: AnimationFinding[];
@@ -83,6 +85,122 @@ function rgbToHex(rgb: string): string | null {
   if (m[4] !== undefined && parseFloat(m[4]) < 0.5) return null; // mostly transparent
   const c = (n: string) => (+n).toString(16).padStart(2, "0");
   return `#${c(m[1])}${c(m[2])}${c(m[3])}`;
+}
+
+// Self-contained FAQ scanner run in page context via page.evaluate — used on
+// the landing page and on shallow-crawled subpages. Extracts real Q&A from
+// JSON-LD FAQPage/Question nodes, <details>/<summary>, ARIA accordions, and
+// question-heading + paragraph patterns; rejects schema/JSON and glyph noise.
+function faqScanner(): { q: string; a: string }[] {
+  const faq: { q: string; a: string }[] = [];
+  const decodeEntities = (s: string) => {
+    const t = document.createElement("textarea");
+    t.innerHTML = s;
+    return t.value;
+  };
+  const cleanTxt = (el: Element | null) =>
+    decodeEntities(el?.textContent ?? "")
+      .replace(/\s+/g, " ")
+      .trim()
+      .replace(/[^\p{L}\p{N})?.!]+$/u, (m) => (m.includes("?") ? "?" : ""))
+      .trim();
+  const isQuestion = (q: string) =>
+    /\?\s*$/.test(q) && q.length >= 12 && q.length <= 160 && !/[@{}<>]|":\s*"|"@/.test(q);
+  const isAnswer = (a: string) => {
+    if (a.length < 20 || a.length > 1500) return false;
+    if (/[@{}<>]|":\s*"/.test(a)) return false;
+    const letters = (a.match(/[a-zA-Z\s]/g) ?? []).length;
+    return letters / a.length >= 0.75;
+  };
+  const pushFaq = (q: string, a: string) => {
+    if (!isQuestion(q) || !isAnswer(a)) return;
+    const ans = a.startsWith(q) ? a.slice(q.length).trim() : a;
+    if (!isAnswer(ans) || faq.some((f) => f.q === q)) return;
+    faq.push({ q, a: ans.slice(0, 300) });
+  };
+  const stripTags = (s: string) => decodeEntities(s.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
+  const addQuestionNode = (e: Record<string, unknown> | null) => {
+    if (!e) return;
+    const q = String((e.name as string) ?? "").trim();
+    const acc = e.acceptedAnswer as Record<string, unknown> | Record<string, unknown>[] | undefined;
+    const accObj = Array.isArray(acc) ? acc[0] : acc;
+    const a = stripTags(String((accObj?.text as string) ?? ""));
+    if (q) pushFaq(q.endsWith("?") ? q : `${q}?`, a);
+  };
+  const walkLd = (node: unknown) => {
+    if (!node || typeof node !== "object") return;
+    if (Array.isArray(node)) return node.forEach(walkLd);
+    const n = node as Record<string, unknown>;
+    const t = n["@type"];
+    const typeStr = Array.isArray(t) ? t.join(" ") : String(t ?? "");
+    if (/\bQuestion\b/.test(typeStr)) addQuestionNode(n);
+    if (/\bFAQPage\b/.test(typeStr) && n.mainEntity) walkLd(n.mainEntity);
+    if (n["@graph"]) walkLd(n["@graph"]);
+  };
+  for (const s of [...document.querySelectorAll('script[type="application/ld+json"]')].slice(0, 30)) {
+    try {
+      walkLd(JSON.parse(s.textContent ?? ""));
+    } catch {
+      /* skip invalid JSON-LD */
+    }
+    if (faq.length >= 6) break;
+  }
+  if (faq.length < 4) {
+    for (const d of [...document.querySelectorAll("details")].slice(0, 40)) {
+      const q = cleanTxt(d.querySelector("summary"));
+      const a = [...d.children]
+        .filter((ch) => !/^(summary|script|style)$/i.test(ch.tagName))
+        .map((ch) => cleanTxt(ch))
+        .join(" ")
+        .trim();
+      pushFaq(q, a);
+    }
+  }
+  if (faq.length < 4) {
+    for (const b of [...document.querySelectorAll("[aria-expanded], [aria-controls]")].slice(0, 120)) {
+      const q = cleanTxt(b);
+      if (!isQuestion(q)) continue;
+      const panelId = b.getAttribute("aria-controls");
+      const panel =
+        (panelId && document.getElementById(panelId)) ||
+        b.parentElement?.nextElementSibling ||
+        b.nextElementSibling ||
+        b.parentElement?.parentElement;
+      pushFaq(q, cleanTxt(panel ?? null));
+      if (faq.length >= 6) break;
+    }
+  }
+  if (faq.length < 4) {
+    const faqRoot = document.querySelector("[class*='faq' i], [id*='faq' i], [data-testid*='faq' i]");
+    const scope = faqRoot ?? document;
+    for (const h of [...scope.querySelectorAll("h2, h3, h4, dt, [role='button']")].slice(0, 250)) {
+      const q = cleanTxt(h);
+      if (!isQuestion(q)) continue;
+      const next = h.nextElementSibling ?? h.parentElement?.nextElementSibling;
+      pushFaq(q, cleanTxt(next ?? null));
+      if (faq.length >= 6) break;
+    }
+  }
+  return faq;
+}
+
+/** Rank same-origin links most likely to hold FAQ/rich content. */
+function rankCrawlCandidates(links: { url: string; text: string }[]): string[] {
+  const KEY = /faq|frequently|pricing|price|plans|features|product|support|help|why-|design|solutions/i;
+  return links
+    .map((l) => {
+      const hay = `${l.url} ${l.text}`;
+      let score = 0;
+      if (/faq|frequently/i.test(hay)) score += 5;
+      if (/pricing|price|plans/i.test(hay)) score += 3;
+      if (/features|product|solutions|design/i.test(hay)) score += 2;
+      if (/support|help|why-/i.test(hay)) score += 1;
+      return { url: l.url, score, keyed: KEY.test(hay) };
+    })
+    .filter((l) => l.keyed)
+    .sort((a, b) => b.score - a.score)
+    .map((l) => l.url)
+    .slice(0, 3);
 }
 
 export async function runRenderedProbe(url: string): Promise<RenderedProbeResult | null> {
@@ -223,111 +341,20 @@ export async function runRenderedProbe(url: string): Promise<RenderedProbeResult
         }
       }
 
-      // Real FAQ pairs: native <details>, then FAQ-classed sections, then any
-      // question-heading followed by a paragraph.
-      const faq: { q: string; a: string }[] = [];
-      // textContent (not innerText) so collapsed accordion answers still read.
-      // Strip trailing icon glyphs/arrows that bleed in from toggle chrome, and
-      // collapse whitespace.
-      // Decode HTML entities (&#39; &amp; …) that can leak through markup.
-      const decodeEntities = (s: string) => {
-        const t = document.createElement("textarea");
-        t.innerHTML = s;
-        return t.value;
-      };
-      // Strip trailing non-letter/number symbols (arrows, +, chevrons, glyphs);
-      // keep a "?" if the trimmed run contained one.
-      const cleanTxt = (el: Element | null) =>
-        decodeEntities(el?.textContent ?? "")
-          .replace(/\s+/g, " ")
-          .trim()
-          .replace(/[^\p{L}\p{N})?.!]+$/u, (m) => (m.includes("?") ? "?" : ""))
-          .trim();
-      // A real FAQ question ends in "?", is a sensible length, and is not
-      // JSON/schema noise (@type, braces, key:value markup leak into <details>).
-      const isQuestion = (q: string) =>
-        /\?\s*$/.test(q) && q.length >= 12 && q.length <= 160 && !/[@{}<>]|":\s*"|"@/.test(q);
-      const isAnswer = (a: string) => {
-        if (a.length < 20 || a.length > 1500) return false; // real answers run long
-        if (/[@{}<>]|":\s*"/.test(a)) return false; // JSON/schema
-        const letters = (a.match(/[a-zA-Z\s]/g) ?? []).length;
-        return letters / a.length >= 0.75;
-      };
-      const pushFaq = (q: string, a: string) => {
-        if (!isQuestion(q) || !isAnswer(a)) return;
-        // The answer sometimes still contains the question prefix — drop it.
-        const ans = a.startsWith(q) ? a.slice(q.length).trim() : a;
-        if (!isAnswer(ans) || faq.some((f) => f.q === q)) return;
-        faq.push({ q, a: ans.slice(0, 300) });
-      };
-      // 0) JSON-LD — the site's own structured data (most reliable). Handles
-      // both FAQPage.mainEntity and standalone Question nodes (Webflow emits
-      // one <script> per Question, not a wrapping FAQPage).
-      const stripTags = (s: string) => decodeEntities(s.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim();
-      const addQuestionNode = (e: Record<string, unknown> | null) => {
-        if (!e) return;
-        const q = String((e.name as string) ?? "").trim();
-        const acc = e.acceptedAnswer as Record<string, unknown> | Record<string, unknown>[] | undefined;
-        const accObj = Array.isArray(acc) ? acc[0] : acc;
-        const a = stripTags(String((accObj?.text as string) ?? ""));
-        if (q) pushFaq(q.endsWith("?") ? q : `${q}?`, a);
-      };
-      const walkLd = (node: unknown) => {
-        if (!node || typeof node !== "object") return;
-        if (Array.isArray(node)) return node.forEach(walkLd);
-        const n = node as Record<string, unknown>;
-        const t = n["@type"];
-        const typeStr = Array.isArray(t) ? t.join(" ") : String(t ?? "");
-        if (/\bQuestion\b/.test(typeStr)) addQuestionNode(n);
-        if (/\bFAQPage\b/.test(typeStr) && n.mainEntity) walkLd(n.mainEntity);
-        if (n["@graph"]) walkLd(n["@graph"]);
-      };
-      for (const s of [...document.querySelectorAll('script[type="application/ld+json"]')].slice(0, 30)) {
-        try {
-          walkLd(JSON.parse(s.textContent ?? ""));
-        } catch {
-          /* not valid JSON-LD — skip */
-        }
-        if (faq.length >= 6) break;
-      }
-      // 1) Native <details>/<summary> — answer = non-summary/non-script children.
-      if (faq.length < 4) {
-        for (const d of [...document.querySelectorAll("details")].slice(0, 40)) {
-          const q = cleanTxt(d.querySelector("summary"));
-          const a = [...d.children]
-            .filter((ch) => !/^(summary|script|style)$/i.test(ch.tagName))
-            .map((ch) => cleanTxt(ch))
-            .join(" ")
-            .trim();
-          pushFaq(q, a);
-        }
-      }
-      // 2) ARIA accordions: question toggle + aria-controls answer panel
-      if (faq.length < 4) {
-        for (const b of [...document.querySelectorAll("[aria-expanded], [aria-controls]")].slice(0, 120)) {
-          const q = cleanTxt(b);
-          if (!isQuestion(q)) continue;
-          const panelId = b.getAttribute("aria-controls");
-          const panel =
-            (panelId && document.getElementById(panelId)) ||
-            b.parentElement?.nextElementSibling ||
-            b.nextElementSibling ||
-            b.parentElement?.parentElement;
-          pushFaq(q, cleanTxt(panel ?? null));
-          if (faq.length >= 6) break;
-        }
-      }
-      // 3) Question headings followed by a paragraph
-      if (faq.length < 4) {
-        const faqRoot = document.querySelector("[class*='faq' i], [id*='faq' i], [data-testid*='faq' i]");
-        const scope = faqRoot ?? document;
-        for (const h of [...scope.querySelectorAll("h2, h3, h4, dt, [role='button']")].slice(0, 250)) {
-          const q = cleanTxt(h);
-          if (!isQuestion(q)) continue;
-          const next = h.nextElementSibling ?? h.parentElement?.nextElementSibling;
-          pushFaq(q, cleanTxt(next ?? null));
-          if (faq.length >= 6) break;
-        }
+      // Same-origin links (from header/nav/footer + keyword matches) so the
+      // caller can shallow-crawl key subpages (pricing/features/faq/…) for
+      // content the landing page lacks.
+      const internalLinks: { url: string; text: string }[] = [];
+      const seenLink = new Set<string>();
+      for (const a of [...document.querySelectorAll("header a[href], nav a[href], footer a[href], a[href]")].slice(0, 400)) {
+        const href = (a as HTMLAnchorElement).href;
+        if (!href || !href.startsWith(location.origin)) continue;
+        const clean = href.split("#")[0].replace(/\/$/, "");
+        if (clean === location.href.split("#")[0].replace(/\/$/, "")) continue;
+        if (seenLink.has(clean)) continue;
+        seenLink.add(clean);
+        internalLinks.push({ url: clean, text: ((a as HTMLElement).innerText || "").trim().slice(0, 40) });
+        if (internalLinks.length >= 60) break;
       }
 
       // Component specs: first visible text input, most common card pattern,
@@ -436,7 +463,7 @@ export async function runRenderedProbe(url: string): Promise<RenderedProbeResult
         headingTexts,
         navItems,
         bodySample,
-        faq,
+        internalLinks,
         marks,
       };
     });
@@ -487,6 +514,29 @@ export async function runRenderedProbe(url: string): Promise<RenderedProbeResult
         evidence: [`${stickies} element(s) held viewport position across 1800px of scroll`],
         confidence: "high",
       });
+    }
+
+    // ---- FAQ: landing page first, then shallow-crawl key subpages ----------
+    let faq = await page.evaluate(faqScanner);
+    let faqSourceUrl: string | undefined = faq.length ? url : undefined;
+    if (faq.length === 0) {
+      const candidates = rankCrawlCandidates(raw.internalLinks ?? []);
+      for (const candidate of candidates) {
+        try {
+          await page.goto(candidate, { waitUntil: "domcontentloaded", timeout: 15000 });
+          await page.waitForLoadState("networkidle", { timeout: 6000 }).catch(() => {});
+          await page.waitForTimeout(1500);
+          const found = await page.evaluate(faqScanner);
+          // Keep the richest FAQ across visited subpages, not just the first.
+          if (found.length > faq.length) {
+            faq = found;
+            faqSourceUrl = candidate;
+          }
+          if (faq.length >= 4) break; // rich enough — stop crawling
+        } catch {
+          /* subpage unreachable — try the next candidate */
+        }
+      }
     }
 
     // ---- Normalize palette -------------------------------------------------
@@ -565,7 +615,8 @@ export async function runRenderedProbe(url: string): Promise<RenderedProbeResult
         navItems: raw.navItems,
         ctaText: (raw.button?.text as string) || undefined,
         bodySample: raw.bodySample || undefined,
-        faq: raw.faq,
+        faq,
+        faqSourceUrl,
       },
       scrollFindings,
       stickyFindings,

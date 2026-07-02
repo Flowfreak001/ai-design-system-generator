@@ -31,7 +31,7 @@ export function generateComponentPreviewHtml(data: PreviewData): string {
   const probe = (tokens as unknown as {
     renderedProbe?: {
       button?: Record<string, unknown> | null;
-      content?: { headings?: { text: string; sizePx: number }[]; navItems?: string[]; ctaText?: string; bodySample?: string; faq?: { q: string; a: string }[] };
+      content?: { headings?: { text: string; sizePx: number }[]; navItems?: string[]; ctaText?: string; bodySample?: string; faq?: { q: string; a: string }[]; faqSourceUrl?: string };
       components?: { input?: InputSpec; card?: CardSpec; nav?: NavSpec };
       headingTransform?: string;
     };
@@ -130,9 +130,10 @@ export function generateComponentPreviewHtml(data: PreviewData): string {
           a: `${ctaLabel}${brief.goal?.trim() ? ` — ${brief.goal.trim().replace(/\.$/, "").toLowerCase()}` : ""}.`,
         },
       ];
+  const faqHost = live?.faqSourceUrl ? live.faqSourceUrl.replace(/^https?:\/\//, "").replace(/\/$/, "") : null;
   const faqCap = live?.faq?.length
-    ? "questions and answers taken from the live reference site"
-    : "no FAQ found on the reference site — pairs derived from the brief";
+    ? `questions and answers taken from the live site${faqHost ? ` (${faqHost})` : ""}`
+    : "no FAQ found on the reference site or its key subpages — pairs derived from the brief";
 
   const fontLink = [...new Set([bodyFont, displayFont])]
     .filter((f) => !/^(inter)$/i.test(f))
