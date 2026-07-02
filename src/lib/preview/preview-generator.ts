@@ -50,8 +50,12 @@ export function generatePreviewHtml(data: PreviewData): string {
   const assumed: string[] = [];
 
   // ---- Theme derived from extraction -------------------------------------
-  const bg = c.background ?? input.brief.primaryColor ?? "#0a0a0a";
-  const isDark = lum(bg) < 0.5;
+  // measuredBg is the real extracted page background (shown in the palette
+  // swatch). The sheet canvas uses a clean white for light brands and the
+  // measured dark surface for dark brands — like a printed brand guide.
+  const measuredBg = c.background ?? input.brief.primaryColor ?? "#0a0a0a";
+  const isDark = lum(measuredBg) < 0.5;
+  const bg = isDark ? measuredBg : "#ffffff";
   const ink = c.ink && Math.abs(lum(c.ink) - lum(bg)) > 0.3 ? c.ink : isDark ? "#f5f5f5" : "#101115";
   const accents = Object.entries(c).filter(([k]) => k.startsWith("accent")).map(([, v]) => v);
   const accent = accents[0] ?? input.brief.primaryColor ?? (isDark ? "#ffffff" : "#111111");

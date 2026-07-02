@@ -40,8 +40,11 @@ export function generateComponentPreviewHtml(data: PreviewData): string {
   const comp = probe?.components ?? {};
 
   // ---- Theme (same derivation as the specimen page) ------------------------
-  const bg = c.background ?? input.brief.primaryColor ?? "#fafaf8";
-  const isDark = lum(bg) < 0.5;
+  // Clean white canvas + white cards for light brands; measured dark surface
+  // for dark brands. The palette swatches still document the real background.
+  const measuredBg = c.background ?? input.brief.primaryColor ?? "#fafaf8";
+  const isDark = lum(measuredBg) < 0.5;
+  const bg = isDark ? measuredBg : "#ffffff";
   const ink = c.ink && Math.abs(lum(c.ink) - lum(bg)) > 0.3 ? c.ink : isDark ? "#f5f5f5" : "#101115";
   const accent = c.accent ?? input.brief.primaryColor ?? (isDark ? "#ffffff" : "#111111");
   const accents = Object.entries(c).filter(([k]) => k.startsWith("accent")).map(([, v]) => v);
@@ -88,6 +91,10 @@ export function generateComponentPreviewHtml(data: PreviewData): string {
   const cardCap = card
     ? `${cardCss.background} / radius ${cardCss.radius}${card.shadow ? " / shadow measured" : ""}${card.paddingPx ? ` / ${card.paddingPx}px padding` : ""} · measured (most common card pattern)`
     : "derived from theme — no repeated card pattern measurable";
+  // Cards render on a clean white fill for light brands (wells stay light-gray
+  // for separation); dark brands use an elevated surface. Measured radius/
+  // shadow/padding are preserved; the measured background is kept in the caption.
+  const cardFill = isDark ? surface : bg;
 
   const nav = comp.nav;
   const navCap = nav
@@ -180,12 +187,12 @@ ${fontLink ? `<link rel="preconnect" href="https://fonts.googleapis.com" /><link
   .field .error { border-color:#e5484d; } .err { color:#e5484d; font-size:12px; margin-top:4px; }
   .field + .field { margin-top:12px; }
   .forms { display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); }
-  .form-card { background:${esc(cardCss.background)}; border:${esc(cardCss.border)}; border-radius:${esc(cardCss.radius)}; padding:${cardCss.padding + 4}px; }
+  .form-card { background:${esc(cardFill)}; border:${esc(cardCss.border)}; border-radius:${esc(cardCss.radius)}; padding:${cardCss.padding + 4}px; }
   .form-card h4 { font-family:'${esc(displayFont)}','${esc(bodyFont)}',sans-serif; font-weight:${Math.max(headingW, 600)}; font-size:16px; margin-bottom:12px; }
   .form-card .btn { margin-top:14px; width:100%; }
   .form-card .alt { margin-top:10px; text-align:center; font-size:12px; color:var(--muted); }
   .badge { display:inline-block; padding:3px 10px; border-radius:99px; font:600 11px/1.6 ui-monospace,monospace; text-transform:uppercase; letter-spacing:.06em; }
-  .card { background:${esc(cardCss.background)}; border:${esc(cardCss.border)}; border-radius:${esc(cardCss.radius)}; box-shadow:${esc(cardCss.shadow)}; padding:${cardCss.padding}px; max-width:300px; transition:transform ${btnMs}ms ease, box-shadow ${btnMs}ms ease; }
+  .card { background:${esc(cardFill)}; border:${esc(cardCss.border)}; border-radius:${esc(cardCss.radius)}; box-shadow:${esc(cardCss.shadow)}; padding:${cardCss.padding}px; max-width:300px; transition:transform ${btnMs}ms ease, box-shadow ${btnMs}ms ease; }
   .card:hover { transform:translateY(-3px); }
   .card strong { font-family:'${esc(displayFont)}','${esc(bodyFont)}',sans-serif; font-weight:${Math.max(headingW, 600)}; }
   .faq summary { cursor:pointer; font-weight:600; font-size:14px; padding:10px 0; }
