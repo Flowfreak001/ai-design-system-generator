@@ -19,6 +19,8 @@ export type RenderedProbeResult = {
     headingFamily?: string;
     headingWeight?: number;
     headingSizesPx: number[];
+    /** Dominant text-transform on rendered h1/h2 ("uppercase" | "none" | ...). */
+    headingTransform?: string;
   };
   button?: {
     background?: string;
@@ -28,6 +30,8 @@ export type RenderedProbeResult = {
     paddingX?: number;
     fontWeight?: number;
     transitionMs?: number;
+    textTransform?: string;
+    letterSpacing?: string;
   };
   containerWidth?: number;
   /** Real rendered copy from the live page, so previews can show the site's
@@ -86,6 +90,7 @@ export async function runRenderedProbe(url: string): Promise<RenderedProbeResult
       let headingWeight = 0;
       let headingFamily = "";
       const headingTexts: { text: string; sizePx: number }[] = [];
+      const transformTally = new Map<string, number>();
       for (const h of hs) {
         const cs = getComputedStyle(h);
         const px = Math.round(parseFloat(cs.fontSize));
@@ -94,6 +99,7 @@ export async function runRenderedProbe(url: string): Promise<RenderedProbeResult
           headingSizes.add(px);
           headingWeight = Math.max(headingWeight, parseInt(cs.fontWeight, 10) || 0);
           if (!headingFamily) headingFamily = firstFamily(cs.fontFamily);
+          transformTally.set(cs.textTransform, (transformTally.get(cs.textTransform) ?? 0) + 1);
         }
         if (text.length > 2 && text.length < 120) headingTexts.push({ text, sizePx: px });
       }
@@ -161,6 +167,8 @@ export async function runRenderedProbe(url: string): Promise<RenderedProbeResult
           bestScore = sat;
           button = {
             text: (el as HTMLElement).innerText?.trim().replace(/\s+/g, " "),
+            textTransform: cs.textTransform,
+            letterSpacing: cs.letterSpacing,
             background: cs.backgroundColor,
             color: cs.color,
             radius: cs.borderRadius,
@@ -208,6 +216,7 @@ export async function runRenderedProbe(url: string): Promise<RenderedProbeResult
         headingFamily,
         headingWeight: headingWeight || undefined,
         headingSizes: [...headingSizes].sort((a, b) => a - b),
+        headingTransform: [...transformTally.entries()].sort((a, b) => b[1] - a[1])[0]?.[0],
         bg: [...bg.entries()].sort((a, b) => b[1] - a[1]).slice(0, 12),
         txt: [...txt.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8),
         button,
@@ -290,6 +299,7 @@ export async function runRenderedProbe(url: string): Promise<RenderedProbeResult
         headingFamily: raw.headingFamily || undefined,
         headingWeight: raw.headingWeight,
         headingSizesPx: raw.headingSizes,
+        headingTransform: raw.headingTransform,
       },
       button: raw.button
         ? {
@@ -300,6 +310,8 @@ export async function runRenderedProbe(url: string): Promise<RenderedProbeResult
             paddingX: raw.button.paddingX as number | undefined,
             fontWeight: raw.button.fontWeight as number | undefined,
             transitionMs: raw.button.transitionMs as number | undefined,
+            textTransform: (raw.button.textTransform as string) || undefined,
+            letterSpacing: (raw.button.letterSpacing as string) || undefined,
           }
         : undefined,
       containerWidth: raw.containerWidth,

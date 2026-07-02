@@ -26,6 +26,7 @@ export function generateComponentPreviewHtml(data: PreviewData): string {
     renderedProbe?: {
       button?: Record<string, unknown> | null;
       content?: { headings?: { text: string; sizePx: number }[]; navItems?: string[]; ctaText?: string; bodySample?: string };
+      headingTransform?: string;
     };
   })?.renderedProbe;
   const live = probe?.content;
@@ -94,7 +95,7 @@ ${fontLink ? `<link rel="preconnect" href="https://fonts.googleapis.com" /><link
   .block { background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px; }
   .label { font:600 10px/1 ui-monospace,monospace; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin-bottom:12px; }
   .row { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
-  .btn { padding:${btnPadY}px ${btnPadX}px; border-radius:var(--radius); font-weight:${btnW}; font-size:14px; border:0; cursor:pointer; font-family:inherit; transition:all ${btnMs}ms ease; }
+  .btn { padding:${btnPadY}px ${btnPadX}px; border-radius:var(--radius); font-weight:${btnW}; font-size:14px; border:0; cursor:pointer; font-family:inherit; transition:all ${btnMs}ms ease; text-transform:${(probe?.button?.textTransform as string) || "none"}; letter-spacing:${(probe?.button?.letterSpacing as string) || "normal"}; }
   .btn.primary { background:${esc(btnBg)}; color:${esc(btnColor)}; }
   .btn.primary:hover { filter:brightness(${isDark ? "1.12" : ".92"}); }
   .btn.secondary { background:transparent; color:var(--ink); border:1px solid var(--ink); }
