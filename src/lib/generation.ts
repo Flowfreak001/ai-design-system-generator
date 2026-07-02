@@ -4,7 +4,7 @@
 // nodes + edges. Worker-ready: called via the queue, never assumed inline.
 
 import { prisma } from "@/lib/db/client";
-import { generateForProject } from "@/lib/generators";
+import { generateForProject } from "@/lib/generators/delivery-generator";
 import { toGenerationInput } from "@/lib/projects";
 
 export async function runGeneration(projectId: string) {

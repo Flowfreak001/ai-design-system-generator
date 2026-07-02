@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProject, getFileVersions, toGenerationInput } from "@/lib/projects";
 import { requireUser } from "@/lib/auth";
-import { generateAction, deleteProjectAction, analyzeWebsiteAction } from "../actions";
+import { generateAction, deleteProjectAction, analyzeWebsiteAction, generateMdAction } from "../actions";
 import { StatusBadge, TypeBadge } from "@/components/projects/status-badge";
 import { ProjectOverview } from "@/components/projects/project-overview";
 import { GeneratedFilesViewer } from "@/components/projects/generated-files-viewer";
@@ -49,6 +49,7 @@ export default async function ProjectDetailPage({
 
   const generate = generateAction.bind(null, id);
   const analyze = analyzeWebsiteAction.bind(null, id);
+  const generateMd = generateMdAction.bind(null, id);
   const analyzeUrl = project.business?.website || gen.brief.brandRefs.find((r) => /^https?:\/\//i.test(r)) || null;
   const remove = deleteProjectAction.bind(null, id);
 
@@ -83,9 +84,14 @@ export default async function ProjectDetailPage({
               Analyze website
             </Button>
           </form>
+          <form action={generateMd}>
+            <Button type="submit" title="Runs the MD generator agents using project input + analysis JSON">
+              Generate MD Files
+            </Button>
+          </form>
           <form action={generate}>
-            <Button type="submit">
-              {project.files.length ? "Regenerate files" : "Generate files"}
+            <Button type="submit" variant="secondary">
+              {project.files.length ? "Regenerate delivery files" : "Generate delivery files"}
             </Button>
           </form>
           <form action={remove}>

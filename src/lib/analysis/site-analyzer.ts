@@ -161,3 +161,7 @@ export function analyzeVisualAndTokens(source: SiteSource | null, url: string | 
 
   return { visual, tokens };
 }
+
+export type WebsiteAnalysis = ReturnType<typeof analyzeWebsiteStructure>;
+export type VisualAnalysis = ReturnType<typeof analyzeVisualAndTokens>["visual"];
+export type TokensAnalysis = ReturnType<typeof analyzeVisualAndTokens>["tokens"];
