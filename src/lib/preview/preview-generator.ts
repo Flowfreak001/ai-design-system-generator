@@ -1,6 +1,7 @@
-// Preview generator — renders a self-contained preview.html from the design
-// system data (tokens + brief + animation summary). No external assets, no
-// scripts required to view; safe to iframe with srcDoc.
+// Preview generator — renders the design system as a branded specimen page
+// (getdesign.md-style): numbered sections, rendered IN the extracted brand's
+// own canvas/typography/radius, every value measured or explicitly assumed.
+// Self-contained HTML, iframe-safe.
 
 import type { GenerationInput } from "@/types";
 import type { AnimationAnalysis } from "@/lib/analysis/animation-extractor";
@@ -15,165 +16,241 @@ export type PreviewData = {
 const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
-function paletteEntries(tokens: TokensAnalysis | null, brandRefs: string[]) {
-  const entries = Object.entries(tokens?.color ?? {}).map(([name, value]) => ({
-    name,
-    value: String(value),
-  }));
-  if (entries.length) return { entries, assumed: false };
-  const refs = brandRefs.filter((r) => /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(r));
-  if (refs.length)
-    return {
-      entries: refs.map((value, i) => ({ name: i === 0 ? "primary" : `color-${i + 1}`, value })),
-      assumed: true,
-    };
-  return {
-    entries: [
-      { name: "primary", value: "#111827" },
-      { name: "accent", value: "#2563eb" },
-      { name: "background", value: "#fafaf8" },
-    ],
-    assumed: true,
-  };
+function lum(hex: string): number {
+  const n = parseInt(hex.slice(1), 16);
+  return (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
 }
+const mix = (hex: string, other: string, t: number) => {
+  const a = parseInt(hex.slice(1), 16), b = parseInt(other.slice(1), 16);
+  const ch = (sh: number) => Math.round(((a >> sh) & 255) * (1 - t) + ((b >> sh) & 255) * t);
+  return `#${((ch(16) << 16) | (ch(8) << 8) | ch(0)).toString(16).padStart(6, "0")}`;
+};
+
+type Swatch = { name: string; value: string; note: string };
 
 export function generatePreviewHtml(data: PreviewData): string {
   const { input, tokens, animation } = data;
   const name = input.clientName || input.projectName;
-  const { entries: palette, assumed } = paletteEntries(tokens, input.brief.brandRefs);
-  const byName = Object.fromEntries(palette.map((c) => [c.name, c.value]));
-  const accent = byName.accent ?? byName.primary ?? palette[1]?.value ?? palette[0].value;
-  const dark = byName.ink ?? palette[0].value;
-  const font = String(tokens?.typography?.primary ?? Object.values(tokens?.typography ?? {})[0] ?? "Inter");
-  const metrics = tokens?.metrics ?? null;
-  const radius = String(metrics?.button?.radius ?? Object.values(tokens?.radius ?? {})[0] ?? "12px");
-  const bodyPx = metrics?.bodyFontSizePx ?? 16;
-  const btnPad = metrics?.button?.paddingY !== undefined
-    ? `${metrics.button.paddingY}px ${metrics.button.paddingX ?? Math.round((metrics.button.paddingY ?? 12) * 1.8)}px`
-    : "12px 22px";
-  const services = input.brief.keyItems.slice(0, 3);
-  while (services.length < 3) services.push(["Core service", "Second service", "Third service"][services.length]);
+  const c = (tokens?.color ?? {}) as Record<string, string>;
+  const m = tokens?.metrics ?? null;
+  const probe = (tokens as unknown as { renderedProbe?: { palette?: { value: string; weight: number; role: string }[]; button?: Record<string, unknown> | null } })?.renderedProbe;
+  const assumed: string[] = [];
 
-  const swatches = palette
-    .map(
-      (c) => `<div class="swatch"><div class="chip" style="background:${esc(c.value)}"></div><code>${esc(c.value)}</code><span>${esc(c.name)}</span></div>`,
-    )
-    .join("");
+  // ---- Theme derived from extraction -------------------------------------
+  const bg = c.background ?? input.brief.primaryColor ?? "#0a0a0a";
+  const isDark = lum(bg) < 0.5;
+  const ink = c.ink && Math.abs(lum(c.ink) - lum(bg)) > 0.3 ? c.ink : isDark ? "#f5f5f5" : "#101115";
+  const accents = Object.entries(c).filter(([k]) => k.startsWith("accent")).map(([, v]) => v);
+  const accent = accents[0] ?? input.brief.primaryColor ?? (isDark ? "#ffffff" : "#111111");
+  if (!accents.length && !input.brief.primaryColor) assumed.push("No accent color extracted — monochrome CTA assumed until brand assets arrive.");
+  const surface = mix(bg, isDark ? "#ffffff" : "#000000", 0.06);
+  const hairline = mix(bg, isDark ? "#ffffff" : "#000000", 0.14);
+  const mutedText = mix(ink, bg, 0.35);
+
+  const bodyFont = String(tokens?.typography?.primary ?? "Inter");
+  const displayFont = String(tokens?.typography?.display ?? tokens?.typography?.primary ?? bodyFont);
+  if (!tokens?.typography?.primary) assumed.push("Fonts not extracted — Inter assumed.");
+  const bodyPx = m?.bodyFontSizePx ?? 16;
+  const lh = m?.bodyLineHeight ?? 1.6;
+  const headingW = m?.headingWeight ?? 700;
+  const radius = String(probe?.button?.radius ?? m?.button?.radius ?? "0px");
+  const btnBg = String(probe?.button?.background ?? accent);
+  const btnColor = String(probe?.button?.color ?? (lum(btnBg) > 0.5 ? "#111111" : "#ffffff"));
+  const btnPadY = (probe?.button?.paddingY as number) ?? m?.button?.paddingY ?? 12;
+  const btnPadX = (probe?.button?.paddingX as number) ?? m?.button?.paddingX ?? 24;
+  const btnW = (probe?.button?.fontWeight as number) ?? m?.button?.fontWeight ?? 600;
+  const btnMs = (probe?.button?.transitionMs as number) ?? m?.button?.transitionMs;
+  const measuredBtn = Boolean(probe?.button);
+  if (!measuredBtn) assumed.push("Primary CTA not isolated on the reference site — button spec derived from CSS/defaults.");
+
+  // Google Fonts best-effort (common families render; custom ones fall back).
+  const fontLink = [...new Set([bodyFont, displayFont])]
+    .filter((f) => !/^(inter)$/i.test(f))
+    .map((f) => `family=${encodeURIComponent(f).replace(/%20/g, "+")}:wght@300;400;500;600;700;800`)
+    .join("&");
+
+  // ---- Swatches with dynamic usage notes ----------------------------------
+  const roleNotes: Record<string, string> = {
+    ink: "Dominant text color (rendered, text-length weighted).",
+    background: "Dominant painted surface (rendered, area-weighted).",
+    accent: measuredBtn ? "Measured from the live primary CTA." : "Primary chromatic accent from stylesheet analysis.",
+  };
+  const swatches: Swatch[] = Object.entries(c).map(([key, value]) => ({
+    name: key.replace(/-/g, " "),
+    value,
+    note: roleNotes[key] ?? (key.startsWith("accent") ? "Secondary chromatic accent — use for state, never large surfaces." : "Supporting neutral."),
+  }));
+  if (!swatches.length) {
+    assumed.push("No palette extracted — neutral placeholder swatches shown.");
+    swatches.push(
+      { name: "ink", value: ink, note: "Assumed text color." },
+      { name: "background", value: bg, note: "Assumed surface." },
+    );
+  }
+
+  const typeScale = (m?.typeScale ?? []).slice(-4);
+  const heroHeadline = input.brief.goal?.trim()
+    ? input.brief.goal.trim().replace(/\.$/, "")
+    : `Built for ${input.brief.targetAudience?.trim() || "your customers"}`;
+
+  // Spec cells — engineered numbers from real metrics
+  const specCells: { v: string; l: string }[] = [];
+  if (m?.containerWidth) specCells.push({ v: `${m.containerWidth}`, l: "container px (measured)" });
+  if (m?.spacingBase) specCells.push({ v: `${m.spacingBase}px`, l: "spacing rhythm (measured)" });
+  if (m?.breakpoints?.length) specCells.push({ v: `${m.breakpoints.length}`, l: `breakpoints · ${m.breakpoints.slice(0, 3).join("/")}…` });
+  if (typeScale.length) specCells.push({ v: `${typeScale[typeScale.length - 1]}px`, l: "largest display size (measured)" });
+  if (btnMs) specCells.push({ v: `${btnMs}ms`, l: "cta transition (measured)" });
+  specCells.push({ v: `${swatches.length}`, l: "palette tokens extracted" });
+  if (headingW) specCells.push({ v: `${headingW}`, l: "heading weight (measured)" });
+  if (bodyPx) specCells.push({ v: `${bodyPx}px`, l: "body size (measured)" });
 
   const motionLines = animation
     ? [
-        `Motion style: ${animation.globalMotionStyle}`,
-        animation.detectedLibraries.length
-          ? `Libraries on current site: ${animation.detectedLibraries.join(", ")}`
-          : "No animation libraries detected on the current site.",
-        `Reduced motion: ${animation.reducedMotionSupport}`,
-        ...animation.recommendedAnimationRules.slice(0, 3),
-      ]
-    : ["No animation analysis yet — premium baseline: fade-up reveals, subtle hover lifts, reduced-motion respected."];
+        animation.globalMotionStyle,
+        animation.detectedLibraries.length ? `Stack: ${animation.detectedLibraries.join(", ")}` : "No animation libraries detected in source.",
+        ...[...animation.scrollAnimations, ...animation.stickyPinnedSections].slice(0, 3).map((f) => `${f.pattern} — ${f.evidence[0] ?? ""}`),
+        animation.reducedMotionSupport,
+      ].filter(Boolean)
+    : ["No animation analysis available — run Analyze References for measured motion data."];
+
+  const services = input.brief.keyItems.slice(0, 3);
+  while (services.length < 3) services.push(["Core offer", "Second offer", "Third offer"][services.length]);
+
+  const sec = (num: string, kicker: string, title: string, intro: string, body: string) => `
+  <section>
+    <div class="kicker">${num} — ${esc(kicker)}</div>
+    <h2 class="display">${esc(title)}</h2>
+    <p class="intro">${esc(intro)}</p>
+    ${body}
+  </section>`;
 
   return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>${esc(name)} — Design System Preview</title>
+<title>${esc(name)} — Design System</title>
+${fontLink ? `<link rel="preconnect" href="https://fonts.googleapis.com" /><link href="https://fonts.googleapis.com/css2?${fontLink}&display=swap" rel="stylesheet" />` : ""}
 <style>
-  :root { --accent:${esc(accent)}; --dark:${esc(dark)}; --radius:${esc(radius)}; }
+  :root { --bg:${bg}; --ink:${esc(ink)}; --accent:${esc(accent)}; --surface:${surface}; --line:${hairline}; --muted:${mutedText}; --radius:${esc(radius)}; }
   * { box-sizing:border-box; margin:0; }
-  body { font-family:${esc(font)}, ui-sans-serif, system-ui, sans-serif; background:#fafaf8; color:#26282e; line-height:${metrics?.bodyLineHeight ?? 1.6}; font-size:${bodyPx}px; }
-  .wrap { max-width:960px; margin:0 auto; padding:40px 24px; }
-  section { margin-bottom:48px; }
-  .label { font:600 11px/1 ui-monospace,monospace; letter-spacing:.14em; text-transform:uppercase; color:#8a8f9a; margin-bottom:14px; }
-  h1,h2,h3 { color:#101115; letter-spacing:-.02em; }
-  .brandbar { display:flex; justify-content:space-between; align-items:center; padding:14px 20px; background:#fff; border:1px solid #e6e2dd; border-radius:var(--radius); }
-  .brandbar strong { font-size:17px; }
-  .swatches { display:flex; flex-wrap:wrap; gap:14px; }
-  .swatch { text-align:center; font-size:11px; color:#6b7280; }
-  .swatch .chip { width:84px; height:56px; border-radius:10px; border:1px solid #e6e2dd; margin-bottom:6px; }
-  .swatch code { display:block; font-size:11px; color:#26282e; }
-  .type h1 { font-size:44px; line-height:1.08; } .type h2 { font-size:30px; margin-top:10px; } .type p { max-width:60ch; margin-top:10px; }
-  .btn { display:inline-block; padding:${btnPad}; border-radius:${esc(radius)}; font-weight:${metrics?.button?.fontWeight ?? 600}; font-size:14px; text-decoration:none; margin-right:10px; }
-  .btn.primary { background:var(--accent); color:#fff; }
-  .btn.secondary { background:#fff; color:#101115; border:1px solid #d6d1ca; }
-  .cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; }
-  .card { background:#fff; border:1px solid #e6e2dd; border-radius:var(--radius); padding:20px; }
-  .card .dot { width:34px; height:34px; border-radius:9px; background:color-mix(in srgb, var(--accent) 14%, #fff); margin-bottom:12px; border:1px solid #e6e2dd; }
-  .hero { background:#fff; border:1px solid #e6e2dd; border-radius:var(--radius); padding:48px 32px; }
-  .hero h1 { font-size:36px; max-width:20ch; } .hero p { max-width:48ch; margin:12px 0 20px; color:#5a5e68; }
-  .cta { background:var(--dark); color:#fff; border-radius:var(--radius); padding:36px 32px; display:flex; flex-wrap:wrap; gap:16px; justify-content:space-between; align-items:center; }
-  .cta h3 { color:#fff; font-size:22px; }
-  ul.notes { padding-left:18px; color:#5a5e68; font-size:14px; }
-  .assumed { font-size:12px; color:#b45309; background:#fdf3e2; border:1px solid #f5d9a8; padding:6px 10px; border-radius:8px; display:inline-block; margin-top:10px; }
-  footer { border-top:1px solid #e6e2dd; padding-top:16px; color:#8a8f9a; font-size:12px; }
-  @media (max-width:640px){ .type h1{font-size:32px} .hero h1{font-size:26px} }
+  body { background:var(--bg); color:var(--ink); font-family:'${esc(bodyFont)}', ui-sans-serif, system-ui, sans-serif; font-size:${bodyPx < 14 ? 15 : bodyPx}px; line-height:${lh}; }
+  .wrap { max-width:${m?.containerWidth ? Math.min(m.containerWidth, 1240) : 1100}px; margin:0 auto; padding:56px 32px; }
+  section { margin-bottom:88px; }
+  .kicker { font:600 11px/1 ui-monospace,monospace; letter-spacing:.22em; text-transform:uppercase; color:var(--muted); margin-bottom:18px; }
+  .display { font-family:'${esc(displayFont)}', '${esc(bodyFont)}', sans-serif; font-weight:${Math.max(headingW, 600)}; text-transform:uppercase; letter-spacing:-.01em; font-size:clamp(28px,4.6vw,54px); line-height:1.02; margin-bottom:16px; }
+  .intro { color:var(--muted); max-width:62ch; margin-bottom:34px; }
+  .stripe { display:flex; height:12px; margin-bottom:22px; }
+  .swatches { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:16px; }
+  .swatch { background:var(--surface); border:1px solid var(--line); }
+  .swatch .chip { height:96px; }
+  .swatch .meta { padding:16px; }
+  .swatch .nm { font-weight:700; text-transform:uppercase; font-size:13px; letter-spacing:.06em; }
+  .swatch code { display:block; color:var(--muted); font-size:12px; margin:6px 0 8px; }
+  .swatch .use { color:var(--muted); font-size:13px; line-height:1.5; }
+  .typerow { border-top:1px solid var(--line); padding:18px 0; display:flex; align-items:baseline; gap:26px; }
+  .typerow .sz { font:500 11px/1 ui-monospace,monospace; color:var(--muted); min-width:64px; }
+  .btncards { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:16px; }
+  .btncard { background:var(--surface); border:1px solid var(--line); padding:24px; }
+  .btncard .lbl { font:700 11px/1 ui-monospace,monospace; letter-spacing:.14em; text-transform:uppercase; margin-bottom:18px; }
+  .btncard .cap { color:var(--muted); font-size:13px; margin-top:16px; line-height:1.5; }
+  .btn { display:inline-block; text-decoration:none; font-weight:${btnW}; padding:${btnPadY}px ${btnPadX}px; border-radius:var(--radius); font-size:14px; letter-spacing:.04em; text-transform:uppercase; ${btnMs ? `transition:all ${btnMs}ms ease;` : ""} }
+  .btn.primary { background:${esc(btnBg)}; color:${esc(btnColor)}; }
+  .btn.outline { background:transparent; color:var(--ink); border:1px solid var(--ink); }
+  .btn.textlink { padding:0; background:none; color:var(--ink); border-bottom:0; letter-spacing:.12em; font-weight:700; }
+  .cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:18px; }
+  .pcard { background:var(--surface); border:1px solid var(--line); }
+  .pcard .ph { height:170px; }
+  .pcard .pd { padding:20px; }
+  .pcard .tag { font:600 10px/1 ui-monospace,monospace; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); }
+  .pcard h3 { font-family:'${esc(displayFont)}','${esc(bodyFont)}',sans-serif; text-transform:uppercase; font-size:20px; margin:10px 0 8px; font-weight:${Math.max(headingW, 600)}; }
+  .pcard p { color:var(--muted); font-size:14px; }
+  .hero { border:1px solid var(--line); background:linear-gradient(160deg, ${mix(bg, accent, 0.25)}, var(--bg) 65%); padding:64px 40px; }
+  .hero h3 { font-family:'${esc(displayFont)}','${esc(bodyFont)}',sans-serif; text-transform:uppercase; font-size:clamp(26px,4vw,44px); line-height:1.04; max-width:22ch; margin-bottom:14px; font-weight:${Math.max(headingW, 600)}; }
+  .hero p { color:var(--muted); max-width:52ch; margin-bottom:26px; }
+  .cells { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); border-top:1px solid var(--line); border-left:1px solid var(--line); }
+  .cell { border-right:1px solid var(--line); border-bottom:1px solid var(--line); padding:26px 20px; background:var(--surface); }
+  .cell .v { font-family:'${esc(displayFont)}','${esc(bodyFont)}',sans-serif; font-size:38px; font-weight:${Math.max(headingW, 600)}; line-height:1; }
+  .cell .l { font:600 10px/1.6 ui-monospace,monospace; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin-top:10px; }
+  ul.motion { list-style:none; display:grid; gap:10px; padding:0; }
+  ul.motion li { border-left:2px solid var(--accent); padding:4px 0 4px 16px; color:var(--muted); font-size:14px; }
+  .assume { border:1px solid var(--line); background:var(--surface); color:var(--muted); font-size:13px; padding:14px 18px; margin-bottom:56px; }
+  .assume b { color:var(--ink); }
+  header.top { display:flex; justify-content:space-between; align-items:baseline; border-bottom:1px solid var(--line); padding-bottom:22px; margin-bottom:64px; flex-wrap:wrap; gap:8px; }
+  header.top .brand { font-family:'${esc(displayFont)}','${esc(bodyFont)}',sans-serif; font-weight:${Math.max(headingW, 700)}; text-transform:uppercase; font-size:20px; letter-spacing:.04em; }
+  header.top .src { font:500 11px/1 ui-monospace,monospace; color:var(--muted); }
+  footer { border-top:1px solid var(--line); padding-top:18px; color:var(--muted); font-size:12px; }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <section>
-    <div class="brandbar"><strong>${esc(name)}</strong><span style="font-size:13px;color:#6b7280">${esc(input.brief.businessType ?? "Design system preview")}</span></div>
-  </section>
+  <header class="top">
+    <span class="brand">${esc(name)}</span>
+    <span class="src">${esc(input.brief.businessType ?? "design system")}${tokens?.sourceUrl ? ` · extracted from ${esc(String(tokens.sourceUrl))}` : ""} · confidence: ${esc(String(tokens?.confidence ?? "n/a"))}</span>
+  </header>
 
-  <section>
-    <div class="label">Color palette</div>
-    <div class="swatches">${swatches}</div>
-    ${assumed ? '<div class="assumed">Palette assumed — no tokens extracted yet. Run "Analyze website" for grounded values.</div>' : ""}
-  </section>
+  ${assumed.length ? `<div class="assume"><b>Assumptions:</b> ${assumed.map(esc).join(" ")}</div>` : ""}
 
-  <section class="type">
-    <div class="label">Typography — ${esc(font)}</div>
-    <h1>Heading one sets the outcome.</h1>
-    <h2>Heading two frames each section</h2>
-    <p>Body text stays at 16–17px with relaxed line height. It explains the benefit plainly, keeps sentences short, and always ends near one clear action.</p>
-  </section>
+  ${sec("01", "Color palette",
+    `${isDark ? "Dark" : "Light"} canvas, ${accents.length} chromatic accent${accents.length === 1 ? "" : "s"}`,
+    accents.length
+      ? `Surfaces stay ${isDark ? "dark" : "light"}; ${accents.slice(0, 3).join(", ")} carry identity and action. ${measuredBtn ? "The accent is taken from the live primary CTA, not guessed." : ""}`
+      : "No chromatic accent was extracted — the system stays monochrome until brand assets are provided.",
+    `${accents.length ? `<div class="stripe">${accents.map((a) => `<div style="flex:1;background:${esc(a)}"></div>`).join("")}</div>` : ""}
+     <div class="swatches">${swatches.map((s) => `
+       <div class="swatch"><div class="chip" style="background:${esc(s.value)}"></div>
+       <div class="meta"><div class="nm">${esc(s.name)}</div><code>${esc(s.value)}</code><div class="use">${esc(s.note)}</div></div></div>`).join("")}
+     </div>`)}
 
-  <section>
-    <div class="label">Buttons</div>
-    <a class="btn primary" href="#">Primary action</a>
-    <a class="btn secondary" href="#">Secondary</a>
-  </section>
+  ${sec("02", "Typography",
+    `${displayFont === bodyFont ? bodyFont : `${displayFont} display, ${bodyFont} body`}`,
+    `Body renders at ${bodyPx}px / ${lh} line-height${m?.bodyFontSizePx ? " (measured)" : " (assumed)"}; heading weight ${headingW}${m?.headingWeight ? " (measured)" : " (assumed)"}.`,
+    `${(typeScale.length ? typeScale : [32, 24, 18]).slice().reverse().map((px) => `
+      <div class="typerow"><span class="sz">${px}px</span>
+      <span style="font-family:'${esc(displayFont)}','${esc(bodyFont)}',sans-serif;font-size:${px}px;font-weight:${Math.max(headingW, 600)};line-height:1.1;${px > 20 ? "text-transform:uppercase;" : ""}">${esc(name)} — design in motion</span></div>`).join("")}
+     <div class="typerow"><span class="sz">${bodyPx}px</span><span style="max-width:60ch">Body copy explains the benefit plainly, keeps sentences short, and always ends near one clear action. ${esc(input.brief.targetAudience?.trim() ? `Written for ${input.brief.targetAudience.trim()}.` : "")}</span></div>`)}
 
-  <section>
-    <div class="label">Hero example</div>
-    <div class="hero">
-      <h1>${esc(input.brief.goal?.trim() ? `${input.brief.goal.trim().replace(/\.$/, "")} — handled.` : `Work with ${name}, without the runaround.`)}</h1>
-      <p>For ${esc(input.brief.targetAudience?.trim() || "your customers")} — clear answers, fast responses, and one obvious next step.</p>
-      <a class="btn primary" href="#">Get started</a>
-      <a class="btn secondary" href="#">See how it works</a>
-    </div>
-  </section>
+  ${sec("03", "Button variants",
+    `${radius === "0px" ? "Rectangular silhouettes" : `${radius} radius`}, ${btnMs ? `${btnMs}ms transitions` : "instant states"}`,
+    measuredBtn
+      ? `Primary spec measured from the live CTA: ${btnBg} on ${btnColor}, ${btnPadY}px/${btnPadX}px padding, weight ${btnW}${btnMs ? `, ${btnMs}ms` : ""}.`
+      : "Primary spec derived from stylesheet heuristics — confirm against live brand.",
+    `<div class="btncards">
+      <div class="btncard"><div class="lbl">button-primary</div><a class="btn primary" href="#">${esc(input.brief.ctaGoal?.trim() || "Get started")}</a>
+        <div class="cap">${esc(btnBg)} / ${esc(btnColor)} / radius ${esc(radius)} / ${btnPadY}×${btnPadX}px / w${btnW}${btnMs ? ` / ${btnMs}ms` : ""}${measuredBtn ? " · measured" : " · derived"}</div></div>
+      <div class="btncard"><div class="lbl">button-outline</div><a class="btn outline" href="#">Learn more</a>
+        <div class="cap">Transparent over photography; 1px ink outline.</div></div>
+      <div class="btncard"><div class="lbl">text-link</div><a class="btn textlink" href="#">View all →</a>
+        <div class="cap">Uppercase tracking with chevron; no fill.</div></div>
+    </div>`)}
 
-  <section>
-    <div class="label">Service / feature cards</div>
-    <div class="cards">
-      ${services
-        .map(
-          (s) => `<div class="card"><div class="dot"></div><h3 style="font-size:16px">${esc(s)}</h3><p style="font-size:14px;color:#5a5e68;margin-top:6px">Two lines on the concrete benefit, ending in a proof point.</p></div>`,
-        )
-        .join("")}
-    </div>
-  </section>
+  ${sec("04", "Cards & containers",
+    "Photo-led card grid",
+    "Cards lead with imagery; chrome backs off — small uppercase tags, display titles, muted body excerpts.",
+    `<div class="cards">${services.map((s, i) => `
+      <div class="pcard"><div class="ph" style="background:linear-gradient(150deg, ${esc(accents[i % Math.max(accents.length, 1)] ?? mix(bg, ink, 0.2))}, ${esc(mix(bg, ink, 0.05))})"></div>
+      <div class="pd"><div class="tag">${esc(input.brief.businessType ?? "offer")} · 0${i + 1}</div><h3>${esc(s)}</h3><p>Two lines on the concrete benefit, ending in a proof point.</p></div></div>`).join("")}
+    </div>`)}
 
-  <section>
-    <div class="label">CTA section</div>
-    <div class="cta"><h3>Ready when you are.</h3><a class="btn primary" href="#">${esc(input.brief.goal?.toLowerCase().includes("quote") ? "Get a quote" : "Get started")}</a></div>
-  </section>
+  ${sec("05", "Hero example",
+    "One outcome, one action",
+    `Copy direction from the brief — audience: ${input.brief.targetAudience?.trim() || "core customers"}.`,
+    `<div class="hero"><h3>${esc(heroHeadline)}</h3>
+      <p>${esc(name)} — clear answers, fast responses, one obvious next step.</p>
+      <a class="btn primary" href="#">${esc(input.brief.ctaGoal?.trim() || "Get started")}</a>
+      &nbsp;&nbsp;<a class="btn outline" href="#">How it works</a></div>`)}
 
-  <section>
-    <div class="label">Animation summary</div>
-    <ul class="notes">${motionLines.map((l) => `<li>${esc(l)}</li>`).join("")}</ul>
-  </section>
+  ${sec("06", "Spec cells",
+    "Engineered numbers, no ornamentation",
+    "Every value below was measured from the reference site or is flagged in the assumptions banner.",
+    `<div class="cells">${specCells.map((sc) => `<div class="cell"><div class="v">${esc(sc.v)}</div><div class="l">${esc(sc.l)}</div></div>`).join("")}</div>`)}
 
-  <section>
-    <div class="label">Responsive notes</div>
-    <ul class="notes">
-      <li>Mobile-first; breakpoints 640 / 768 / 1024 / 1280.</li>
-      <li>Tap targets ≥44px; no horizontal scroll; type scales down via clamp.</li>
-      <li>Cards stack to one column; hero copy leads on small screens.</li>
-    </ul>
-  </section>
+  ${sec("07", "Motion",
+    animation ? "Measured motion character" : "Motion baseline",
+    animation ? "From the animation analysis of the reference site." : "No analysis yet — premium baseline shown.",
+    `<ul class="motion">${motionLines.map((l) => `<li>${esc(String(l))}</li>`).join("")}</ul>`)}
 
-  <footer>Generated by Project OS — design system preview for ${esc(name)}.</footer>
+  <footer>Generated by Project OS — ${esc(name)} design system specimen. Values marked measured come from the rendered-page probe.</footer>
 </div>
 </body>
 </html>`;

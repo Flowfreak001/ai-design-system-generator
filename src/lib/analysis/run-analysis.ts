@@ -19,8 +19,23 @@ function mergeRendered(
   if (accent) color.accent = accent.value;
   const bgs = probe.palette.filter((c) => c.role === "background");
   if (bgs[0]) color.background = bgs[0].value;
+  // Ink = the heaviest text color that actually contrasts the dominant
+  // background (hero sections often make white-on-color the top raw tally).
+  const lum = (hex: string) => {
+    const n = parseInt(hex.slice(1), 16);
+    return (0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255)) / 255;
+  };
+  const bgLum = lum(color.background ?? "#ffffff");
+  const sat = (hex: string) => {
+    const n = parseInt(hex.slice(1), 16);
+    const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+    return Math.max(r, g, b) - Math.min(r, g, b);
+  };
   const texts = probe.palette.filter((c) => c.role === "text");
-  if (texts[0]) color.ink = texts[0].value;
+  const contrasting = texts.filter((t) => Math.abs(lum(t.value) - bgLum) > 0.35);
+  // Prefer neutral body text over chromatic link/accent colors.
+  const ink = contrasting.find((t) => sat(t.value) < 40) ?? contrasting[0] ?? texts[0];
+  if (ink) color.ink = ink.value;
 
   const typography: Record<string, string> = { ...tokens.typography };
   if (probe.typography.bodyFamily) typography.primary = probe.typography.bodyFamily;
