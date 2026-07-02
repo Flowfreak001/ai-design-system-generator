@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProject, getFileVersions, toGenerationInput } from "@/lib/projects";
 import { requireUser } from "@/lib/auth";
-import { generateAction, deleteProjectAction } from "../actions";
+import { generateAction, deleteProjectAction, analyzeWebsiteAction } from "../actions";
 import { StatusBadge, TypeBadge } from "@/components/projects/status-badge";
 import { ProjectOverview } from "@/components/projects/project-overview";
 import { GeneratedFilesViewer } from "@/components/projects/generated-files-viewer";
@@ -48,6 +48,8 @@ export default async function ProjectDetailPage({
   const workflow = project.workflows[0];
 
   const generate = generateAction.bind(null, id);
+  const analyze = analyzeWebsiteAction.bind(null, id);
+  const analyzeUrl = project.business?.website || gen.brief.brandRefs.find((r) => /^https?:\/\//i.test(r)) || null;
   const remove = deleteProjectAction.bind(null, id);
 
   const sections = [
@@ -76,6 +78,11 @@ export default async function ProjectDetailPage({
           <p className="mt-2 text-muted">{project.clientName || "—"}</p>
         </div>
         <div className="flex items-center gap-2">
+          <form action={analyze}>
+            <Button type="submit" variant="secondary" title={analyzeUrl ? `Analyzes ${analyzeUrl}` : "Uses safe fallbacks — no URL on this project"}>
+              Analyze website
+            </Button>
+          </form>
           <form action={generate}>
             <Button type="submit">
               {project.files.length ? "Regenerate files" : "Generate files"}

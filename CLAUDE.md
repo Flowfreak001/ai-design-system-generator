@@ -72,6 +72,12 @@ lib/
                 FileVersions; automation projects also get a mock Workflow
                 (nodes + edges: TRIGGER → AI_CLASSIFY → CONDITION → CREATE_LEAD
                 → HUMAN_APPROVAL → SEND_EMAIL → END, with an urgent branch)
+  analysis/     Design Intelligence Pipeline (no AI/browser yet):
+                animation-extractor.ts (scroll/entrance/hover/parallax/sticky/
+                text-motion heuristics + PlaywrightAnimationProbe hooks, safe
+                low-confidence fallback), site-analyzer.ts, run-analysis.ts →
+                WEBSITE/VISUAL/DESIGN_TOKENS/ANIMATION_ANALYSIS.json as
+                versioned GeneratedFiles via the "Analyze website" button
   workflow-suggestions.ts  Project-to-Automation Intelligence: business type →
                 suggested workflows (plumber/restaurant/real estate/taxi/clinic)
   jobs/         startGeneration() → enqueue GENERATE

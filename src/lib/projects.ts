@@ -18,6 +18,7 @@ export async function getProject(id: string, agencyId: string) {
     where: { id, agencyId },
     include: {
       inputs: true,
+      business: { select: { id: true, name: true, website: true } },
       files: {
         orderBy: { name: "asc" },
         include: { _count: { select: { versions: true } } },

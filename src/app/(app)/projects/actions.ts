@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createProjectSchema, createNoteSchema } from "@/lib/validators/project";
 import { createProject, deleteProject, addNote, ownsProject } from "@/lib/projects";
 import { startGeneration } from "@/lib/jobs";
+import { runWebsiteAnalysis } from "@/lib/analysis/run-analysis";
 import { requireUser } from "@/lib/auth";
 
 export type FormState = { error?: string } | undefined;
@@ -52,6 +53,13 @@ export async function generateAction(projectId: string) {
   const user = await requireUser();
   if (!user.agencyId || !(await ownsProject(projectId, user.agencyId))) return;
   await startGeneration(projectId);
+  revalidatePath(`/projects/${projectId}`);
+}
+
+export async function analyzeWebsiteAction(projectId: string) {
+  const user = await requireUser();
+  if (!user.agencyId || !(await ownsProject(projectId, user.agencyId))) return;
+  await runWebsiteAnalysis(projectId);
   revalidatePath(`/projects/${projectId}`);
 }
 
