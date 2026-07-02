@@ -244,13 +244,33 @@ export async function runRenderedProbe(url: string, onProgress?: ProbeProgress):
       const firstFamily = (ff: string) => ff.split(",")[0].replace(/["']/g, "").trim();
       const area = (r: DOMRect) => Math.max(0, r.width) * Math.max(0, r.height);
 
-      // Body typography (fully resolved)
+      // Body typography — measure the REAL paragraph text, not the <body>
+      // element (sites often set a tiny root size that paragraphs override).
       const bodyCs = getComputedStyle(document.body);
-      const bodySizePx = parseFloat(bodyCs.fontSize);
+      const paraSize = new Map<number, number>(); // px -> text weight
+      const paraLh = new Map<string, number>(); // "px@size" -> weight, for lh
+      for (const el of [...document.querySelectorAll("p, li")].slice(0, 400)) {
+        const t = (el as HTMLElement).innerText?.trim() ?? "";
+        const r = el.getBoundingClientRect();
+        if (t.length < 20 || r.width < 100) continue;
+        const cs = getComputedStyle(el);
+        const px = Math.round(parseFloat(cs.fontSize));
+        if (!(px >= 11 && px <= 28)) continue; // ignore headings/captions
+        const w = Math.min(t.length, 200);
+        paraSize.set(px, (paraSize.get(px) ?? 0) + w);
+        if (cs.lineHeight.endsWith("px")) {
+          const ratio = Math.round((parseFloat(cs.lineHeight) / px) * 100) / 100;
+          paraLh.set(`${ratio}`, (paraLh.get(`${ratio}`) ?? 0) + w);
+        }
+      }
+      const dominantPara = [...paraSize.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+      const bodySizePx = dominantPara ?? parseFloat(bodyCs.fontSize);
+      const dominantLh = [...paraLh.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
       const lhRaw = bodyCs.lineHeight;
-      const bodyLineHeight =
-        lhRaw.endsWith("px") && bodySizePx
-          ? Math.round((parseFloat(lhRaw) / bodySizePx) * 100) / 100
+      const bodyLineHeight = dominantLh
+        ? parseFloat(dominantLh)
+        : lhRaw.endsWith("px") && parseFloat(bodyCs.fontSize)
+          ? Math.round((parseFloat(lhRaw) / parseFloat(bodyCs.fontSize)) * 100) / 100
           : undefined;
 
       // Headings
