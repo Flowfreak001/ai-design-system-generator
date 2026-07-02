@@ -18,7 +18,7 @@ import { WorkflowBlueprint } from "@/components/projects/workflow-blueprint";
 import { NotesSection } from "@/components/projects/notes-section";
 import { AgentRunTimeline } from "@/components/projects/agent-run-timeline";
 import { WorkspaceTabs } from "@/components/projects/workspace-tabs";
-import { RunProgressButton } from "@/components/projects/run-progress-button";
+import { ActionDialog } from "@/components/projects/action-dialog";
 import { Button } from "@/components/ui/button";
 import { FadeUp } from "@/components/ui/motion";
 
@@ -102,22 +102,24 @@ export default async function ProjectWorkspacePage({
           <p className="mt-0.5 max-w-xl text-[13px] text-body">{next.description}</p>
         </div>
         {nextForm ? (
-          <RunProgressButton
+          <ActionDialog
             projectId={id}
+            trigger="button"
+            title={next.title}
+            description={next.description}
+            confirmText={`${next.description} Run it now?`}
             runName={next.action === "generate-md" ? "MD design-system generation" : "Preview generation"}
-            label={next.title}
-            pendingLabel="Working…"
             action={nextForm}
-            variant="primary"
           />
         ) : (
-          <a
-            href={`/api/projects/${id}/export`}
-            download
-            className="inline-flex h-10 items-center rounded-[10px] bg-accent px-4 text-sm font-medium text-white transition-colors hover:bg-accent-hover"
-          >
-            Download ZIP
-          </a>
+          <ActionDialog
+            projectId={id}
+            trigger="button"
+            title="Download ZIP"
+            description="Full package — brief, analysis, design system, prompts, and preview."
+            confirmText="Download the full export package and mark this project as Exported?"
+            downloadHref={`/api/projects/${id}/export`}
+          />
         )}
       </FadeUp>
 
@@ -140,39 +142,41 @@ export default async function ProjectWorkspacePage({
         </ol>
       </div>
 
-      {/* Quick actions */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <RunProgressButton
+      {/* Quick actions — uniform cards; each confirms in a dialog and shows
+          its live progress there, so the grid never stretches mid-run. */}
+      <div className="grid items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <ActionDialog
           projectId={id}
+          title="Analyze References"
+          description="Scan the reference site for tokens, metrics, and motion"
+          confirmText="Scan the reference website in a real browser and refresh the four analysis files (palette, typography, metrics, animation). Existing analysis is versioned, not lost. Run it now?"
+          runName="Website analysis run"
+          action={analyze}
+          disabledNote={hasReferenceUrls ? undefined : "Add reference URLs to improve design accuracy."}
+        />
+        <ActionDialog
+          projectId={id}
+          title="Generate MD Files"
+          description="8 design-system files from the brief + analysis"
+          confirmText="Generate the 8 MD design-system files from the project brief and latest analysis. Existing files get a new version. Run it now?"
           runName="MD design-system generation"
-          label="Generate MD Files"
-          pendingLabel="Generating files…"
           action={generateMd}
         />
-        {hasReferenceUrls ? (
-          <RunProgressButton
-            projectId={id}
-            runName="Website analysis run"
-            label="Analyze References"
-            pendingLabel="Analyzing website…"
-            action={analyze}
-          />
-        ) : (
-          <div className="rounded-2xl border border-dashed border-line-strong p-4">
-            <p className="text-sm font-semibold text-ink">Analyze References</p>
-            <p className="mt-1 text-xs text-muted">Add reference URLs to improve design accuracy.</p>
-          </div>
-        )}
-        <form action={generatePreview} className="contents">
-          <Button type="submit" variant="secondary" className="h-auto flex-col items-start gap-1 !rounded-2xl p-4 text-left">
-            <span className="text-sm font-semibold text-ink">Generate Preview</span>
-            <span className="text-xs font-normal text-muted">Visual sheet from tokens + files</span>
-          </Button>
-        </form>
-        <a href={`/api/projects/${id}/export`} download className="rounded-2xl border border-line bg-surface p-4 transition-colors hover:border-line-strong">
-          <p className="text-sm font-semibold text-ink">Export Files</p>
-          <p className="mt-1 text-xs text-muted">Full ZIP package for your build tool</p>
-        </a>
+        <ActionDialog
+          projectId={id}
+          title="Generate Preview"
+          description="Visual specimen sheet from tokens + files"
+          confirmText="Render the branded preview and component sheet from the current tokens and files. Run it now?"
+          runName="Preview generation"
+          action={generatePreview}
+        />
+        <ActionDialog
+          projectId={id}
+          title="Export Files"
+          description="Full ZIP package for your build tool"
+          confirmText="Download the full export package (brief, analysis, design system, prompts, preview) and mark this project as Exported?"
+          downloadHref={`/api/projects/${id}/export`}
+        />
       </div>
 
       {/* Summary */}
@@ -254,11 +258,13 @@ export default async function ProjectWorkspacePage({
         </div>
       )}
       {hasReferenceUrls && (
-        <RunProgressButton
+        <ActionDialog
           projectId={id}
+          trigger="button"
+          title="Analyze References"
+          description="Scan the reference site for tokens, metrics, and motion."
+          confirmText="Scan the reference website in a real browser and refresh the four analysis files. Run it now?"
           runName="Website analysis run"
-          label="Analyze References"
-          pendingLabel="Analyzing website…"
           action={analyze}
         />
       )}
@@ -276,11 +282,13 @@ export default async function ProjectWorkspacePage({
           </p>
           {hasReferenceUrls && (
             <div className="mt-5 w-full max-w-md">
-              <RunProgressButton
+              <ActionDialog
                 projectId={id}
+                trigger="button"
+                title="Analyze References"
+                description="Scan the reference site for tokens, metrics, and motion."
+                confirmText="Scan the reference website in a real browser and generate the four analysis files. Run it now?"
                 runName="Website analysis run"
-                label="Analyze References"
-                pendingLabel="Analyzing website…"
                 action={analyze}
               />
             </div>
@@ -298,11 +306,15 @@ export default async function ProjectWorkspacePage({
     <div className="grid gap-4">
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-muted">Rendered from the generated tokens and files.</p>
-        <form action={generatePreview}>
-          <Button type="submit" variant="secondary">
-            {previewHtml ? "Regenerate Preview" : "Generate Preview"}
-          </Button>
-        </form>
+        <ActionDialog
+          projectId={id}
+          trigger="button"
+          title={previewHtml ? "Regenerate Preview" : "Generate Preview"}
+          description="Render the branded preview and component sheet from the current tokens and files."
+          confirmText="Render the branded preview and component sheet from the current tokens and files. Run it now?"
+          runName="Preview generation"
+          action={generatePreview}
+        />
       </div>
       <PreviewPanel previewHtml={previewHtml} componentHtml={componentHtml} />
     </div>
