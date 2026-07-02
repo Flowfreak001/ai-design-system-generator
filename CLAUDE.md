@@ -126,6 +126,23 @@ App shell: `components/layout/dashboard-shell.tsx` — left sidebar
 "soon"), top bar (search, Create project, sign out). Post-auth lands on
 `/dashboard` (summary cards + recent projects).
 
+## UI / Design Libraries
+
+Use these design resources where appropriate:
+
+- shadcn/ui for core app UI: forms, buttons, cards, tabs, dialogs, sidebars, tables, badges, dropdowns.
+- Magic UI for premium landing page sections, animated cards, gradients, marquees, and visual polish.
+- Aceternity UI for advanced creative hero sections, background effects, parallax sections, and motion-led UI.
+- Framer Motion / Motion for subtle, premium animation.
+
+Rules:
+- Do not copy random components without adapting them to our product.
+- Keep UI enterprise-grade, clean, and useful.
+- Avoid flashy, cheap, or distracting effects.
+- Use motion only where it improves clarity or product feel.
+- Dashboard UI should prioritize usability over decoration.
+- Landing page can be more creative, but still professional.
+
 ## Status
 
 Agency OS foundation + auth + n8n-inspired light redesign complete: repositioned landing, type-aware project
