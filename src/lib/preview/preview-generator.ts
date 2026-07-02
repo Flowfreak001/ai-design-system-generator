@@ -119,10 +119,14 @@ export function generatePreviewHtml(data: PreviewData): string {
   // ---- Named type ramp (getdesign.md-style roles) --------------------------
   // Display/title sizes come from the measured type scale; body/label/button
   // rows come from measured body + CTA specs. lh/tracking derived per size.
-  type TypeRow = { role: string; px: number; w: number; lh: number; ls: string; upper: boolean; text: string; mutedRow?: boolean };
+  type TypeRow = { role: string; source: string; px: number; w: number; lh: number; ls: string; upper: boolean; text: string; mutedRow?: boolean };
   const audience = input.brief.targetAudience?.trim() || "your customers";
+  // Token names are built from the EXTRACTED font families and measured sizes
+  // (e.g. "ROOBERT-PRO-56"), never from a fixed naming template.
+  const slug = (f: string) => f.toUpperCase().replace(/[^A-Z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const displaySlug = slug(displayFont);
+  const bodySlug = slug(bodyFont);
   const displaySizes = [...new Set((m?.typeScale ?? []).filter((px) => px >= 20))].sort((a, b) => b - a);
-  const displayNames = ["DISPLAY-XL", "DISPLAY-LG", "DISPLAY-MD", "DISPLAY-SM", "TITLE-LG", "TITLE-MD", "TITLE-SM"];
   const displayTexts = [
     heroHeadline,
     `More from ${name}`,
@@ -134,30 +138,32 @@ export function generatePreviewHtml(data: PreviewData): string {
   ];
   const lhFor = (px: number) => (px >= 64 ? 1.0 : px >= 48 ? 1.05 : px >= 36 ? 1.1 : px >= 28 ? 1.15 : px >= 22 ? 1.3 : 1.4);
   const typeRamp: TypeRow[] = displaySizes.slice(0, 7).map((px, i) => ({
-    role: displayNames[i],
+    role: `${displaySlug}-${px}`,
+    source: "measured from rendered h1/h2",
     px,
     w: px >= 22 ? Math.max(headingW, 600) : 400,
     lh: lhFor(px),
     ls: "0",
     upper: px >= 28,
     text: displayTexts[i] ?? `${name} — design in motion`,
-  }));
+    isDisplay: true,
+  } as TypeRow & { isDisplay: boolean }));
   if (!typeRamp.length) {
     assumed.push("No heading sizes measurable — a default display ramp is shown.");
     typeRamp.push(
-      { role: "DISPLAY-XL", px: 56, w: Math.max(headingW, 600), lh: 1.05, ls: "0", upper: true, text: heroHeadline },
-      { role: "TITLE-LG", px: 24, w: Math.max(headingW, 600), lh: 1.3, ls: "0", upper: false, text: services[0] ?? "Core offer" },
+      { role: `${displaySlug}-56`, source: "assumed — no headings measurable", px: 56, w: Math.max(headingW, 600), lh: 1.05, ls: "0", upper: true, text: heroHeadline },
+      { role: `${displaySlug}-24`, source: "assumed — no headings measurable", px: 24, w: Math.max(headingW, 600), lh: 1.3, ls: "0", upper: false, text: services[0] ?? "Core offer" },
     );
   }
+  const displayRoles = new Set(typeRamp.map((r) => r.role));
+  const btnPxRow = 14;
   typeRamp.push(
-    { role: "LABEL-UPPERCASE", px: Math.min(bodyPx, 14), w: 700, lh: 1.3, ls: "1.5px", upper: true, text: "View all services" },
-    { role: "BODY-MD", px: bodyPx, w: 400, lh, ls: "0", upper: false, text: `Engineered copy that explains the benefit plainly and ends near one clear action — written for ${audience}.` },
-    { role: "BODY-SM", px: Math.max(bodyPx - 2, 12), w: 400, lh, ls: "0", upper: false, text: "Footer body, fine print, and legal text — quiet but never below 12px.", mutedRow: true },
-    { role: "CAPTION", px: 12, w: 400, lh: 1.4, ls: "0.5px", upper: false, text: `Photo: ${name} · ${new Date().getFullYear()}`, mutedRow: true },
-    { role: "BUTTON", px: 14, w: btnW, lh: 1.0, ls: "1.5px", upper: true, text: input.brief.ctaGoal?.trim() || "Get started" },
-    { role: "NAV-LINK", px: 14, w: 400, lh: 1.4, ls: "0.5px", upper: false, text: input.brief.keyItems.slice(0, 5).join(" · ") || "Home · Services · About · Contact" },
+    { role: `${bodySlug}-${bodyPx}`, source: m?.bodyFontSizePx ? "measured rendered body text" : "assumed body size", px: bodyPx, w: 400, lh, ls: "0", upper: false, text: `Copy that explains the benefit plainly and ends near one clear action — written for ${audience}.` },
+    { role: `${bodySlug}-${Math.max(bodyPx - 2, 12)}-FINE`, source: "derived from measured body size", px: Math.max(bodyPx - 2, 12), w: 400, lh, ls: "0", upper: false, text: "Footer body, fine print, and legal text — quiet but never below 12px.", mutedRow: true },
+    { role: `${bodySlug}-${btnPxRow}-CTA`, source: measuredBtn ? "measured from the live primary CTA" : "derived — CTA not isolated", px: btnPxRow, w: btnW, lh: 1.0, ls: "1.5px", upper: true, text: input.brief.ctaGoal?.trim() || "Get started" },
+    { role: `${bodySlug}-${btnPxRow}-NAV`, source: "derived from measured body metrics", px: btnPxRow, w: 400, lh: 1.4, ls: "0.5px", upper: false, text: input.brief.keyItems.slice(0, 5).join(" · ") || "Home · Services · About · Contact" },
   );
-  const isDisplayRole = (r: TypeRow) => /^(DISPLAY|TITLE|LABEL|BUTTON)/.test(r.role);
+  const isDisplayRole = (r: TypeRow) => displayRoles.has(r.role);
 
   const sec = (num: string, kicker: string, title: string, intro: string, body: string) => `
   <section>
@@ -194,6 +200,7 @@ ${fontLink ? `<link rel="preconnect" href="https://fonts.googleapis.com" /><link
   .typerow { border-top:1px solid var(--line); padding:26px 0; display:grid; grid-template-columns:220px 1fr; gap:26px; align-items:center; }
   .typerow .trole { font:700 12px/1.3 '${esc(bodyFont)}',sans-serif; letter-spacing:.06em; text-transform:uppercase; }
   .typerow .tspec { font:400 12px/1.6 ui-monospace,monospace; color:var(--muted); margin-top:6px; }
+  .typerow .tsrc { font-size:11px; color:var(--muted); margin-top:4px; opacity:.8; }
   .typerow .tspec-sample { overflow-wrap:break-word; min-width:0; max-width:60ch; }
   .typerow .tmuted { color:var(--muted); }
   @media (max-width:720px){ .typerow { grid-template-columns:1fr; gap:10px; } }
@@ -254,7 +261,7 @@ ${fontLink ? `<link rel="preconnect" href="https://fonts.googleapis.com" /><link
     `Display at weight ${Math.max(headingW, 600)}${m?.headingWeight ? " (measured)" : " (assumed)"}, body at ${bodyPx}px / ${lh}${m?.bodyFontSizePx ? " (measured)" : " (assumed)"}. Spec reads size / weight / line-height / letter-spacing; sizes come from the measured type scale.`,
     typeRamp.map((r) => `
       <div class="typerow">
-        <div class="tmeta"><div class="trole">${esc(r.role)}</div><div class="tspec">${r.px}px / ${r.w} / ${r.lh} / ${esc(r.ls)}</div></div>
+        <div class="tmeta"><div class="trole">${esc(r.role)}</div><div class="tspec">${r.px}px / ${r.w} / ${r.lh} / ${esc(r.ls)}</div><div class="tsrc">${esc(r.source)}</div></div>
         <div class="tspec-sample${r.mutedRow ? " tmuted" : ""}" style="font-family:'${esc(isDisplayRole(r) ? displayFont : bodyFont)}','${esc(bodyFont)}',sans-serif;font-size:${r.px}px;font-weight:${r.w};line-height:${r.lh};letter-spacing:${esc(r.ls)};${r.upper ? "text-transform:uppercase;" : ""}">${esc(r.text)}</div>
       </div>`).join(""))}
 
