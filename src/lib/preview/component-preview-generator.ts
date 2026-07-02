@@ -179,16 +179,18 @@ ${fontLink ? `<link rel="preconnect" href="https://fonts.googleapis.com" /><link
   .btn.secondary { background:transparent; color:var(--ink); border:1px solid var(--ink); }
   .btn.ghost { background:transparent; color:var(--muted); }
   .btn[disabled] { opacity:.45; cursor:not-allowed; }
-  .nav { display:flex; justify-content:space-between; align-items:center; ${nav?.heightPx ? `height:${Math.min(nav.heightPx, 96)}px;` : ""} ${nav?.background ? `background:${esc(nav.background)}; border-radius:calc(var(--radius) - 4px); padding:0 16px; margin:-6px; ` : ""} }
+  .nav { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px 16px; ${nav?.heightPx ? `min-height:${Math.min(nav.heightPx, 96)}px;` : ""} ${nav?.background ? `background:${esc(nav.background)}; border-radius:calc(var(--radius) - 4px); padding:8px 16px; margin:-6px; ` : ""} }
   .nav strong { font-family:'${esc(displayFont)}','${esc(bodyFont)}',sans-serif; font-weight:${Math.max(headingW, 600)}; ${nav?.background && lum(nav.background) < 0.5 ? "color:#fff;" : ""} }
-  .nav a { font-size:14px; color:${esc(navLinkColor)}; text-decoration:none; margin-left:16px; }
+  .nav .links { display:flex; flex-wrap:wrap; gap:8px 16px; }
+  .nav a { font-size:14px; color:${esc(navLinkColor)}; text-decoration:none; }
   .nav a.active { color:var(--accent); font-weight:600; }
   .field label { display:block; font-size:13px; font-weight:600; margin-bottom:6px; }
-  .field input { width:100%; max-width:340px; padding:${inputCss.padY}px ${inputCss.padX}px; border:${esc(inputCss.borderWidth)} solid ${esc(inputCss.borderColor)}; border-radius:${esc(inputCss.radius)}; font-size:${inputCss.fontPx}px; background:${esc(inputCss.background)}; color:var(--ink); font-family:inherit; }
+  .field input { width:100%; padding:${inputCss.padY}px ${inputCss.padX}px; border:${esc(inputCss.borderWidth)} solid ${esc(inputCss.borderColor)}; border-radius:${esc(inputCss.radius)}; font-size:${inputCss.fontPx}px; background:${esc(inputCss.background)}; color:var(--ink); font-family:inherit; }
   .field input:focus { outline:2px solid ${esc(accent)}; outline-offset:1px; }
   .field .error { border-color:#e5484d; } .err { color:#e5484d; font-size:12px; margin-top:4px; }
   .field + .field { margin-top:12px; }
-  .forms { display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); }
+  .forms { display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); }
+  @media (max-width:560px){ body { padding:20px 14px; } .block { padding:16px; } .card { max-width:100%; } }
   .form-card { background:${esc(cardFill)}; border:${esc(cardCss.border)}; border-radius:${esc(cardCss.radius)}; padding:${cardCss.padding + 4}px; }
   .form-card h4 { color:var(--display-ink); font-family:'${esc(displayFont)}','${esc(bodyFont)}',sans-serif; font-weight:${Math.max(headingW, 600)}; font-size:16px; margin-bottom:12px; }
   .form-card .btn { margin-top:14px; width:100%; }
@@ -205,9 +207,9 @@ ${fontLink ? `<link rel="preconnect" href="https://fonts.googleapis.com" /><link
 <body>
 <div class="grid">
   ${block("Navbar", navCap, `
-    <div class="nav"><strong>${esc(name)}</strong><span>${navItems.map((it, i) => `<a href="#"${i === 0 ? ' class="active"' : ""}>${esc(it)}</a>`).join("")}</span></div>`)}
+    <div class="nav"><strong>${esc(name)}</strong><span class="links">${navItems.map((it, i) => `<a href="#"${i === 0 ? ' class="active"' : ""}>${esc(it)}</a>`).join("")}</span></div>`)}
 
-  ${block("Buttons — states", `${esc(btnBg)} / ${esc(btnColor)} / radius ${esc(radius)} / ${btnPadY}×${btnPadX}px / w${btnW} / ${btnMs}ms · ${measuredBtn ? "measured from the live CTA" : "derived"}`, `
+  ${block("Buttons — primary, secondary, ghost, disabled", `Primary ${measuredBtn ? "measured from the live CTA" : "derived"}: ${esc(btnBg)} / ${esc(btnColor)} / radius ${esc(radius)} / ${btnPadY}×${btnPadX}px / w${btnW} / ${btnMs}ms. Secondary, ghost & disabled are derived variants of the same spec.`, `
     <div class="row"><button class="btn primary">${esc(ctaLabel)}</button><button class="btn secondary">${esc(navItems[1] ?? cardTitle)}</button><button class="btn ghost">${esc(navItems[2] ?? cardTitle)}</button><button class="btn primary" disabled>${esc(ctaLabel)}</button></div>`)}
 
   ${block("Forms — sign in / sign up", inputCap, `
