@@ -43,6 +43,27 @@ export function generateComponentPreviewHtml(data: PreviewData): string {
   const btnW = (probe?.button?.fontWeight as number) ?? m?.button?.fontWeight ?? 600;
   const btnMs = (probe?.button?.transitionMs as number) ?? m?.button?.transitionMs ?? 200;
 
+  // Content comes from the brief — nav from key pages, card/FAQ from
+  // services and goal. No canned copy.
+  const brief = input.brief;
+  const servicesFromBrief = (brief.services ?? "")
+    .split(/[,\n;]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const navItems = (brief.keyItems.length ? brief.keyItems : servicesFromBrief).slice(0, 4);
+  if (!navItems.length) navItems.push(brief.businessType?.trim() ?? name);
+  const cardTitle = servicesFromBrief[0] ?? brief.keyItems[0] ?? brief.businessType?.trim() ?? name;
+  const cardBody = brief.goal?.trim()
+    ? `Supports the core goal: ${brief.goal.trim().replace(/\.$/, "").toLowerCase()}.`
+    : `Copy to be written for ${brief.targetAudience?.trim() || "the target audience"}.`;
+  const ctaLabel = brief.ctaGoal?.trim() || brief.goal?.trim() || name;
+  const faq1q = `What does ${name} offer?`;
+  const faq1a = servicesFromBrief.length
+    ? servicesFromBrief.slice(0, 4).join(", ") + "."
+    : brief.goal?.trim() || `Details from the ${name} brief.`;
+  const faq2q = brief.targetAudience?.trim() ? `Is this for ${brief.targetAudience.trim()}?` : `How do I get started?`;
+  const faq2a = brief.ctaGoal?.trim() ? `Yes — ${brief.ctaGoal.trim().replace(/\.$/, "").toLowerCase()}.` : brief.goal?.trim() || `See the ${name} brief for details.`;
+
   const fontLink = [...new Set([bodyFont, displayFont])]
     .filter((f) => !/^(inter)$/i.test(f))
     .map((f) => `family=${encodeURIComponent(f).replace(/%20/g, "+")}:wght@400;500;600;700;800`)
@@ -90,24 +111,24 @@ ${fontLink ? `<link rel="preconnect" href="https://fonts.googleapis.com" /><link
 <body>
 <div class="grid">
   <div class="block nav-block"><div class="label">Navbar</div>
-    <div class="nav"><strong>${esc(name)}</strong><span><a href="#" class="active">Services</a><a href="#">About</a><a href="#">FAQ</a><a href="#">Contact</a></span></div>
+    <div class="nav"><strong>${esc(name)}</strong><span>${navItems.map((it, i) => `<a href="#"${i === 0 ? ' class="active"' : ""}>${esc(it)}</a>`).join("")}</span></div>
   </div>
   <div class="block"><div class="label">Buttons — states (${esc(btnBg)} / radius ${esc(radius)} / ${btnMs}ms${probe?.button ? " · measured" : " · derived"})</div>
-    <div class="row"><button class="btn primary">Primary</button><button class="btn secondary">Secondary</button><button class="btn ghost">Ghost</button><button class="btn primary" disabled>Disabled</button></div>
+    <div class="row"><button class="btn primary">${esc(ctaLabel)}</button><button class="btn secondary">${esc(navItems[1] ?? cardTitle)}</button><button class="btn ghost">${esc(navItems[2] ?? cardTitle)}</button><button class="btn primary" disabled>${esc(ctaLabel)}</button></div>
   </div>
   <div class="block"><div class="label">Badges</div>
     <div class="row"><span class="badge b1">New</span><span class="badge b2">Completed</span><span class="badge b3">Pending</span></div>
   </div>
   <div class="block"><div class="label">Card — hover to lift</div>
-    <div class="card"><strong style="font-size:15px">Card title</strong><p style="font-size:14px;color:var(--muted);margin-top:6px">Supporting copy with one proof point and a clear takeaway.</p></div>
+    <div class="card"><strong style="font-size:15px">${esc(cardTitle)}</strong><p style="font-size:14px;color:var(--muted);margin-top:6px">${esc(cardBody)}</p></div>
   </div>
   <div class="block"><div class="label">Form — states</div>
     <div class="field"><label>Email</label><input placeholder="you@example.com" /></div>
     <div class="field" style="margin-top:12px"><label>Phone</label><input class="error" value="123" /><div class="err">Enter a valid phone number.</div></div>
   </div>
   <div class="block faq"><div class="label">FAQ accordion</div>
-    <details open><summary>How fast do you respond?</summary><p>Within one business day — usually much faster.</p></details>
-    <details><summary>Do you provide quotes up front?</summary><p>Yes, every job is quoted before work begins.</p></details>
+    <details open><summary>${esc(faq1q)}</summary><p>${esc(faq1a)}</p></details>
+    <details><summary>${esc(faq2q)}</summary><p>${esc(faq2a)}</p></details>
   </div>
 </div>
 </body>

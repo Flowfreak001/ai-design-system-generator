@@ -113,29 +113,56 @@ export function generatePreviewHtml(data: PreviewData): string {
       ].filter(Boolean)
     : ["No animation analysis available — run Analyze References for measured motion data."];
 
-  const services = input.brief.keyItems.slice(0, 3);
-  while (services.length < 3) services.push(["Core offer", "Second offer", "Third offer"][services.length]);
+  // ---- Brief-derived content (no static filler) ----------------------------
+  const brief = input.brief;
+  // Offer names: real services from the brief first, then key pages/workflows.
+  const servicesFromBrief = (brief.services ?? "")
+    .split(/[,\n;]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const services = [...servicesFromBrief, ...brief.keyItems].slice(0, 3);
+  if (!services.length) {
+    assumed.push("No services or key pages provided in the brief — card examples show the business type instead.");
+    services.push(brief.businessType?.trim() || name);
+  }
+  const tone = brief.brandPersonality?.trim() || brief.toneOfVoice?.trim() || "";
+  const keywords = brief.seoKeywords.filter(Boolean);
+  // One supporting sentence assembled only from brief fields that exist.
+  const heroSupport = [
+    brief.services?.trim() ? `Offering ${servicesFromBrief.slice(0, 3).join(", ")}` : null,
+    brief.targetAudience?.trim() ? `for ${brief.targetAudience.trim()}` : null,
+    tone ? `— ${tone.toLowerCase()} in every interaction` : null,
+  ].filter(Boolean).join(" ") || `${name} — ${brief.businessType?.trim() || "brand"} design system.`;
+  const ctaLabel = brief.ctaGoal?.trim() || heroHeadline;
+  if (!brief.ctaGoal?.trim()) assumed.push("No CTA goal in the brief — the project goal is used as the CTA label.");
+  const navItems = brief.keyItems.length ? brief.keyItems.slice(0, 5) : services.slice(0, 4);
+  const cardCopy = (i: number) =>
+    keywords[i]
+      ? `Positioned around “${keywords[i]}” — copy from the brief's SEO focus.`
+      : brief.goal?.trim()
+        ? `Supports the core goal: ${brief.goal.trim().replace(/\.$/, "").toLowerCase()}.`
+        : `Copy to be written for ${brief.targetAudience?.trim() || "the target audience"}.`;
 
   // ---- Named type ramp (getdesign.md-style roles) --------------------------
   // Display/title sizes come from the measured type scale; body/label/button
   // rows come from measured body + CTA specs. lh/tracking derived per size.
   type TypeRow = { role: string; source: string; px: number; w: number; lh: number; ls: string; upper: boolean; text: string; mutedRow?: boolean };
-  const audience = input.brief.targetAudience?.trim() || "your customers";
   // Token names are built from the EXTRACTED font families and measured sizes
   // (e.g. "ROOBERT-PRO-56"), never from a fixed naming template.
   const slug = (f: string) => f.toUpperCase().replace(/[^A-Z0-9]+/g, "-").replace(/^-|-$/g, "");
   const displaySlug = slug(displayFont);
   const bodySlug = slug(bodyFont);
   const displaySizes = [...new Set((m?.typeScale ?? []).filter((px) => px >= 20))].sort((a, b) => b - a);
+  // Specimen copy: every line comes from a brief field (goal, services, key
+  // pages, style, audience, keywords) — never canned marketing filler.
   const displayTexts = [
     heroHeadline,
     `More from ${name}`,
-    services[0] ?? "Core offer",
-    input.brief.stylePreference?.trim() || "Built to perform",
-    services[1] ?? "Second offer",
-    `Made for ${audience}`,
-    "From brief to delivery",
-  ];
+    ...services,
+    ...(brief.stylePreference?.trim() ? [brief.stylePreference.trim()] : []),
+    ...(brief.targetAudience?.trim() ? [`Made for ${brief.targetAudience.trim()}`] : []),
+    ...keywords,
+  ].filter(Boolean);
   const lhFor = (px: number) => (px >= 64 ? 1.0 : px >= 48 ? 1.05 : px >= 36 ? 1.1 : px >= 28 ? 1.15 : px >= 22 ? 1.3 : 1.4);
   const typeRamp: TypeRow[] = displaySizes.slice(0, 7).map((px, i) => ({
     role: `${displaySlug}-${px}`,
@@ -152,16 +179,16 @@ export function generatePreviewHtml(data: PreviewData): string {
     assumed.push("No heading sizes measurable — a default display ramp is shown.");
     typeRamp.push(
       { role: `${displaySlug}-56`, source: "assumed — no headings measurable", px: 56, w: Math.max(headingW, 600), lh: 1.05, ls: "0", upper: true, text: heroHeadline },
-      { role: `${displaySlug}-24`, source: "assumed — no headings measurable", px: 24, w: Math.max(headingW, 600), lh: 1.3, ls: "0", upper: false, text: services[0] ?? "Core offer" },
+      { role: `${displaySlug}-24`, source: "assumed — no headings measurable", px: 24, w: Math.max(headingW, 600), lh: 1.3, ls: "0", upper: false, text: services[0] },
     );
   }
   const displayRoles = new Set(typeRamp.map((r) => r.role));
   const btnPxRow = 14;
   typeRamp.push(
-    { role: `${bodySlug}-${bodyPx}`, source: m?.bodyFontSizePx ? "measured rendered body text" : "assumed body size", px: bodyPx, w: 400, lh, ls: "0", upper: false, text: `Copy that explains the benefit plainly and ends near one clear action — written for ${audience}.` },
-    { role: `${bodySlug}-${Math.max(bodyPx - 2, 12)}-FINE`, source: "derived from measured body size", px: Math.max(bodyPx - 2, 12), w: 400, lh, ls: "0", upper: false, text: "Footer body, fine print, and legal text — quiet but never below 12px.", mutedRow: true },
-    { role: `${bodySlug}-${btnPxRow}-CTA`, source: measuredBtn ? "measured from the live primary CTA" : "derived — CTA not isolated", px: btnPxRow, w: btnW, lh: 1.0, ls: "1.5px", upper: true, text: input.brief.ctaGoal?.trim() || "Get started" },
-    { role: `${bodySlug}-${btnPxRow}-NAV`, source: "derived from measured body metrics", px: btnPxRow, w: 400, lh: 1.4, ls: "0.5px", upper: false, text: input.brief.keyItems.slice(0, 5).join(" · ") || "Home · Services · About · Contact" },
+    { role: `${bodySlug}-${bodyPx}`, source: m?.bodyFontSizePx ? "measured rendered body text" : "assumed body size", px: bodyPx, w: 400, lh, ls: "0", upper: false, text: heroSupport },
+    { role: `${bodySlug}-${Math.max(bodyPx - 2, 12)}-FINE`, source: "derived from measured body size", px: Math.max(bodyPx - 2, 12), w: 400, lh, ls: "0", upper: false, text: brief.notes?.trim() || `${name} · ${brief.businessType?.trim() || "brand"} — fine print and footer text.`, mutedRow: true },
+    { role: `${bodySlug}-${btnPxRow}-CTA`, source: measuredBtn ? "measured from the live primary CTA" : "derived — CTA not isolated", px: btnPxRow, w: btnW, lh: 1.0, ls: "1.5px", upper: true, text: ctaLabel },
+    { role: `${bodySlug}-${btnPxRow}-NAV`, source: "derived from measured body metrics", px: btnPxRow, w: 400, lh: 1.4, ls: "0.5px", upper: false, text: navItems.join(" · ") },
   );
   const isDisplayRole = (r: TypeRow) => displayRoles.has(r.role);
 
@@ -271,29 +298,29 @@ ${fontLink ? `<link rel="preconnect" href="https://fonts.googleapis.com" /><link
       ? `Primary spec measured from the live CTA: ${btnBg} on ${btnColor}, ${btnPadY}px/${btnPadX}px padding, weight ${btnW}${btnMs ? `, ${btnMs}ms` : ""}.`
       : "Primary spec derived from stylesheet heuristics — confirm against live brand.",
     `<div class="btncards">
-      <div class="btncard"><div class="lbl">button-primary</div><a class="btn primary" href="#">${esc(input.brief.ctaGoal?.trim() || "Get started")}</a>
+      <div class="btncard"><div class="lbl">button-primary</div><a class="btn primary" href="#">${esc(ctaLabel)}</a>
         <div class="cap">${esc(btnBg)} / ${esc(btnColor)} / radius ${esc(radius)} / ${btnPadY}×${btnPadX}px / w${btnW}${btnMs ? ` / ${btnMs}ms` : ""}${measuredBtn ? " · measured" : " · derived"}</div></div>
-      <div class="btncard"><div class="lbl">button-outline</div><a class="btn outline" href="#">Learn more</a>
-        <div class="cap">Transparent over photography; 1px ink outline.</div></div>
-      <div class="btncard"><div class="lbl">text-link</div><a class="btn textlink" href="#">View all →</a>
-        <div class="cap">Uppercase tracking with chevron; no fill.</div></div>
+      <div class="btncard"><div class="lbl">button-outline</div><a class="btn outline" href="#">${esc(navItems[1] ?? services[0])}</a>
+        <div class="cap">Inverse of primary: transparent fill, 1px ${esc(ink)} outline, same radius ${esc(radius)} / padding ${btnPadY}×${btnPadX}px.</div></div>
+      <div class="btncard"><div class="lbl">text-link</div><a class="btn textlink" href="#">${esc(navItems[0] ?? services[0])} →</a>
+        <div class="cap">No fill; weight ${btnW} matches the primary CTA${btnMs ? `, ${btnMs}ms transition` : ""}.</div></div>
     </div>`)}
 
   ${sec("04", "Cards & containers",
     "Photo-led card grid",
-    "Cards lead with imagery; chrome backs off — small uppercase tags, display titles, muted body excerpts.",
+    `Cards use the brand accents over imagery, radius ${radius}${m?.spacingBase ? `, ${m.spacingBase}px spacing rhythm (measured)` : ""}; titles set in ${displayFont}. Card names come from the brief's services and key pages.`,
     `<div class="cards">${services.map((s, i) => `
       <div class="pcard"><div class="ph" style="background:linear-gradient(150deg, ${esc(accents[i % Math.max(accents.length, 1)] ?? mix(bg, ink, 0.2))}, ${esc(mix(bg, ink, 0.05))})"></div>
-      <div class="pd"><div class="tag">${esc(input.brief.businessType ?? "offer")} · 0${i + 1}</div><h3>${esc(s)}</h3><p>Two lines on the concrete benefit, ending in a proof point.</p></div></div>`).join("")}
+      <div class="pd"><div class="tag">${esc(input.brief.businessType ?? "offer")} · 0${i + 1}</div><h3>${esc(s)}</h3><p>${esc(cardCopy(i))}</p></div></div>`).join("")}
     </div>`)}
 
   ${sec("05", "Hero example",
     "One outcome, one action",
-    `Copy direction from the brief — audience: ${input.brief.targetAudience?.trim() || "core customers"}.`,
+    `Headline and CTA are the brief's goal${brief.targetAudience?.trim() ? `; audience: ${brief.targetAudience.trim()}` : ""}.`,
     `<div class="hero"><h3>${esc(heroHeadline)}</h3>
-      <p>${esc(name)} — clear answers, fast responses, one obvious next step.</p>
-      <a class="btn primary" href="#">${esc(input.brief.ctaGoal?.trim() || "Get started")}</a>
-      &nbsp;&nbsp;<a class="btn outline" href="#">How it works</a></div>`)}
+      <p>${esc(heroSupport)}</p>
+      <a class="btn primary" href="#">${esc(ctaLabel)}</a>
+      &nbsp;&nbsp;<a class="btn outline" href="#">${esc(navItems[1] ?? services[0])}</a></div>`)}
 
   ${sec("06", "Spec cells",
     "Engineered numbers, no ornamentation",
