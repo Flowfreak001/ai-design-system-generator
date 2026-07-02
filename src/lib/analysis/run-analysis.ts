@@ -36,6 +36,13 @@ function mergeRendered(
   // Prefer neutral body text over chromatic link/accent colors.
   const ink = contrasting.find((t) => sat(t.value) < 40) ?? contrasting[0] ?? texts[0];
   if (ink) color.ink = ink.value;
+  // Heading text color, measured from rendered h1/h2 — often darker than the
+  // body ink. Recorded as a distinct token when it meaningfully differs and
+  // contrasts the canvas, so the specimen can render headings in their true color.
+  const hc = probe.typography.headingColor;
+  if (hc && Math.abs(lum(hc) - bgLum) > 0.35 && (!color.ink || Math.abs(lum(hc) - lum(color.ink)) > 0.06)) {
+    color["ink-heading"] = hc;
+  }
 
   const typography: Record<string, string> = { ...tokens.typography };
   if (probe.typography.bodyFamily) typography.primary = probe.typography.bodyFamily;

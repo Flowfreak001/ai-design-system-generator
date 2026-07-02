@@ -46,6 +46,8 @@ export function generateComponentPreviewHtml(data: PreviewData): string {
   const isDark = lum(measuredBg) < 0.5;
   const bg = isDark ? measuredBg : "#ffffff";
   const ink = c.ink && Math.abs(lum(c.ink) - lum(bg)) > 0.3 ? c.ink : isDark ? "#f5f5f5" : "#101115";
+  const measuredHeadingInk = c["ink-heading"];
+  const displayInk = measuredHeadingInk && Math.abs(lum(measuredHeadingInk) - lum(bg)) > 0.3 ? measuredHeadingInk : ink;
   const accent = c.accent ?? input.brief.primaryColor ?? (isDark ? "#ffffff" : "#111111");
   const accents = Object.entries(c).filter(([k]) => k.startsWith("accent")).map(([, v]) => v);
   const surface = mix(bg, isDark ? "#ffffff" : "#000000", 0.05);
@@ -163,7 +165,7 @@ export function generateComponentPreviewHtml(data: PreviewData): string {
 <title>${esc(name)} — Component Preview</title>
 ${fontLink ? `<link rel="preconnect" href="https://fonts.googleapis.com" /><link href="https://fonts.googleapis.com/css2?${fontLink}&display=swap" rel="stylesheet" />` : ""}
 <style>
-  :root { --bg:${bg}; --ink:${esc(ink)}; --accent:${esc(accent)}; --surface:${surface}; --line:${line}; --muted:${muted}; --radius:${esc(radius)}; }
+  :root { --bg:${bg}; --ink:${esc(ink)}; --display-ink:${esc(displayInk)}; --accent:${esc(accent)}; --surface:${surface}; --line:${line}; --muted:${muted}; --radius:${esc(radius)}; }
   * { box-sizing:border-box; margin:0; }
   body { font-family:'${esc(bodyFont)}', ui-sans-serif, system-ui, sans-serif; background:var(--bg); color:var(--ink); padding:32px 24px; }
   .grid { max-width:880px; margin:0 auto; display:grid; gap:20px; }
@@ -188,13 +190,13 @@ ${fontLink ? `<link rel="preconnect" href="https://fonts.googleapis.com" /><link
   .field + .field { margin-top:12px; }
   .forms { display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); }
   .form-card { background:${esc(cardFill)}; border:${esc(cardCss.border)}; border-radius:${esc(cardCss.radius)}; padding:${cardCss.padding + 4}px; }
-  .form-card h4 { font-family:'${esc(displayFont)}','${esc(bodyFont)}',sans-serif; font-weight:${Math.max(headingW, 600)}; font-size:16px; margin-bottom:12px; }
+  .form-card h4 { color:var(--display-ink); font-family:'${esc(displayFont)}','${esc(bodyFont)}',sans-serif; font-weight:${Math.max(headingW, 600)}; font-size:16px; margin-bottom:12px; }
   .form-card .btn { margin-top:14px; width:100%; }
   .form-card .alt { margin-top:10px; text-align:center; font-size:12px; color:var(--muted); }
   .badge { display:inline-block; padding:3px 10px; border-radius:99px; font:600 11px/1.6 ui-monospace,monospace; text-transform:uppercase; letter-spacing:.06em; }
   .card { background:${esc(cardFill)}; border:${esc(cardCss.border)}; border-radius:${esc(cardCss.radius)}; box-shadow:${esc(cardCss.shadow)}; padding:${cardCss.padding}px; max-width:300px; transition:transform ${btnMs}ms ease, box-shadow ${btnMs}ms ease; }
   .card:hover { transform:translateY(-3px); }
-  .card strong { font-family:'${esc(displayFont)}','${esc(bodyFont)}',sans-serif; font-weight:${Math.max(headingW, 600)}; }
+  .card strong { color:var(--display-ink); font-family:'${esc(displayFont)}','${esc(bodyFont)}',sans-serif; font-weight:${Math.max(headingW, 600)}; }
   .faq summary { cursor:pointer; font-weight:600; font-size:14px; padding:10px 0; }
   .faq p { color:var(--muted); font-size:14px; padding-bottom:10px; }
   @media (prefers-reduced-motion: reduce){ .card,.btn{transition:none} }

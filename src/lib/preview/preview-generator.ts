@@ -57,6 +57,10 @@ export function generatePreviewHtml(data: PreviewData): string {
   const isDark = lum(measuredBg) < 0.5;
   const bg = isDark ? measuredBg : "#ffffff";
   const ink = c.ink && Math.abs(lum(c.ink) - lum(bg)) > 0.3 ? c.ink : isDark ? "#f5f5f5" : "#101115";
+  // Heading text color, measured from rendered h1/h2 (often darker than body).
+  const measuredHeadingInk = c["ink-heading"];
+  const displayInk = measuredHeadingInk && Math.abs(lum(measuredHeadingInk) - lum(bg)) > 0.3 ? measuredHeadingInk : ink;
+  const headingInkMeasured = Boolean(measuredHeadingInk && displayInk === measuredHeadingInk);
   const accents = Object.entries(c).filter(([k]) => k.startsWith("accent")).map(([, v]) => v);
   const accent = accents[0] ?? input.brief.primaryColor ?? (isDark ? "#ffffff" : "#111111");
   if (!accents.length && !input.brief.primaryColor) assumed.push("No accent color extracted — monochrome CTA assumed until brand assets arrive.");
@@ -88,7 +92,8 @@ export function generatePreviewHtml(data: PreviewData): string {
 
   // ---- Swatches with dynamic usage notes ----------------------------------
   const roleNotes: Record<string, string> = {
-    ink: "Dominant text color (rendered, text-length weighted).",
+    ink: "Body text color (rendered, text-length weighted).",
+    "ink-heading": "Heading text color (measured from rendered h1/h2).",
     background: "Dominant painted surface (rendered, area-weighted).",
     accent: measuredBtn ? "Measured from the live primary CTA." : "Primary chromatic accent from stylesheet analysis.",
   };
@@ -260,11 +265,11 @@ export function generatePreviewHtml(data: PreviewData): string {
   sections.push({
     kicker: "Typography scale",
     title: `${displayFont === bodyFont ? bodyFont : `${displayFont} display, ${bodyFont} body`} · ${Math.max(headingW, 600)} / 400 contrast`,
-    intro: `Display at weight ${Math.max(headingW, 600)}${m?.headingWeight ? " (measured)" : " (assumed)"}, body at ${bodyPx}px / ${lh}${m?.bodyFontSizePx ? " (measured)" : " (assumed)"}${headingTransform === "uppercase" ? "; headings render uppercase (measured)" : ""}. Spec reads size / weight / line-height / letter-spacing.`,
+    intro: `Display at weight ${Math.max(headingW, 600)}${m?.headingWeight ? " (measured)" : " (assumed)"}, body at ${bodyPx}px / ${lh}${m?.bodyFontSizePx ? " (measured)" : " (assumed)"}${headingTransform === "uppercase" ? "; headings render uppercase (measured)" : ""}. ${headingInkMeasured ? `Headings render in ${displayInk} and body in ${ink} — both measured from the live text.` : `Text renders in ${ink} (measured body color).`} Spec reads size / weight / line-height / letter-spacing.`,
     body: typeRamp.map((r) => `
       <div class="typerow">
         <div class="tmeta"><div class="trole">${esc(r.role)}</div><div class="tspec">${r.px}px / ${r.w} / ${r.lh} / ${esc(r.ls)}</div><div class="tsrc">${esc(r.source)}</div></div>
-        <div class="tspec-sample${r.mutedRow ? " tmuted" : ""}" style="font-family:'${esc(isDisplayRole(r) ? displayFont : bodyFont)}','${esc(bodyFont)}',sans-serif;font-size:${r.px}px;font-weight:${r.w};line-height:${r.lh};letter-spacing:${esc(r.ls)};${r.upper ? "text-transform:uppercase;" : ""}">${esc(r.text)}</div>
+        <div class="tspec-sample${r.mutedRow ? " tmuted" : ""}" style="color:${esc(isDisplayRole(r) ? displayInk : ink)};font-family:'${esc(isDisplayRole(r) ? displayFont : bodyFont)}','${esc(bodyFont)}',sans-serif;font-size:${r.px}px;font-weight:${r.w};line-height:${r.lh};letter-spacing:${esc(r.ls)};${r.upper ? "text-transform:uppercase;" : ""}">${esc(r.text)}</div>
       </div>`).join(""),
   });
 
@@ -345,13 +350,13 @@ export function generatePreviewHtml(data: PreviewData): string {
 <title>${esc(name)} — Design System</title>
 ${fontLink ? `<link rel="preconnect" href="https://fonts.googleapis.com" /><link href="https://fonts.googleapis.com/css2?${fontLink}&display=swap" rel="stylesheet" />` : ""}
 <style>
-  :root { --bg:${bg}; --ink:${esc(ink)}; --accent:${esc(accent)}; --surface:${surface}; --line:${hairline}; --muted:${mutedText}; --radius:${esc(radius)}; }
+  :root { --bg:${bg}; --ink:${esc(ink)}; --display-ink:${esc(displayInk)}; --accent:${esc(accent)}; --surface:${surface}; --line:${hairline}; --muted:${mutedText}; --radius:${esc(radius)}; }
   * { box-sizing:border-box; margin:0; }
   body { background:var(--bg); color:var(--ink); font-family:'${esc(bodyFont)}', ui-sans-serif, system-ui, sans-serif; font-size:${bodyPx < 14 ? 15 : bodyPx}px; line-height:${lh}; }
   .wrap { max-width:${m?.containerWidth ? Math.min(m.containerWidth, 1240) : 1100}px; margin:0 auto; padding:56px 32px; }
   section { margin-bottom:88px; }
   .kicker { font:600 11px/1 ui-monospace,monospace; letter-spacing:.22em; text-transform:uppercase; color:var(--muted); margin-bottom:18px; }
-  .display { font-family:'${esc(displayFont)}', '${esc(bodyFont)}', sans-serif; font-weight:${Math.max(headingW, 600)}; text-transform:${headingTransform}; letter-spacing:-.01em; font-size:clamp(28px,4.6vw,54px); line-height:1.02; margin-bottom:16px; }
+  .display { color:var(--display-ink); font-family:'${esc(displayFont)}', '${esc(bodyFont)}', sans-serif; font-weight:${Math.max(headingW, 600)}; text-transform:${headingTransform}; letter-spacing:-.01em; font-size:clamp(28px,4.6vw,54px); line-height:1.02; margin-bottom:16px; }
   .intro { color:var(--muted); max-width:62ch; margin-bottom:34px; }
   .stripe { display:flex; height:12px; margin-bottom:22px; }
   .swatches { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:16px; }
@@ -381,10 +386,10 @@ ${fontLink ? `<link rel="preconnect" href="https://fonts.googleapis.com" /><link
   .pcard .ph { height:170px; }
   .pcard .pd { padding:20px; }
   .pcard .tag { font:600 10px/1 ui-monospace,monospace; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); }
-  .pcard h3 { font-family:'${esc(displayFont)}','${esc(bodyFont)}',sans-serif; text-transform:${headingTransform}; font-size:20px; margin:10px 0 8px; font-weight:${Math.max(headingW, 600)}; }
+  .pcard h3 { color:var(--display-ink); font-family:'${esc(displayFont)}','${esc(bodyFont)}',sans-serif; text-transform:${headingTransform}; font-size:20px; margin:10px 0 8px; font-weight:${Math.max(headingW, 600)}; }
   .pcard p { color:var(--muted); font-size:14px; }
   .hero { border:1px solid var(--line); background:linear-gradient(160deg, ${mix(bg, accent, 0.25)}, var(--bg) 65%); padding:64px 40px; }
-  .hero h3 { font-family:'${esc(displayFont)}','${esc(bodyFont)}',sans-serif; text-transform:${headingTransform}; font-size:clamp(26px,4vw,44px); line-height:1.04; max-width:22ch; margin-bottom:14px; font-weight:${Math.max(headingW, 600)}; }
+  .hero h3 { color:var(--display-ink); font-family:'${esc(displayFont)}','${esc(bodyFont)}',sans-serif; text-transform:${headingTransform}; font-size:clamp(26px,4vw,44px); line-height:1.04; max-width:22ch; margin-bottom:14px; font-weight:${Math.max(headingW, 600)}; }
   .hero p { color:var(--muted); max-width:52ch; margin-bottom:26px; }
   .cells { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); border-top:1px solid var(--line); border-left:1px solid var(--line); }
   .cell { border-right:1px solid var(--line); border-bottom:1px solid var(--line); padding:26px 20px; background:var(--surface); }
@@ -395,7 +400,7 @@ ${fontLink ? `<link rel="preconnect" href="https://fonts.googleapis.com" /><link
   .assume { border:1px solid var(--line); background:var(--surface); color:var(--muted); font-size:13px; padding:14px 18px; margin-bottom:56px; }
   .assume b { color:var(--ink); }
   header.top { display:flex; justify-content:space-between; align-items:baseline; border-bottom:1px solid var(--line); padding-bottom:22px; margin-bottom:64px; flex-wrap:wrap; gap:8px; }
-  header.top .brand { font-family:'${esc(displayFont)}','${esc(bodyFont)}',sans-serif; font-weight:${Math.max(headingW, 700)}; text-transform:${headingTransform}; font-size:20px; letter-spacing:.04em; }
+  header.top .brand { color:var(--display-ink); font-family:'${esc(displayFont)}','${esc(bodyFont)}',sans-serif; font-weight:${Math.max(headingW, 700)}; text-transform:${headingTransform}; font-size:20px; letter-spacing:.04em; }
   header.top .src { font:500 11px/1 ui-monospace,monospace; color:var(--muted); }
   footer { border-top:1px solid var(--line); padding-top:18px; color:var(--muted); font-size:12px; }
 </style>

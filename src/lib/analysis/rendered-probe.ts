@@ -21,6 +21,10 @@ export type RenderedProbeResult = {
     headingSizesPx: number[];
     /** Dominant text-transform on rendered h1/h2 ("uppercase" | "none" | ...). */
     headingTransform?: string;
+    /** Dominant heading text color (hex), text-length weighted across h1/h2. */
+    headingColor?: string;
+    /** Dominant body text color (hex). */
+    bodyColor?: string;
   };
   button?: {
     background?: string;
@@ -256,6 +260,7 @@ export async function runRenderedProbe(url: string, onProgress?: ProbeProgress):
       let headingFamily = "";
       const headingTexts: { text: string; sizePx: number }[] = [];
       const transformTally = new Map<string, number>();
+      const headingColorTally = new Map<string, number>(); // text-length-weighted
       for (const h of hs) {
         const cs = getComputedStyle(h);
         const px = Math.round(parseFloat(cs.fontSize));
@@ -265,9 +270,11 @@ export async function runRenderedProbe(url: string, onProgress?: ProbeProgress):
           headingWeight = Math.max(headingWeight, parseInt(cs.fontWeight, 10) || 0);
           if (!headingFamily) headingFamily = firstFamily(cs.fontFamily);
           transformTally.set(cs.textTransform, (transformTally.get(cs.textTransform) ?? 0) + 1);
+          if (text.length > 2) headingColorTally.set(cs.color, (headingColorTally.get(cs.color) ?? 0) + Math.min(text.length, 100));
         }
         if (text.length > 2 && text.length < 120) headingTexts.push({ text, sizePx: px });
       }
+      const headingColor = [...headingColorTally.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
 
       // Real nav labels from the header/nav
       const navItems = [...document.querySelectorAll("header a, nav a")]
@@ -466,6 +473,7 @@ export async function runRenderedProbe(url: string, onProgress?: ProbeProgress):
         headingWeight: headingWeight || undefined,
         headingSizes: [...headingSizes].sort((a, b) => a - b),
         headingTransform: [...transformTally.entries()].sort((a, b) => b[1] - a[1])[0]?.[0],
+        headingColor,
         bg: [...bg.entries()].sort((a, b) => b[1] - a[1]).slice(0, 12),
         txt: [...txt.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8),
         button,
@@ -592,6 +600,8 @@ export async function runRenderedProbe(url: string, onProgress?: ProbeProgress):
         headingWeight: raw.headingWeight,
         headingSizesPx: raw.headingSizes,
         headingTransform: raw.headingTransform,
+        headingColor: raw.headingColor ? (rgbToHex(String(raw.headingColor)) ?? undefined) : undefined,
+        bodyColor: raw.txt[0]?.[0] ? (rgbToHex(String(raw.txt[0][0])) ?? undefined) : undefined,
       },
       button: raw.button
         ? {
