@@ -202,19 +202,37 @@ export async function runWebsiteAnalysis(projectId: string) {
     await saveJsonFile(projectId, "VISUAL_ANALYSIS.json", visual);
     await saveJsonFile(projectId, "DESIGN_TOKENS.json", tokens);
     await saveJsonFile(projectId, "ANIMATION_ANALYSIS.json", animation);
-    await step(
-      "Saved analysis files",
-      "WEBSITE_ANALYSIS.json, VISUAL_ANALYSIS.json, DESIGN_TOKENS.json, ANIMATION_ANALYSIS.json (versioned).",
-    );
+    // Rendered-browser artifacts — the highest-priority source, saved as their
+    // own traceable files (not just merged) so every value can be audited.
+    const savedFiles = ["WEBSITE_ANALYSIS.json", "VISUAL_ANALYSIS.json", "DESIGN_TOKENS.json", "ANIMATION_ANALYSIS.json"];
+    if (probe) {
+      await saveJsonFile(projectId, "RENDERED_STYLE_ANALYSIS.json", {
+        source: "Playwright headless Chromium — computed styles of the rendered page (highest-priority source).",
+        url,
+        palette: probe.palette,
+        typography: probe.typography,
+        button: probe.button,
+        components: probe.components,
+        containerWidth: probe.containerWidth,
+        content: probe.content,
+      });
+      savedFiles.push("RENDERED_STYLE_ANALYSIS.json");
+      if (probe.scrollFindings.length || probe.stickyFindings.length) {
+        await saveJsonFile(projectId, "SCROLL_ANIMATION_ANALYSIS.json", {
+          source: "Verified by scrolling the rendered page (opacity/transform/sticky deltas).",
+          scrollAnimations: probe.scrollFindings,
+          stickyPinned: probe.stickyFindings,
+        });
+        savedFiles.push("SCROLL_ANIMATION_ANALYSIS.json");
+      }
+    }
+    await step("Saved analysis files", `${savedFiles.join(", ")} (versioned).`);
 
     await prisma.agentRun.update({
       where: { id: run.id },
       data: {
         status: "completed",
-        output: {
-          files: ["WEBSITE_ANALYSIS.json", "VISUAL_ANALYSIS.json", "DESIGN_TOKENS.json", "ANIMATION_ANALYSIS.json"],
-          confidence: animation.meta.confidence,
-        },
+        output: { files: savedFiles, confidence: animation.meta.confidence },
       },
     });
   } catch (err) {

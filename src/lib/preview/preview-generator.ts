@@ -397,6 +397,12 @@ ${fontLink ? `<link rel="preconnect" href="https://fonts.googleapis.com" /><link
   .cell .l { font:600 10px/1.6 ui-monospace,monospace; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin-top:10px; }
   ul.motion { list-style:none; display:grid; gap:10px; padding:0; }
   ul.motion li { border-left:2px solid var(--accent); padding:4px 0 4px 16px; color:var(--muted); font-size:14px; }
+  .legend { display:flex; flex-wrap:wrap; gap:8px 20px; margin-bottom:22px; font-size:12px; color:var(--muted); }
+  .legend span { display:flex; align-items:center; gap:7px; }
+  .legend .dot { width:9px; height:9px; border-radius:50%; display:inline-block; }
+  .legend .dot.measured { background:var(--accent); }
+  .legend .dot.derived { background:${mutedText}; }
+  .legend .dot.assumed { background:transparent; border:1.5px dashed ${mutedText}; }
   .assume { border:1px solid var(--line); background:var(--surface); color:var(--muted); font-size:13px; padding:14px 18px; margin-bottom:56px; }
   .assume b { color:var(--ink); }
   header.top { display:flex; justify-content:space-between; align-items:baseline; border-bottom:1px solid var(--line); padding-bottom:22px; margin-bottom:64px; flex-wrap:wrap; gap:8px; }
@@ -411,6 +417,12 @@ ${fontLink ? `<link rel="preconnect" href="https://fonts.googleapis.com" /><link
     <span class="brand">${esc(name)}</span>
     <span class="src">${esc(input.brief.businessType ?? "design system")}${tokens?.sourceUrl ? ` · extracted from ${esc(String(tokens.sourceUrl))}` : ""} · confidence: ${esc(String(tokens?.confidence ?? "n/a"))}</span>
   </header>
+
+  <div class="legend">
+    <span><i class="dot measured"></i>Measured — computed from the rendered live page</span>
+    <span><i class="dot derived"></i>Derived — inferred from the site's CSS / analysis</span>
+    <span><i class="dot assumed"></i>Assumed — no data on the reference site (flagged below)</span>
+  </div>
 
   ${assumed.length ? `<div class="assume"><b>Assumptions:</b> ${assumed.map(esc).join(" ")}</div>` : ""}
 

@@ -29,7 +29,20 @@ export function generateDesignMd(ctx: GeneratorContext): MdArtifact {
   const fonts = fontsOf(ctx, a);
   const m = ctx.tokens?.metrics ?? null;
   // Only real length values — CSS keywords like "inherit" are extraction noise.
-  const probeBtn = (ctx.tokens as unknown as { renderedProbe?: { button?: { textTransform?: string; letterSpacing?: string } | null } } | null)?.renderedProbe?.button;
+  const rp = (ctx.tokens as unknown as { renderedProbe?: { button?: { textTransform?: string; letterSpacing?: string } | null; headingTransform?: string } } | null)?.renderedProbe;
+  const probeBtn = rp?.button;
+  const probeHeadingTransform = rp?.headingTransform;
+  const tokenColors = (ctx.tokens?.color ?? {}) as Record<string, string>;
+  const bodyInk = tokenColors.ink;
+  const headingInk = tokenColors["ink-heading"];
+  // Map the measured type scale to heading roles (largest = H1) when available.
+  const typeScaleRoles = (() => {
+    const ts = ctx.tokens?.metrics?.typeScale;
+    if (!ts?.length) return "";
+    const desc = [...ts].sort((x, y) => y - x);
+    const roles = ["H1", "H2", "H3", "H4", "body-lg", "body", "small"];
+    return desc.slice(0, 7).map((px, i) => `- ${roles[i] ?? `size-${i + 1}`}: **${px}px** (measured)`).join("\n  ");
+  })();
   const radii = [
     ...(ctx.tokens?.metrics?.button?.radius ? [String(ctx.tokens.metrics.button.radius)] : []),
     ...Object.values(ctx.tokens?.radius ?? {}).map(String).filter((r) => /^\d/.test(r)),
@@ -58,11 +71,14 @@ Rules:
 - Body text must hold ≥4.5:1 contrast on its background (WCAG AA).
 
 ## Typography rules
-- Primary: **${fonts[0]}**${fonts[1] ? ` · Display/accent: ${fonts[1]}` : ""}
+- Body font: **${fonts[0]}**${fonts[1] ? ` · Display/heading font: **${fonts[1]}**` : ""}
+- Body text color: ${bodyInk ? `\`${bodyInk}\` (measured)` : "`" + (palette[0]?.value ?? "#111111") + "` (assumed)"}${headingInk ? ` · Heading text color: \`${headingInk}\` (measured from h1/h2)` : ""}
 - Body size: ${measured(a, m?.bodyFontSizePx, (v) => `**${v}px** (measured)`, "16px", "Body font size not measurable — 16px proposed.")}
 - Line height: ${measured(a, m?.bodyLineHeight, (v) => `**${v}** (measured)`, "1.5–1.7", "Body line-height not measurable — 1.5–1.7 proposed.")}
 - Heading weight: ${measured(a, m?.headingWeight, (v) => `**${v}** (measured from h1/h2)`, "600–700", "Heading weight not measurable — 600–700 proposed.")}
-- Type scale in use: ${measured(a, m?.typeScale, (v) => v.map((x) => `${x}px`).join(" / ") + " (measured)", "14 / 16 / 20 / 28 / 40+", "Type scale not measurable — a standard scale is proposed.")}
+- Heading casing: ${probeHeadingTransform && probeHeadingTransform !== "none" ? `**${probeHeadingTransform}** (measured)` : "sentence case (measured — headings are not uppercased on the live site)"}
+- Type scale in use (largest → smallest): ${measured(a, m?.typeScale ? [...m.typeScale].reverse() : undefined, (v) => v.map((x) => `${x}px`).join(" / ") + " (measured)", "40+ / 28 / 20 / 16 / 14", "Type scale not measurable — a standard scale is proposed.")}
+  ${typeScaleRoles}
 - One h1 per page.
 
 ## Layout system

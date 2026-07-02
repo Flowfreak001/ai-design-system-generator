@@ -31,6 +31,8 @@ const ANALYSIS_NAMES = [
   "VISUAL_ANALYSIS.json",
   "DESIGN_TOKENS.json",
   "ANIMATION_ANALYSIS.json",
+  "RENDERED_STYLE_ANALYSIS.json",
+  "SCROLL_ANIMATION_ANALYSIS.json",
 ];
 
 function Row({ label, value }: { label: string; value?: string | null }) {
