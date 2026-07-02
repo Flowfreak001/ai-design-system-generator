@@ -233,6 +233,98 @@ export function generatePreviewHtml(data: PreviewData): string {
   );
   const isDisplayRole = (r: TypeRow) => displayRoles.has(r.role);
 
+  const host = tokens?.sourceUrl ? String(tokens.sourceUrl).replace(/^https?:\/\//, "").replace(/\/.*$/, "") : null;
+
+  // Sections are composed only from extracted/brief data; a section with no
+  // data behind it is omitted — a brand guide documents what exists.
+  type Section = { kicker: string; title: string; intro: string; body: string };
+  const sections: Section[] = [];
+
+  sections.push({
+    kicker: "Color palette",
+    title: `${isDark ? "Dark" : "Light"} canvas, ${accents.length} chromatic accent${accents.length === 1 ? "" : "s"}`,
+    intro: accents.length
+      ? `Surfaces stay ${isDark ? "dark" : "light"}; ${accents.slice(0, 3).join(", ")} carry identity and action.${measuredBtn ? " The accent is taken from the live primary CTA, not guessed." : ""}`
+      : "No chromatic accent was extracted — the system stays monochrome until brand assets are provided.",
+    body: `${accents.length ? `<div class="stripe">${accents.map((a) => `<div style="flex:1;background:${esc(a)}"></div>`).join("")}</div>` : ""}
+     <div class="swatches">${swatches.map((s) => `
+       <div class="swatch"><div class="chip" style="background:${esc(s.value)}"></div>
+       <div class="meta"><div class="nm">${esc(s.name)}</div><code>${esc(s.value)}</code><div class="use">${esc(s.note)}</div></div></div>`).join("")}
+     </div>`,
+  });
+
+  sections.push({
+    kicker: "Typography scale",
+    title: `${displayFont === bodyFont ? bodyFont : `${displayFont} display, ${bodyFont} body`} · ${Math.max(headingW, 600)} / 400 contrast`,
+    intro: `Display at weight ${Math.max(headingW, 600)}${m?.headingWeight ? " (measured)" : " (assumed)"}, body at ${bodyPx}px / ${lh}${m?.bodyFontSizePx ? " (measured)" : " (assumed)"}${headingTransform === "uppercase" ? "; headings render uppercase (measured)" : ""}. Spec reads size / weight / line-height / letter-spacing.`,
+    body: typeRamp.map((r) => `
+      <div class="typerow">
+        <div class="tmeta"><div class="trole">${esc(r.role)}</div><div class="tspec">${r.px}px / ${r.w} / ${r.lh} / ${esc(r.ls)}</div><div class="tsrc">${esc(r.source)}</div></div>
+        <div class="tspec-sample${r.mutedRow ? " tmuted" : ""}" style="font-family:'${esc(isDisplayRole(r) ? displayFont : bodyFont)}','${esc(bodyFont)}',sans-serif;font-size:${r.px}px;font-weight:${r.w};line-height:${r.lh};letter-spacing:${esc(r.ls)};${r.upper ? "text-transform:uppercase;" : ""}">${esc(r.text)}</div>
+      </div>`).join(""),
+  });
+
+  sections.push({
+    kicker: "Button variants",
+    title: `${radius} radius · ${btnBg} on ${btnColor}${btnMs ? ` · ${btnMs}ms` : ""}`,
+    intro: measuredBtn
+      ? `Primary spec measured from the live CTA${host ? ` on ${host}` : ""}: ${btnBg} on ${btnColor}, ${btnPadY}px/${btnPadX}px padding, weight ${btnW}${btnTransform !== "none" ? `, ${btnTransform}` : ""}${btnMs ? `, ${btnMs}ms` : ""}.`
+      : "Primary spec derived from stylesheet heuristics — confirm against live brand.",
+    body: `<div class="btncards">
+      <div class="btncard"><div class="lbl">button-primary</div><a class="btn primary" href="#">${esc(ctaLabel)}</a>
+        <div class="cap">${esc(btnBg)} / ${esc(btnColor)} / radius ${esc(radius)} / ${btnPadY}×${btnPadX}px / w${btnW}${btnMs ? ` / ${btnMs}ms` : ""}${measuredBtn ? " · measured" : " · derived"}</div></div>
+      <div class="btncard"><div class="lbl">button-outline</div><a class="btn outline" href="#">${esc(navItems[1] ?? services[0])}</a>
+        <div class="cap">Inverse of primary: transparent fill, 1px ${esc(ink)} outline, radius ${esc(radius)} / padding ${btnPadY}×${btnPadX}px.</div></div>
+      <div class="btncard"><div class="lbl">text-link</div><a class="btn textlink" href="#">${esc(navItems[0] ?? services[0])} →</a>
+        <div class="cap">No fill; weight ${btnW} matches the primary CTA${btnMs ? `, ${btnMs}ms transition` : ""}.</div></div>
+    </div>`,
+  });
+
+  if (cardTitles.length) {
+    sections.push({
+      kicker: "Cards & containers",
+      title: `${cardTitles.length} content module${cardTitles.length === 1 ? "" : "s"} · radius ${radius} on ${surface}`,
+      intro: `${liveCardTitles.length ? `Module titles are real sub-headings rendered on ${host ?? "the reference site"}` : "Module names come from the brief's services and key pages"}; titles set in ${displayFont}${m?.spacingBase ? `, ${m.spacingBase}px spacing rhythm (measured)` : ""}.`,
+      body: `<div class="cards">${cardTitles.map((s, i) => `
+      <div class="pcard"><div class="ph" style="background:linear-gradient(150deg, ${esc(accents[i % Math.max(accents.length, 1)] ?? mix(bg, ink, 0.2))}, ${esc(mix(bg, ink, 0.05))})"></div>
+      <div class="pd"><div class="tag">${esc(input.brief.businessType ?? "offer")} · 0${i + 1}</div><h3>${esc(s)}</h3><p>${esc(cardCopy(i))}</p></div></div>`).join("")}
+    </div>`,
+    });
+  }
+
+  sections.push({
+    kicker: "Hero composition",
+    title: largestLiveHeading ? `As rendered on ${host ?? "the reference site"}` : `Composed from the ${name} brief`,
+    intro: `${largestLiveHeading ? "Headline, support copy, and CTA are the live site's own rendered text." : "Headline and CTA come from the brief's goal."}${brief.targetAudience?.trim() ? ` Audience: ${brief.targetAudience.trim()}.` : ""}`,
+    body: `<div class="hero"><h3>${esc(heroHeadline)}</h3>
+      <p>${esc(bodySample)}</p>
+      <a class="btn primary" href="#">${esc(ctaLabel)}</a>
+      &nbsp;&nbsp;<a class="btn outline" href="#">${esc(navItems[1] ?? services[0])}</a></div>`,
+  });
+
+  if (specCells.length > 2) {
+    const topSpecs = [
+      m?.containerWidth ? `${m.containerWidth}px container` : null,
+      m?.spacingBase ? `${m.spacingBase}px rhythm` : null,
+      btnMs ? `${btnMs}ms CTA` : null,
+    ].filter(Boolean).join(" · ");
+    sections.push({
+      kicker: "Measured spec",
+      title: topSpecs || `${specCells.length} measured values`,
+      intro: `Numbers measured from ${host ?? "the reference site"}; anything unmeasurable is flagged in the assumptions banner, never invented.`,
+      body: `<div class="cells">${specCells.map((sc) => `<div class="cell"><div class="v">${esc(sc.v)}</div><div class="l">${esc(sc.l)}</div></div>`).join("")}</div>`,
+    });
+  }
+
+  if (animation) {
+    sections.push({
+      kicker: "Motion",
+      title: animation.globalMotionStyle || `${motionLines.length} motion findings`,
+      intro: `From the animation analysis of ${host ?? "the reference site"}${animation.detectedLibraries.length ? ` — stack: ${animation.detectedLibraries.join(", ")}` : ""}.`,
+      body: `<ul class="motion">${motionLines.map((l) => `<li>${esc(String(l))}</li>`).join("")}</ul>`,
+    });
+  }
+
   const sec = (num: string, kicker: string, title: string, intro: string, body: string) => `
   <section>
     <div class="kicker">${num} — ${esc(kicker)}</div>
@@ -313,65 +405,7 @@ ${fontLink ? `<link rel="preconnect" href="https://fonts.googleapis.com" /><link
 
   ${assumed.length ? `<div class="assume"><b>Assumptions:</b> ${assumed.map(esc).join(" ")}</div>` : ""}
 
-  ${sec("01", "Color palette",
-    `${isDark ? "Dark" : "Light"} canvas, ${accents.length} chromatic accent${accents.length === 1 ? "" : "s"}`,
-    accents.length
-      ? `Surfaces stay ${isDark ? "dark" : "light"}; ${accents.slice(0, 3).join(", ")} carry identity and action. ${measuredBtn ? "The accent is taken from the live primary CTA, not guessed." : ""}`
-      : "No chromatic accent was extracted — the system stays monochrome until brand assets are provided.",
-    `${accents.length ? `<div class="stripe">${accents.map((a) => `<div style="flex:1;background:${esc(a)}"></div>`).join("")}</div>` : ""}
-     <div class="swatches">${swatches.map((s) => `
-       <div class="swatch"><div class="chip" style="background:${esc(s.value)}"></div>
-       <div class="meta"><div class="nm">${esc(s.name)}</div><code>${esc(s.value)}</code><div class="use">${esc(s.note)}</div></div></div>`).join("")}
-     </div>`)}
-
-  ${sec("02", "Typography scale",
-    `${displayFont === bodyFont ? bodyFont : `${displayFont} display, ${bodyFont} body`} · ${Math.max(headingW, 600)} / 400 contrast`,
-    `Display at weight ${Math.max(headingW, 600)}${m?.headingWeight ? " (measured)" : " (assumed)"}, body at ${bodyPx}px / ${lh}${m?.bodyFontSizePx ? " (measured)" : " (assumed)"}. Spec reads size / weight / line-height / letter-spacing; sizes come from the measured type scale.`,
-    typeRamp.map((r) => `
-      <div class="typerow">
-        <div class="tmeta"><div class="trole">${esc(r.role)}</div><div class="tspec">${r.px}px / ${r.w} / ${r.lh} / ${esc(r.ls)}</div><div class="tsrc">${esc(r.source)}</div></div>
-        <div class="tspec-sample${r.mutedRow ? " tmuted" : ""}" style="font-family:'${esc(isDisplayRole(r) ? displayFont : bodyFont)}','${esc(bodyFont)}',sans-serif;font-size:${r.px}px;font-weight:${r.w};line-height:${r.lh};letter-spacing:${esc(r.ls)};${r.upper ? "text-transform:uppercase;" : ""}">${esc(r.text)}</div>
-      </div>`).join(""))}
-
-  ${sec("03", "Button variants",
-    `${radius === "0px" ? "Rectangular silhouettes" : `${radius} radius`}, ${btnMs ? `${btnMs}ms transitions` : "instant states"}`,
-    measuredBtn
-      ? `Primary spec measured from the live CTA: ${btnBg} on ${btnColor}, ${btnPadY}px/${btnPadX}px padding, weight ${btnW}${btnMs ? `, ${btnMs}ms` : ""}.`
-      : "Primary spec derived from stylesheet heuristics — confirm against live brand.",
-    `<div class="btncards">
-      <div class="btncard"><div class="lbl">button-primary</div><a class="btn primary" href="#">${esc(ctaLabel)}</a>
-        <div class="cap">${esc(btnBg)} / ${esc(btnColor)} / radius ${esc(radius)} / ${btnPadY}×${btnPadX}px / w${btnW}${btnMs ? ` / ${btnMs}ms` : ""}${measuredBtn ? " · measured" : " · derived"}</div></div>
-      <div class="btncard"><div class="lbl">button-outline</div><a class="btn outline" href="#">${esc(navItems[1] ?? services[0])}</a>
-        <div class="cap">Inverse of primary: transparent fill, 1px ${esc(ink)} outline, same radius ${esc(radius)} / padding ${btnPadY}×${btnPadX}px.</div></div>
-      <div class="btncard"><div class="lbl">text-link</div><a class="btn textlink" href="#">${esc(navItems[0] ?? services[0])} →</a>
-        <div class="cap">No fill; weight ${btnW} matches the primary CTA${btnMs ? `, ${btnMs}ms transition` : ""}.</div></div>
-    </div>`)}
-
-  ${sec("04", "Cards & containers",
-    "Photo-led card grid",
-    `Cards use the brand accents over imagery, radius ${radius}${m?.spacingBase ? `, ${m.spacingBase}px spacing rhythm (measured)` : ""}; titles set in ${displayFont}. ${liveCardTitles.length ? "Card titles are real sub-headings from the live site." : "Card names come from the brief's services and key pages."}`,
-    `<div class="cards">${cardTitles.map((s, i) => `
-      <div class="pcard"><div class="ph" style="background:linear-gradient(150deg, ${esc(accents[i % Math.max(accents.length, 1)] ?? mix(bg, ink, 0.2))}, ${esc(mix(bg, ink, 0.05))})"></div>
-      <div class="pd"><div class="tag">${esc(input.brief.businessType ?? "offer")} · 0${i + 1}</div><h3>${esc(s)}</h3><p>${esc(cardCopy(i))}</p></div></div>`).join("")}
-    </div>`)}
-
-  ${sec("05", "Hero example",
-    "One outcome, one action",
-    `${largestLiveHeading ? "Headline, support copy, and CTA are the live site's own rendered text." : "Headline and CTA are the brief's goal."}${brief.targetAudience?.trim() ? ` Audience: ${brief.targetAudience.trim()}.` : ""}`,
-    `<div class="hero"><h3>${esc(heroHeadline)}</h3>
-      <p>${esc(bodySample)}</p>
-      <a class="btn primary" href="#">${esc(ctaLabel)}</a>
-      &nbsp;&nbsp;<a class="btn outline" href="#">${esc(navItems[1] ?? services[0])}</a></div>`)}
-
-  ${sec("06", "Spec cells",
-    "Engineered numbers, no ornamentation",
-    "Every value below was measured from the reference site or is flagged in the assumptions banner.",
-    `<div class="cells">${specCells.map((sc) => `<div class="cell"><div class="v">${esc(sc.v)}</div><div class="l">${esc(sc.l)}</div></div>`).join("")}</div>`)}
-
-  ${sec("07", "Motion",
-    animation ? "Measured motion character" : "Motion baseline",
-    animation ? "From the animation analysis of the reference site." : "No analysis yet — premium baseline shown.",
-    `<ul class="motion">${motionLines.map((l) => `<li>${esc(String(l))}</li>`).join("")}</ul>`)}
+  ${sections.map((x, i) => sec(String(i + 1).padStart(2, "0"), x.kicker, x.title, x.intro, x.body)).join("")}
 
   <footer>Generated by Project OS — ${esc(name)} design system specimen. Values marked measured come from the rendered-page probe.</footer>
 </div>
