@@ -1,34 +1,28 @@
+// Projects list: scannable table (name/client · type · derived status ·
+// files · next step · updated) matching the clients page pattern, with a
+// purposeful empty state. Whole row links into the workspace.
+
 import Link from "next/link";
 import { listProjects } from "@/lib/projects";
 import { requireUser } from "@/lib/auth";
-import { prisma } from "@/lib/db/client";
-import { ProjectCard } from "@/components/projects/project-card";
 import { LinkButton } from "@/components/ui/button";
-import { FadeUp, Stagger, StaggerItem } from "@/components/ui/motion";
-import { deriveStatus } from "@/lib/status";
+import { PageHeader } from "@/components/layout/page-header";
+import { FadeUp } from "@/components/ui/motion";
+import { deriveStatus, recommendedNextAction, STATUS_STYLES } from "@/lib/status";
 import type { ProjectBrief } from "@/types";
 
 export const dynamic = "force-dynamic";
 
 export default async function ProjectsPage() {
   const user = await requireUser();
-  const [projects, recentRuns] = await Promise.all([
-    user.agencyId ? listProjects(user.agencyId) : Promise.resolve([]),
-    user.agencyId
-      ? prisma.agentRun.findMany({
-          where: { project: { agencyId: user.agencyId } },
-          orderBy: { createdAt: "desc" },
-          take: 4,
-          include: { project: { select: { id: true, name: true } } },
-        })
-      : Promise.resolve([]),
-  ]);
+  const projects = user.agencyId ? await listProjects(user.agencyId) : [];
 
-  const cards = projects.map((p) => {
+  const rows = projects.map((p) => {
     const brief = (p.inputs[0]?.data ?? {}) as Partial<ProjectBrief>;
     const hasReferenceUrls = Boolean(
       brief.referenceUrls?.length || brief.existingWebsiteUrl || brief.competitorUrls?.length,
     );
+    const input = { status: p.status, files: p.files, hasReferenceUrls };
     return {
       id: p.id,
       name: p.name,
@@ -37,83 +31,84 @@ export default async function ProjectsPage() {
       type: p.type,
       updatedAt: p.updatedAt,
       fileCount: p._count.files,
-      hasReferenceUrls,
-      derivedStatus: deriveStatus({ status: p.status, files: p.files, hasReferenceUrls }),
+      derived: deriveStatus(input),
+      next: recommendedNextAction(input),
     };
   });
+  const inFlight = rows.filter((r) => r.derived !== "Exported").length;
 
   return (
-    <div className="mx-auto max-w-6xl px-5 sm:px-8 py-8">
-      <FadeUp className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h2 className="text-[26px] font-semibold tracking-[-0.02em]">Projects</h2>
-          <p className="mt-1 max-w-lg text-sm text-muted">
-            Each project turns a client brief into a complete design system —
-            files, preview, and an export package for your build tool.
-          </p>
-        </div>
-        <LinkButton href="/projects/new" size="lg">
-          Create New Design System
-        </LinkButton>
-      </FadeUp>
+    <div className="mx-auto max-w-6xl px-5 py-8 sm:px-8">
+      <PageHeader
+        title="Projects"
+        description={
+          rows.length
+            ? `${rows.length} ${rows.length === 1 ? "project" : "projects"} · ${inFlight} in flight`
+            : "Each project turns a client brief into a complete design system — files, preview, export."
+        }
+        action={<LinkButton href="/projects/new">New project</LinkButton>}
+      />
 
-      {cards.length === 0 ? (
-        <FadeUp className="card mt-10 flex flex-col items-center px-6 py-20 text-center">
+      {rows.length === 0 ? (
+        <FadeUp className="card mt-8 flex flex-col items-center px-6 py-20 text-center">
           <span className="grid h-12 w-12 place-items-center rounded-2xl bg-accent-soft text-lg text-accent">◆</span>
           <h3 className="mt-5 text-lg font-semibold">Create your first design system</h3>
           <p className="mt-2 max-w-md text-sm text-muted">
-            All you need to start is a business name, type, and website goal.
-            Reference websites and brand assets are optional — the system fills
-            gaps with clear assumptions.
+            All you need to start is a business name, type, and goal. Reference
+            websites and brand assets are optional — the system fills gaps with
+            clear assumptions.
           </p>
           <LinkButton href="/projects/new" size="lg" className="mt-6">
-            Create New Design System
+            New project
           </LinkButton>
         </FadeUp>
       ) : (
-        <>
-          <Stagger className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {/* Create tile — always first */}
-            <StaggerItem>
-              <Link
-                href="/projects/new"
-                className="flex h-full min-h-[210px] flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-line-strong bg-surface/60 p-5 text-center transition-colors duration-200 hover:border-accent/50 hover:bg-accent-soft/40"
-              >
-                <span className="grid h-11 w-11 place-items-center rounded-xl bg-accent text-white text-xl">+</span>
-                <span className="text-sm font-semibold text-ink">New design system</span>
-                <span className="text-xs text-muted">Brief → files → preview → export</span>
-              </Link>
-            </StaggerItem>
-            {cards.map((p) => (
-              <StaggerItem key={p.id}>
-                <ProjectCard project={p} />
-              </StaggerItem>
-            ))}
-          </Stagger>
-
-          {/* Recent activity */}
-          <FadeUp className="card mt-8 p-6">
-            <p className="text-[15px] font-semibold text-ink">Recent activity</p>
-            {recentRuns.length === 0 ? (
-              <p className="py-8 text-center text-sm text-faint">
-                Activity appears here after your first generation run.
-              </p>
-            ) : (
-              <ul className="mt-4 divide-y divide-line">
-                {recentRuns.map((r) => (
-                  <li key={r.id} className="flex items-center justify-between gap-3 py-2.5">
-                    <Link href={`/projects/${r.project.id}`} className="min-w-0 truncate text-sm text-ink hover:text-accent">
-                      {r.name} <span className="text-muted">· {r.project.name}</span>
+        <FadeUp className="card mt-6 overflow-x-auto">
+          <table className="w-full min-w-[860px] text-left text-sm">
+            <thead>
+              <tr className="border-b border-line text-[12.5px] text-muted">
+                <th className="px-5 py-3 font-medium">Project</th>
+                <th className="px-5 py-3 font-medium">Type</th>
+                <th className="px-5 py-3 font-medium">Status</th>
+                <th className="px-5 py-3 font-medium tnum">Files</th>
+                <th className="px-5 py-3 font-medium">Next step</th>
+                <th className="px-5 py-3 text-right font-medium">Updated</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-line">
+              {rows.map((p) => (
+                <tr key={p.id} className="group relative transition-colors hover:bg-panel/50">
+                  <td className="px-5 py-3.5">
+                    <Link href={`/projects/${p.id}`} className="block">
+                      <span className="absolute inset-0" aria-hidden="true" />
+                      <span className="block font-medium text-ink group-hover:text-accent">{p.name}</span>
+                      <span className="block text-[12.5px] text-muted">
+                        {p.clientName ?? "—"}{p.businessType ? ` · ${p.businessType}` : ""}
+                      </span>
                     </Link>
-                    <span className="shrink-0 font-mono text-[11px] text-faint">
-                      {new Date(r.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <span className="rounded-full bg-panel px-2 py-0.5 font-mono text-[10.5px] uppercase tracking-wide text-body">
+                      {p.type === "WEBSITE_APP" ? "Website" : "Automation"}
                     </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </FadeUp>
-        </>
+                  </td>
+                  <td className="px-5 py-3.5">
+                    <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[11.5px] ${STATUS_STYLES[p.derived]}`}>
+                      {p.derived}
+                    </span>
+                  </td>
+                  <td className="px-5 py-3.5 font-mono text-[13px] text-muted tnum">{p.fileCount}</td>
+                  <td className="max-w-[220px] truncate px-5 py-3.5 text-[13px] text-muted">
+                    {p.derived === "Exported" ? "—" : p.next.title}
+                  </td>
+                  <td className="px-5 py-3.5 text-right font-mono text-[11.5px] text-faint">
+                    {new Date(p.updatedAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </FadeUp>
       )}
     </div>
   );

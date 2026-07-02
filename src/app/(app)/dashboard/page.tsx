@@ -1,10 +1,17 @@
+// Dashboard = homebase (F-pattern): KPI strip with drill-down links up top,
+// then the actionable core — a "needs attention" queue built from each
+// project's derived status — with recent activity alongside. No placeholder
+// metrics: sections render only when there is real data behind them.
+
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/db/client";
+import { listProjects } from "@/lib/projects";
 import { LinkButton } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { PageHeader } from "@/components/layout/page-header";
 import { FadeUp, Stagger, StaggerItem } from "@/components/ui/motion";
+import { deriveStatus, recommendedNextAction, STATUS_STYLES } from "@/lib/status";
+import type { ProjectBrief } from "@/types";
 
 export const dynamic = "force-dynamic";
 
@@ -15,134 +22,164 @@ function greeting() {
   return "Good evening";
 }
 
-const CHIP_STYLES: Record<string, string> = {
-  info: "bg-info-soft text-info",
-  warning: "bg-warning-soft text-warning",
-  danger: "bg-danger-soft text-danger",
-  success: "bg-success-soft text-success",
-};
-
 export default async function DashboardPage() {
   const user = await requireUser();
   const agencyId = user.agencyId ?? "__none__";
 
-  const [activeClients, totalClients, openProjects, files, recentRuns] = await Promise.all([
+  const [activeClients, totalClients, files, recentRuns, projects] = await Promise.all([
     prisma.business.count({ where: { agencyId, stage: "Active" } }),
     prisma.business.count({ where: { agencyId } }),
-    prisma.project.count({ where: { agencyId, status: { in: ["DRAFT", "IN_PROGRESS", "REVIEW"] } } }),
     prisma.generatedFile.count({ where: { project: { agencyId } } }),
     prisma.agentRun.findMany({
       where: { project: { agencyId } },
       orderBy: { createdAt: "desc" },
-      take: 5,
+      take: 6,
       include: { project: { select: { id: true, name: true, clientName: true } } },
     }),
+    user.agencyId ? listProjects(user.agencyId) : Promise.resolve([]),
   ]);
 
-  const stats = [
-    { label: "Active Clients", value: activeClients, sub: `${totalClients} total`, tone: "info", icon: "👥" },
-    { label: "Open Projects", value: openProjects, sub: openProjects ? "In delivery" : "None open", tone: "warning", icon: "▣" },
-    { label: "Pending Approvals", value: 0, sub: "All on track", tone: "danger", icon: "!" },
-    { label: "Generated Files", value: files, sub: "Across all projects", tone: "success", icon: "↗" },
+  const enriched = projects.map((p) => {
+    const brief = (p.inputs[0]?.data ?? {}) as Partial<ProjectBrief>;
+    const hasReferenceUrls = Boolean(
+      brief.referenceUrls?.length || brief.existingWebsiteUrl || brief.competitorUrls?.length,
+    );
+    const input = { status: p.status, files: p.files, hasReferenceUrls };
+    return {
+      id: p.id,
+      name: p.name,
+      clientName: p.clientName,
+      updatedAt: p.updatedAt,
+      derived: deriveStatus(input),
+      next: recommendedNextAction(input),
+    };
+  });
+  const attention = enriched.filter((p) => p.derived !== "Exported").slice(0, 5);
+  const exported = enriched.filter((p) => p.derived === "Exported").length;
+  const previewsReady = enriched.filter((p) => p.derived === "Preview Ready").length;
+
+  const stats: { label: string; value: number; sub: string; href: string }[] = [
+    { label: "Active clients", value: activeClients, sub: `${totalClients} total`, href: "/clients" },
+    { label: "Projects in flight", value: enriched.length - exported, sub: `${enriched.length} total`, href: "/projects" },
+    { label: "Previews ready", value: previewsReady, sub: "awaiting export", href: "/projects" },
+    { label: "Files generated", value: files, sub: `${exported} exported`, href: "/projects" },
   ];
 
-  return (
-    <div className="mx-auto max-w-6xl px-5 sm:px-8 py-8">
-      {/* Greeting */}
-      <FadeUp className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h2 className="text-[26px] font-semibold tracking-[-0.02em]">
-            {greeting()}, {user.name?.split(" ")[0] ?? "there"}
-          </h2>
-          <p className="mt-1 text-[15px] text-muted">
-            Here&apos;s what&apos;s happening across your agency today.
-          </p>
-        </div>
-        <LinkButton href="/clients/new">+ Add Client</LinkButton>
-      </FadeUp>
+  const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
-      {/* Stat cards */}
-      <Stagger className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+  return (
+    <div className="mx-auto max-w-6xl px-5 py-8 sm:px-8">
+      <PageHeader
+        title={`${greeting()}, ${user.name?.split(" ")[0] ?? "there"}`}
+        description={today}
+        action={
+          <div className="flex gap-2.5">
+            <LinkButton href="/clients/new" variant="secondary">Add client</LinkButton>
+            <LinkButton href="/projects/new">New project</LinkButton>
+          </div>
+        }
+      />
+
+      {/* KPI strip — each card is a drill-down link */}
+      <Stagger className="mt-7 grid grid-cols-2 gap-3 lg:grid-cols-4">
         {stats.map((s) => (
           <StaggerItem key={s.label}>
-            <Card className="gap-0 py-5">
-              <CardContent className="px-5">
-                <div className="flex items-start justify-between">
-                  <p className="text-sm text-muted">{s.label}</p>
-                  <span
-                    aria-hidden="true"
-                    className={`grid h-9 w-9 place-items-center rounded-full text-sm ${CHIP_STYLES[s.tone]}`}
-                  >
-                    {s.icon}
-                  </span>
-                </div>
-                <p className="mt-1 text-3xl font-semibold tracking-tight text-ink tnum">{s.value}</p>
-                <Separator className="my-2.5" />
-                <p className="text-[13px] text-faint">{s.sub}</p>
-              </CardContent>
-            </Card>
+            <Link
+              href={s.href}
+              className="card block px-5 py-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-line-strong"
+            >
+              <p className="text-[13px] text-muted">{s.label}</p>
+              <p className="mt-1.5 text-[28px] font-semibold leading-none tracking-tight text-ink tnum">{s.value}</p>
+              <p className="mt-2 text-[12px] text-faint">{s.sub}</p>
+            </Link>
           </StaggerItem>
         ))}
       </Stagger>
 
-      {/* Activity + upcoming */}
-      <div className="mt-6 grid gap-4 lg:grid-cols-[1.6fr_1fr]">
-        <div className="card p-6">
-          <p className="text-[15px] font-semibold text-ink">Recent Activity</p>
-          <p className="mt-0.5 text-[13px] text-muted">Latest agent runs across your clients</p>
-          {recentRuns.length === 0 ? (
-            <p className="py-14 text-center text-sm text-faint">No recent activity yet.</p>
+      <div className="mt-6 grid items-start gap-4 lg:grid-cols-[1.7fr_1fr]">
+        {/* Needs attention — the actionable core */}
+        <FadeUp className="card">
+          <div className="flex items-center justify-between px-5 pt-5">
+            <div>
+              <p className="text-[15px] font-semibold text-ink">Needs attention</p>
+              <p className="mt-0.5 text-[13px] text-muted">Projects with a recommended next step</p>
+            </div>
+            <Link href="/projects" className="text-[13px] font-medium text-accent hover:underline">
+              All projects →
+            </Link>
+          </div>
+          {attention.length === 0 ? (
+            <div className="px-6 py-12 text-center">
+              <p className="text-sm text-muted">
+                {enriched.length === 0 ? "No projects yet." : "Everything is exported — nothing waiting on you."}
+              </p>
+              {enriched.length === 0 && (
+                <LinkButton href="/projects/new" className="mt-4">Create your first project</LinkButton>
+              )}
+            </div>
           ) : (
-            <ul className="mt-5 divide-y divide-line">
-              {recentRuns.map((r) => (
-                <li key={r.id} className="flex items-center justify-between gap-3 py-3">
-                  <div className="min-w-0">
-                    <Link
-                      href={`/projects/${r.project.id}`}
-                      className="block truncate text-sm font-medium text-ink hover:text-accent"
-                    >
-                      {r.name}
-                    </Link>
-                    <p className="truncate text-[13px] text-muted">
-                      {r.project.clientName ?? "—"} · {r.project.name}
-                    </p>
-                  </div>
-                  <span className="shrink-0 font-mono text-[11px] text-faint">
-                    {new Date(r.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                  </span>
+            <ul className="mt-4 divide-y divide-line border-t border-line">
+              {attention.map((p) => (
+                <li key={p.id}>
+                  <Link
+                    href={`/projects/${p.id}`}
+                    className="group flex items-center gap-4 px-5 py-3.5 transition-colors hover:bg-panel/50"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-ink group-hover:text-accent">{p.name}</p>
+                      <p className="truncate text-[12.5px] text-muted">{p.clientName ?? "—"}</p>
+                    </div>
+                    <span className={`hidden shrink-0 rounded-full border px-2.5 py-0.5 text-[11.5px] sm:inline-flex ${STATUS_STYLES[p.derived]}`}>
+                      {p.derived}
+                    </span>
+                    <span className="hidden w-44 shrink-0 truncate text-right text-[12.5px] text-muted md:block">
+                      {p.next.title}
+                    </span>
+                    <span aria-hidden="true" className="shrink-0 text-faint transition-transform group-hover:translate-x-0.5 group-hover:text-accent">→</span>
+                  </Link>
                 </li>
               ))}
             </ul>
           )}
-        </div>
+        </FadeUp>
 
-        <div className="card p-6">
-          <p className="text-[15px] font-semibold text-ink">Pending Approvals</p>
-          <p className="mt-0.5 text-[13px] text-muted">Items waiting on a human decision</p>
-          <p className="py-14 text-center text-sm text-faint">
-            Nothing waiting — approvals appear here once workflows run.
-          </p>
-        </div>
-      </div>
-
-      {/* Quick links */}
-      <div className="mt-6 grid gap-4 sm:grid-cols-3">
-        <QuickLink href="/clients" label="Manage Clients" />
-        <QuickLink href="/projects/new" label="New Project" />
-        <QuickLink href="/projects" label="All Projects" />
+        {/* Recent activity */}
+        <FadeUp className="card">
+          <div className="px-5 pt-5">
+            <p className="text-[15px] font-semibold text-ink">Recent activity</p>
+            <p className="mt-0.5 text-[13px] text-muted">Latest pipeline runs</p>
+          </div>
+          {recentRuns.length === 0 ? (
+            <p className="px-6 py-12 text-center text-sm text-faint">
+              Runs appear here after your first analysis or generation.
+            </p>
+          ) : (
+            <ul className="mt-4 divide-y divide-line border-t border-line">
+              {recentRuns.map((r) => (
+                <li key={r.id}>
+                  <Link href={`/projects/${r.project.id}`} className="group block px-5 py-3 transition-colors hover:bg-panel/50">
+                    <div className="flex items-center gap-2">
+                      <span
+                        aria-hidden="true"
+                        className={`h-1.5 w-1.5 shrink-0 rounded-full ${
+                          r.status === "completed" ? "bg-success" : r.status === "failed" ? "bg-danger" : "bg-info"
+                        }`}
+                      />
+                      <p className="min-w-0 truncate text-[13px] font-medium text-ink group-hover:text-accent">{r.name}</p>
+                      <span className="ml-auto shrink-0 font-mono text-[10.5px] text-faint">
+                        {new Date(r.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 truncate pl-3.5 text-[12px] text-muted">
+                      {r.project.clientName ? `${r.project.clientName} · ` : ""}{r.project.name}
+                    </p>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </FadeUp>
       </div>
     </div>
-  );
-}
-
-function QuickLink({ href, label }: { href: string; label: string }) {
-  return (
-    <Link
-      href={href}
-      className="card flex items-center gap-3 px-5 py-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-line-strong"
-    >
-      <span className="grid h-9 w-9 place-items-center rounded-full bg-panel text-muted">↗</span>
-      <span className="text-sm font-medium text-ink">{label}</span>
-    </Link>
   );
 }

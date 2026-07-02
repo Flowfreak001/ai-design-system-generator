@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { listClients } from "@/lib/clients";
 import { LinkButton } from "@/components/ui/button";
+import { PageHeader } from "@/components/layout/page-header";
 import { FadeUp } from "@/components/ui/motion";
 
 export const dynamic = "force-dynamic";
@@ -20,15 +21,11 @@ export default async function ClientsPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-5 sm:px-8 py-8">
-      <FadeUp className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h2 className="text-[26px] font-semibold tracking-[-0.02em]">Clients</h2>
-          <p className="mt-1 text-sm text-muted">
-            {clients.length} {clients.length === 1 ? "client" : "clients"} · {active} active
-          </p>
-        </div>
-        <LinkButton href="/clients/new">+ Add Client</LinkButton>
-      </FadeUp>
+      <PageHeader
+        title="Clients"
+        description={`${clients.length} ${clients.length === 1 ? "client" : "clients"} · ${active} active`}
+        action={<LinkButton href="/clients/new">Add client</LinkButton>}
+      />
 
       {clients.length === 0 ? (
         <FadeUp className="card mt-8 flex flex-col items-center px-6 py-20 text-center">
@@ -43,7 +40,7 @@ export default async function ClientsPage() {
           </LinkButton>
         </FadeUp>
       ) : (
-        <FadeUp className="card mt-8 overflow-x-auto">
+        <FadeUp className="card mt-6 overflow-x-auto">
           <table className="w-full min-w-[720px] text-left text-sm">
             <thead>
               <tr className="border-b border-line text-[13px] text-muted">

@@ -1,78 +1,113 @@
 "use client";
 
+// App shell: 250px labeled sidebar (grouped nav, Linear/Vercel pattern) +
+// slim topbar with breadcrumbs and a primary quick action. The sidebar stays
+// visible so navigation never needs a "back"; disabled groups show the
+// roadmap without dead links.
+
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOutAction } from "@/app/(app)/auth-actions";
 import type { SessionUser } from "@/lib/auth";
 import type { ReactNode } from "react";
+import { LinkButton } from "@/components/ui/button";
 
 const ICONS: Record<string, ReactNode> = {
   home: (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <rect x="4" y="4" width="6.5" height="6.5" rx="1.5" stroke="currentColor" strokeWidth="1.6" />
-      <rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5" stroke="currentColor" strokeWidth="1.6" />
-      <rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5" stroke="currentColor" strokeWidth="1.6" />
-      <rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5" stroke="currentColor" strokeWidth="1.6" />
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="4" y="4" width="6.5" height="6.5" rx="1.5" stroke="currentColor" strokeWidth="1.7" />
+      <rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5" stroke="currentColor" strokeWidth="1.7" />
+      <rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5" stroke="currentColor" strokeWidth="1.7" />
+      <rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5" stroke="currentColor" strokeWidth="1.7" />
     </svg>
   ),
   clients: (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="9" cy="8.5" r="3" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M3.5 19c.8-3 3-4.5 5.5-4.5s4.7 1.5 5.5 4.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <circle cx="16.5" cy="9.5" r="2.3" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M16 14.7c2 .2 3.7 1.4 4.4 3.8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="9" cy="8.5" r="3" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M3.5 19c.8-3 3-4.5 5.5-4.5s4.7 1.5 5.5 4.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <circle cx="16.5" cy="9.5" r="2.3" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M16 14.7c2 .2 3.7 1.4 4.4 3.8" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
     </svg>
   ),
   projects: (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M4 7a2 2 0 0 1 2-2h4l2 2.5h6a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7Z" stroke="currentColor" strokeWidth="1.6" />
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M4 7a2 2 0 0 1 2-2h4l2 2.5h6a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7Z" stroke="currentColor" strokeWidth="1.7" />
     </svg>
   ),
-  team: (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="12" cy="8" r="3" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M5.5 19.5c1-3.4 3.6-5 6.5-5s5.5 1.6 6.5 5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <path d="M17.5 6.5a2.5 2.5 0 1 1-2-4" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
+  workflows: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="3" y="4" width="7" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.7" />
+      <rect x="14" y="14" width="7" height="6" rx="1.5" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M10 7h5a2 2 0 0 1 2 2v5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  ),
+  approvals: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="8.5" stroke="currentColor" strokeWidth="1.7" />
+      <path d="m8.5 12.2 2.4 2.4 4.6-4.9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
+  leads: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M4 5h16l-6.2 7.2V19l-3.6-2v-4.8L4 5Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
     </svg>
   ),
   settings: (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.6" />
-      <path d="M12 3.5v2m0 13v2m8.5-8.5h-2m-13 0h-2m14.6-6.1-1.4 1.4M6.3 17.7l-1.4 1.4m14.2 0-1.4-1.4M6.3 6.3 4.9 4.9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M12 3.5v2m0 13v2m8.5-8.5h-2m-13 0h-2m14.6-6.1-1.4 1.4M6.3 17.7l-1.4 1.4m14.2 0-1.4-1.4M6.3 6.3 4.9 4.9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
     </svg>
   ),
   logout: (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M14 5V4a1.5 1.5 0 0 0-1.5-1.5h-7A1.5 1.5 0 0 0 4 4v16a1.5 1.5 0 0 0 1.5 1.5h7A1.5 1.5 0 0 0 14 20v-1" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      <path d="M9 12h11m0 0-3-3m3 3-3 3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M14 5V4a1.5 1.5 0 0 0-1.5-1.5h-7A1.5 1.5 0 0 0 4 4v16a1.5 1.5 0 0 0 1.5 1.5h7A1.5 1.5 0 0 0 14 20v-1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M9 12h11m0 0-3-3m3 3-3 3" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   ),
 };
 
-const NAV: { label: string; href?: string; icon: string; soon?: boolean }[] = [
-  { label: "Home", href: "/dashboard", icon: "home" },
-  { label: "Clients", href: "/clients", icon: "clients" },
-  { label: "Projects", href: "/projects", icon: "projects" },
-  { label: "Team", icon: "team", soon: true },
-  { label: "Settings", icon: "settings", soon: true },
+type NavItem = { label: string; href?: string; icon: string; soon?: boolean };
+const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
+  {
+    title: "Workspace",
+    items: [
+      { label: "Dashboard", href: "/dashboard", icon: "home" },
+      { label: "Clients", href: "/clients", icon: "clients" },
+      { label: "Projects", href: "/projects", icon: "projects" },
+    ],
+  },
+  {
+    title: "Automation",
+    items: [
+      { label: "Workflows", icon: "workflows", soon: true },
+      { label: "Approvals", icon: "approvals", soon: true },
+      { label: "Leads", icon: "leads", soon: true },
+    ],
+  },
+  {
+    title: "Account",
+    items: [{ label: "Settings", icon: "settings", soon: true }],
+  },
 ];
 
-const TITLES: [string, string][] = [
-  ["/dashboard", "Dashboard"],
-  ["/clients/new", "Add Client"],
-  ["/clients", "Clients"],
-  ["/projects/new", "New Project"],
-  ["/projects", "Projects"],
+const CRUMBS: [RegExp, string[]][] = [
+  [/^\/dashboard/, ["Dashboard"]],
+  [/^\/clients\/new/, ["Clients", "Add client"]],
+  [/^\/clients\/[^/]+/, ["Clients", "Client"]],
+  [/^\/clients/, ["Clients"]],
+  [/^\/projects\/new/, ["Projects", "New project"]],
+  [/^\/projects\/[^/]+/, ["Projects", "Workspace"]],
+  [/^\/projects/, ["Projects"]],
 ];
 
-function railItemCls(active: boolean, disabled = false) {
+function navItemCls(active: boolean, disabled = false) {
   return [
-    "flex w-[72px] flex-col items-center gap-1 rounded-xl px-1 py-2.5 text-[11px] font-medium transition-colors duration-150",
+    "relative flex w-full items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13.5px] font-medium transition-colors duration-150",
     disabled
       ? "cursor-default text-faint"
       : active
         ? "bg-accent-soft text-accent"
-        : "text-muted hover:bg-panel hover:text-ink",
+        : "text-body hover:bg-panel hover:text-ink",
   ].join(" ");
 }
 
@@ -84,7 +119,7 @@ export function DashboardShell({
   children: ReactNode;
 }) {
   const pathname = usePathname();
-  const title = TITLES.find(([p]) => pathname.startsWith(p))?.[1] ?? "Workspace";
+  const crumbs = CRUMBS.find(([re]) => re.test(pathname))?.[1] ?? ["Workspace"];
   const initials = (user.name ?? user.email)
     .split(/[\s@.]+/)
     .slice(0, 2)
@@ -93,66 +128,93 @@ export function DashboardShell({
 
   return (
     <div className="flex min-h-screen flex-1">
-      {/* Icon rail */}
-      <aside className="sticky top-0 flex h-screen w-[100px] shrink-0 flex-col items-center border-r border-line bg-surface py-4">
-        <Link
-          href="/"
-          aria-label="Project OS home"
-          className="grid h-11 w-11 place-items-center rounded-2xl bg-accent text-white text-lg"
-        >
-          ◆
+      {/* Sidebar */}
+      <aside className="sticky top-0 hidden h-screen w-[250px] shrink-0 flex-col border-r border-line bg-surface md:flex">
+        <Link href="/" className="flex items-center gap-2.5 px-4 pt-5 pb-4" aria-label="Project OS home">
+          <span className="grid h-8 w-8 place-items-center rounded-lg bg-accent text-[15px] text-white">◆</span>
+          <span className="min-w-0">
+            <span className="block text-[14px] font-semibold leading-tight text-ink">Project OS</span>
+            <span className="block truncate text-[11.5px] leading-tight text-muted">Agency workspace</span>
+          </span>
         </Link>
 
-        <nav className="mt-6 flex flex-col items-center gap-1.5" aria-label="App">
-          {NAV.map((item) => {
-            if (item.soon) {
-              return (
-                <span key={item.label} className={railItemCls(false, true)} aria-disabled="true" title="Coming soon">
-                  {ICONS[item.icon]}
-                  {item.label}
-                </span>
-              );
-            }
-            const active = pathname.startsWith(item.href!);
-            return (
-              <Link
-                key={item.label}
-                href={item.href!}
-                aria-current={active ? "page" : undefined}
-                className={railItemCls(active)}
-              >
-                {ICONS[item.icon]}
-                {item.label}
-              </Link>
-            );
-          })}
+        <nav className="mt-2 flex-1 overflow-y-auto px-3" aria-label="App">
+          {NAV_GROUPS.map((group) => (
+            <div key={group.title} className="mb-5">
+              <p className="px-2.5 pb-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-faint">
+                {group.title}
+              </p>
+              <div className="grid gap-0.5">
+                {group.items.map((item) => {
+                  if (item.soon) {
+                    return (
+                      <span key={item.label} className={navItemCls(false, true)} aria-disabled="true">
+                        {ICONS[item.icon]}
+                        {item.label}
+                        <span className="ml-auto rounded-full border border-line px-1.5 py-px text-[9.5px] font-medium uppercase tracking-wide text-faint">
+                          soon
+                        </span>
+                      </span>
+                    );
+                  }
+                  const active = pathname.startsWith(item.href!);
+                  return (
+                    <Link key={item.label} href={item.href!} aria-current={active ? "page" : undefined} className={navItemCls(active)}>
+                      {active && <span aria-hidden="true" className="absolute -left-3 h-4 w-[3px] rounded-full bg-accent" />}
+                      {ICONS[item.icon]}
+                      {item.label}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
         </nav>
 
-        <form action={signOutAction} className="mt-auto">
-          <button type="submit" className={`${railItemCls(false)} cursor-pointer`}>
-            {ICONS.logout}
-            Logout
-          </button>
-        </form>
+        {/* User */}
+        <div className="border-t border-line p-3">
+          <div className="flex items-center gap-2.5 rounded-lg px-2 py-1.5">
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-accent text-[11px] font-semibold text-white">
+              {initials}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[13px] font-medium leading-tight text-ink">{user.name ?? "Account"}</span>
+              <span className="block truncate text-[11.5px] leading-tight text-muted">{user.email}</span>
+            </span>
+            <form action={signOutAction}>
+              <button
+                type="submit"
+                title="Sign out"
+                className="grid h-8 w-8 cursor-pointer place-items-center rounded-lg text-muted transition-colors hover:bg-panel hover:text-ink"
+              >
+                {ICONS.logout}
+              </button>
+            </form>
+          </div>
+        </div>
       </aside>
 
       {/* Main column */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-40 flex h-16 items-center justify-between gap-4 border-b border-line bg-canvas/90 px-5 backdrop-blur sm:px-8">
-          <h1 className="text-[15px] font-medium text-ink">{title}</h1>
+        <header className="sticky top-0 z-40 flex h-14 items-center justify-between gap-4 border-b border-line bg-canvas/90 px-5 backdrop-blur sm:px-8">
+          <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1.5 text-[13.5px]">
+            {crumbs.map((c, i) => (
+              <span key={c} className="flex items-center gap-1.5">
+                {i > 0 && <span className="text-faint">/</span>}
+                <span className={i === crumbs.length - 1 ? "font-medium text-ink" : "text-muted"}>{c}</span>
+              </span>
+            ))}
+          </nav>
           <div className="flex items-center gap-3">
             <input
               type="search"
               placeholder="Search…"
               aria-label="Search"
-              className="hidden w-64 rounded-full border border-line bg-surface px-4 py-2 text-sm placeholder:text-faint focus:border-accent/50 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent sm:block"
+              className="hidden w-56 rounded-lg border border-line bg-surface px-3.5 py-1.5 text-[13px] placeholder:text-faint focus:border-accent/50 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent lg:block"
             />
-            <span
-              title={user.email}
-              className="grid h-9 w-9 place-items-center rounded-full bg-accent text-[12px] font-semibold text-white"
-            >
-              {initials}
-            </span>
+            <LinkButton href="/projects/new" size="md" className="h-8 px-3 text-[13px]">
+              New project
+            </LinkButton>
           </div>
         </header>
 
