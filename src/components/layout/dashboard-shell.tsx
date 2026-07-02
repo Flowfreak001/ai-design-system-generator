@@ -103,8 +103,10 @@ const CRUMBS: [RegExp, string[]][] = [
 
 function navItemCls(active: boolean, disabled = false, collapsed = false) {
   return [
-    "relative flex w-full items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13.5px] font-medium transition-colors duration-150",
-    collapsed ? "justify-center px-0" : "",
+    "relative flex w-full font-medium transition-colors duration-150",
+    collapsed
+      ? "flex-col items-center gap-1 rounded-xl px-1 py-2 text-center text-[11px] leading-tight"
+      : "items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13.5px]",
     disabled
       ? "cursor-default text-faint"
       : active
@@ -144,7 +146,9 @@ export function DashboardShell({
     <nav className={`mt-1 flex-1 overflow-y-auto ${isCollapsed ? "px-2.5" : "px-3"}`} aria-label="App">
       {NAV_GROUPS.map((group) => (
         <div key={group.title} className="mb-4">
-          {!isCollapsed && (
+          {isCollapsed ? (
+            group.title !== NAV_GROUPS[0].title && <div className="mx-2 mb-3 border-t border-line" aria-hidden="true" />
+          ) : (
             <p className="px-2.5 pb-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-faint">
               {group.title}
             </p>
@@ -155,7 +159,7 @@ export function DashboardShell({
                 return (
                   <span key={item.label} className={navItemCls(false, true, isCollapsed)} aria-disabled="true" title={`${item.label} — coming soon`}>
                     {ICONS[item.icon]}
-                    {!isCollapsed && item.label}
+                    {item.label}
                     {!isCollapsed && (
                       <span className="ml-auto rounded-full border border-line px-1.5 py-px text-[9.5px] font-medium uppercase tracking-wide text-faint">
                         soon
@@ -166,10 +170,10 @@ export function DashboardShell({
               }
               const active = pathname.startsWith(item.href!);
               return (
-                <Link key={item.label} href={item.href!} aria-current={active ? "page" : undefined} title={isCollapsed ? item.label : undefined} className={navItemCls(active, false, isCollapsed)}>
-                  {active && <span aria-hidden="true" className={`absolute h-4 w-[3px] rounded-full bg-accent ${isCollapsed ? "-left-1.5" : "-left-3"}`} />}
+                <Link key={item.label} href={item.href!} aria-current={active ? "page" : undefined} className={navItemCls(active, false, isCollapsed)}>
+                  {!isCollapsed && active && <span aria-hidden="true" className="absolute -left-3 h-4 w-[3px] rounded-full bg-accent" />}
                   {ICONS[item.icon]}
-                  {!isCollapsed && item.label}
+                  {item.label}
                 </Link>
               );
             })}
@@ -207,7 +211,7 @@ export function DashboardShell({
   return (
     <div className="flex min-h-screen flex-1">
       {/* Desktop sidebar */}
-      <aside className={`sticky top-0 hidden h-screen shrink-0 flex-col border-r border-line bg-surface transition-[width] duration-200 md:flex ${collapsed ? "w-[64px]" : "w-[216px]"}`}>
+      <aside className={`sticky top-0 hidden h-screen shrink-0 flex-col border-r border-line bg-surface transition-[width] duration-200 md:flex ${collapsed ? "w-[92px]" : "w-[216px]"}`}>
         <div className={`flex items-center pt-4 pb-3 ${collapsed ? "flex-col gap-2 px-0" : "justify-between gap-1 pl-3.5 pr-2"}`}>
           <Link href="/" className="flex min-w-0 items-center gap-2.5" aria-label="Project OS home">
             <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-accent text-[15px] text-white">◆</span>
