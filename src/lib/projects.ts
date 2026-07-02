@@ -5,16 +5,17 @@ import type { CreateProjectInput } from "@/lib/validators/project";
 import type { AutomationBrief, GenerationInput, ProjectBrief } from "@/types";
 import type { ProjectModel, ProjectInputModel } from "@/generated/prisma/models";
 
-export async function listProjects() {
+export async function listProjects(agencyId: string) {
   return prisma.project.findMany({
+    where: { agencyId },
     orderBy: { updatedAt: "desc" },
     include: { _count: { select: { files: true, workflows: true } } },
   });
 }
 
-export async function getProject(id: string) {
+export async function getProject(id: string, agencyId: string) {
   return prisma.project.findUnique({
-    where: { id },
+    where: { id, agencyId },
     include: {
       inputs: true,
       files: {
@@ -36,16 +37,16 @@ export async function getProject(id: string) {
   });
 }
 
-export async function getFileVersions(projectId: string) {
+export async function getFileVersions(projectId: string, agencyId: string) {
   return prisma.fileVersion.findMany({
-    where: { file: { projectId } },
+    where: { file: { projectId, project: { agencyId } } },
     orderBy: { createdAt: "desc" },
     include: { file: { select: { name: true } } },
     take: 50,
   });
 }
 
-export async function createProject(data: CreateProjectInput) {
+export async function createProject(data: CreateProjectInput, agencyId?: string) {
   const brief: ProjectBrief = {
     businessType: data.businessType,
     goal: data.goal,
@@ -75,13 +76,20 @@ export async function createProject(data: CreateProjectInput) {
       clientName: data.clientName,
       type: data.type,
       description: data.goal,
+      agencyId,
       inputs: { create: inputs },
     },
   });
 }
 
-export async function deleteProject(id: string) {
-  return prisma.project.delete({ where: { id } });
+/** True when the project exists and belongs to the agency. */
+export async function ownsProject(id: string, agencyId: string): Promise<boolean> {
+  const found = await prisma.project.findUnique({ where: { id, agencyId }, select: { id: true } });
+  return Boolean(found);
+}
+
+export async function deleteProject(id: string, agencyId: string) {
+  return prisma.project.delete({ where: { id, agencyId } });
 }
 
 export async function addNote(projectId: string, content: string, title?: string) {

@@ -2,7 +2,7 @@
 
 import { useActionState, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { createProjectAction, type FormState } from "@/app/projects/actions";
+import { createProjectAction, type FormState } from "@/app/(app)/projects/actions";
 import { Button } from "@/components/ui/button";
 import { PROJECT_TYPES } from "@/lib/validators/project";
 

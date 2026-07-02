@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { SiteHeader } from "@/components/layout/site-header";
-import { SiteFooter } from "@/components/layout/site-footer";
 
 const display = Plus_Jakarta_Sans({
   variable: "--font-display",
@@ -18,7 +16,7 @@ const mono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://ai-design-system-generator.up.railway.app"),
+  metadataBase: new URL("https://ai-design-system-generator-production.up.railway.app"),
   title: {
     default: "Project OS — Agency projects & small-business automation",
     template: "%s · Project OS",
@@ -42,9 +40,7 @@ export default function RootLayout({
       className={`${display.variable} ${mono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-canvas text-ink">
-        <SiteHeader />
-        <main className="flex-1">{children}</main>
-        <SiteFooter />
+        {children}
       </body>
     </html>
   );

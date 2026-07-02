@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProject, getFileVersions, toGenerationInput } from "@/lib/projects";
+import { requireUser } from "@/lib/auth";
 import { generateAction, deleteProjectAction } from "../actions";
 import { StatusBadge, TypeBadge } from "@/components/projects/status-badge";
 import { ProjectOverview } from "@/components/projects/project-overview";
@@ -36,10 +37,12 @@ export default async function ProjectDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const project = await getProject(id);
+  const user = await requireUser();
+  if (!user.agencyId) notFound();
+  const project = await getProject(id, user.agencyId);
   if (!project) notFound();
 
-  const versions = await getFileVersions(id);
+  const versions = await getFileVersions(id, user.agencyId);
   const gen = toGenerationInput(project);
   const isAutomation = project.type === "AUTOMATION_WORKFLOW";
   const workflow = project.workflows[0];

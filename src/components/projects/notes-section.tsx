@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { addNoteAction, type FormState } from "@/app/projects/actions";
+import { addNoteAction, type FormState } from "@/app/(app)/projects/actions";
 import { Button } from "@/components/ui/button";
 
 export type NoteItem = {

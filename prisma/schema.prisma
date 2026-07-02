@@ -44,13 +44,14 @@ model Business {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  agencyId  String?
-  name      String?
-  email     String   @unique
-  role      String   @default("agency_owner")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(cuid())
+  agencyId     String?
+  name         String?
+  email        String   @unique
+  passwordHash String?
+  role         String   @default("agency_owner")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   agency Agency? @relation(fields: [agencyId], references: [id])
 }

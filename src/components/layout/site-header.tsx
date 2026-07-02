@@ -49,7 +49,7 @@ export function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <LinkButton href="/projects" variant="ghost" size="md" className="hidden sm:inline-flex">
+          <LinkButton href="/signin" variant="ghost" size="md" className="hidden sm:inline-flex">
             Sign in
           </LinkButton>
           <LinkButton href="/projects/new" size="md">

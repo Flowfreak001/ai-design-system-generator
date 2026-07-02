@@ -1,4 +1,5 @@
 import { listProjects } from "@/lib/projects";
+import { requireUser } from "@/lib/auth";
 import { ProjectCard } from "@/components/projects/project-card";
 import { LinkButton } from "@/components/ui/button";
 import { FadeUp, Stagger, StaggerItem } from "@/components/ui/motion";
@@ -6,7 +7,8 @@ import { FadeUp, Stagger, StaggerItem } from "@/components/ui/motion";
 export const dynamic = "force-dynamic";
 
 export default async function ProjectsPage() {
-  const projects = await listProjects();
+  const user = await requireUser();
+  const projects = user.agencyId ? await listProjects(user.agencyId) : [];
 
   return (
     <div className="mx-auto max-w-6xl px-5 sm:px-8 pt-28 md:pt-32 pb-24">
