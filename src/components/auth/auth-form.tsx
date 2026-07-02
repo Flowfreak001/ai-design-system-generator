@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import type { AuthFormState } from "@/app/(app)/auth-actions";
 
 const inputCls =
@@ -27,17 +29,16 @@ function Field({
 }) {
   return (
     <div>
-      <label htmlFor={name} className="mb-1.5 block text-sm font-medium">
+      <Label htmlFor={name} className="mb-1.5">
         {label}
-      </label>
-      <input
+      </Label>
+      <Input
         id={name}
         name={name}
         type={type}
         required={required}
         placeholder={placeholder}
         autoComplete={autoComplete}
-        className={inputCls}
       />
     </div>
   );

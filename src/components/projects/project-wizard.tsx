@@ -9,6 +9,10 @@ import { useActionState, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { createProjectAction, type FormState } from "@/app/(app)/projects/actions";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import {
   PLATFORM_TARGETS,
   ANIMATION_PREFERENCES,
@@ -70,10 +74,10 @@ function Field({
 }) {
   return (
     <div>
-      <label htmlFor={name} className="mb-1.5 block text-sm font-medium">
+      <Label htmlFor={name} className="mb-1.5">
         {label} {required ? <span className="text-accent">*</span> : <span className="text-faint text-xs font-normal">optional</span>}
-      </label>
-      <input id={name} name={name} type={type} placeholder={placeholder} className={inputCls} />
+      </Label>
+      <Input id={name} name={name} type={type} placeholder={placeholder} />
       {hint && <p className="mt-1 text-xs text-faint">{hint}</p>}
     </div>
   );
@@ -96,10 +100,10 @@ function Area({
 }) {
   return (
     <div>
-      <label htmlFor={name} className="mb-1.5 block text-sm font-medium">
+      <Label htmlFor={name} className="mb-1.5">
         {label} {required ? <span className="text-accent">*</span> : <span className="text-faint text-xs font-normal">optional</span>}
-      </label>
-      <textarea id={name} name={name} rows={rows} placeholder={placeholder} className={inputCls} />
+      </Label>
+      <Textarea id={name} name={name} rows={rows} placeholder={placeholder} />
       {hint && <p className="mt-1 text-xs text-faint">{hint}</p>}
     </div>
   );
@@ -187,7 +191,8 @@ export function ProjectWizard({
   return (
     <form ref={formRef} action={formAction} className="grid gap-6">
       {/* Progress */}
-      <ol className="flex items-center gap-1" aria-label="Progress">
+      <Progress value={(step / STEPS.length) * 100} aria-label={`Step ${step} of ${STEPS.length}`} />
+      <ol className="-mt-3 flex items-center gap-1" aria-label="Progress steps">
         {STEPS.map((s, i) => {
           const done = step > s.id;
           const active = step === s.id;

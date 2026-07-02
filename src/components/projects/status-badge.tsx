@@ -11,15 +11,17 @@ const STATUS_STYLES: Record<string, string> = {
   pending: "bg-panel text-muted border-line",
 };
 
+import { Badge } from "@/components/ui/badge";
+
 export function StatusBadge({ status }: { status: string }) {
   return (
-    <span
+    <Badge
       className={`inline-flex items-center rounded-full border px-2.5 py-0.5 font-mono text-[11px] uppercase tracking-wide ${
         STATUS_STYLES[status] ?? STATUS_STYLES.DRAFT
       }`}
     >
       {status.replace(/_/g, " ")}
-    </span>
+    </Badge>
   );
 }
 
@@ -31,10 +33,10 @@ const TYPE_STYLES: Record<string, { label: string; cls: string }> = {
 export function TypeBadge({ type }: { type: string }) {
   const t = TYPE_STYLES[type] ?? TYPE_STYLES.WEBSITE_APP;
   return (
-    <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 font-mono text-[11px] uppercase tracking-wide ${t.cls}`}
+    <Badge
+      className={`rounded-full font-mono text-[11px] uppercase tracking-wide ${t.cls}`}
     >
       {t.label}
-    </span>
+    </Badge>
   );
 }

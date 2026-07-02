@@ -2,6 +2,8 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/db/client";
 import { LinkButton } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { FadeUp, Stagger, StaggerItem } from "@/components/ui/motion";
 
 export const dynamic = "force-dynamic";
@@ -63,19 +65,22 @@ export default async function DashboardPage() {
       <Stagger className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {stats.map((s) => (
           <StaggerItem key={s.label}>
-            <div className="card px-5 py-5">
-              <div className="flex items-start justify-between">
-                <p className="text-sm text-muted">{s.label}</p>
-                <span
-                  aria-hidden="true"
-                  className={`grid h-9 w-9 place-items-center rounded-full text-sm ${CHIP_STYLES[s.tone]}`}
-                >
-                  {s.icon}
-                </span>
-              </div>
-              <p className="mt-1 text-3xl font-semibold tracking-tight text-ink tnum">{s.value}</p>
-              <p className="mt-1.5 text-[13px] text-faint">{s.sub}</p>
-            </div>
+            <Card className="gap-0 py-5">
+              <CardContent className="px-5">
+                <div className="flex items-start justify-between">
+                  <p className="text-sm text-muted">{s.label}</p>
+                  <span
+                    aria-hidden="true"
+                    className={`grid h-9 w-9 place-items-center rounded-full text-sm ${CHIP_STYLES[s.tone]}`}
+                  >
+                    {s.icon}
+                  </span>
+                </div>
+                <p className="mt-1 text-3xl font-semibold tracking-tight text-ink tnum">{s.value}</p>
+                <Separator className="my-2.5" />
+                <p className="text-[13px] text-faint">{s.sub}</p>
+              </CardContent>
+            </Card>
           </StaggerItem>
         ))}
       </Stagger>
