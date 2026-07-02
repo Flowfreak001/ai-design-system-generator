@@ -1,6 +1,8 @@
-// Component preview — a branded component-sheet HTML (states + form + nav)
-// complementing preview.html's specimen view. Rendered in the extracted
-// brand's own canvas/type/radius. Self-contained, iframe-safe.
+// Component preview — a component-sheet HTML rendered from MEASURED specs:
+// nav, buttons, inputs (login/signup forms), and cards use the styles the
+// probe measured on the live reference site; brief data fills the copy.
+// Every section carries a provenance caption (measured vs derived).
+// Self-contained, iframe-safe.
 
 import type { PreviewData } from "./preview-generator";
 
@@ -17,6 +19,10 @@ const mix = (hex: string, other: string, t: number) => {
   return `#${((ch(16) << 16) | (ch(8) << 8) | ch(0)).toString(16).padStart(6, "0")}`;
 };
 
+type InputSpec = { background?: string; borderColor?: string; borderWidth?: string; radius?: string; paddingY?: number; paddingX?: number; fontSizePx?: number; heightPx?: number; placeholder?: string };
+type CardSpec = { background?: string; borderColor?: string; borderWidth?: string; radius?: string; shadow?: string; paddingPx?: number };
+type NavSpec = { heightPx?: number; background?: string; linkColor?: string };
+
 export function generateComponentPreviewHtml(data: PreviewData): string {
   const { input, tokens } = data;
   const name = input.clientName || input.projectName;
@@ -26,15 +32,19 @@ export function generateComponentPreviewHtml(data: PreviewData): string {
     renderedProbe?: {
       button?: Record<string, unknown> | null;
       content?: { headings?: { text: string; sizePx: number }[]; navItems?: string[]; ctaText?: string; bodySample?: string };
+      components?: { input?: InputSpec; card?: CardSpec; nav?: NavSpec };
       headingTransform?: string;
     };
   })?.renderedProbe;
   const live = probe?.content;
+  const comp = probe?.components ?? {};
 
+  // ---- Theme (same derivation as the specimen page) ------------------------
   const bg = c.background ?? input.brief.primaryColor ?? "#fafaf8";
   const isDark = lum(bg) < 0.5;
   const ink = c.ink && Math.abs(lum(c.ink) - lum(bg)) > 0.3 ? c.ink : isDark ? "#f5f5f5" : "#101115";
   const accent = c.accent ?? input.brief.primaryColor ?? (isDark ? "#ffffff" : "#111111");
+  const accents = Object.entries(c).filter(([k]) => k.startsWith("accent")).map(([, v]) => v);
   const surface = mix(bg, isDark ? "#ffffff" : "#000000", 0.05);
   const line = mix(bg, isDark ? "#ffffff" : "#000000", 0.14);
   const muted = mix(ink, bg, 0.35);
@@ -49,15 +59,48 @@ export function generateComponentPreviewHtml(data: PreviewData): string {
   const btnPadX = (probe?.button?.paddingX as number) ?? m?.button?.paddingX ?? 20;
   const btnW = (probe?.button?.fontWeight as number) ?? m?.button?.fontWeight ?? 600;
   const btnMs = (probe?.button?.transitionMs as number) ?? m?.button?.transitionMs ?? 200;
+  const measuredBtn = Boolean(probe?.button);
 
-  // Content comes from the brief — nav from key pages, card/FAQ from
-  // services and goal. No canned copy.
+  // ---- Measured component specs with derived fallbacks ---------------------
+  const inp = comp.input;
+  const inputCss = {
+    background: inp?.background ?? bg,
+    borderColor: inp?.borderColor ?? line,
+    borderWidth: inp?.borderWidth ?? "1px",
+    radius: inp?.radius ?? radius,
+    padY: inp?.paddingY ?? 10,
+    padX: inp?.paddingX ?? 12,
+    fontPx: inp?.fontSizePx ?? 14,
+  };
+  const inputCap = inp
+    ? `${inputCss.borderWidth} ${inputCss.borderColor} border / radius ${inputCss.radius} / ${inputCss.padY}×${inputCss.padX}px${inp.heightPx ? ` / h${inp.heightPx}px` : ""} · measured from a live input`
+    : "derived from theme — no input measurable on the reference page";
+  const livePlaceholder = inp?.placeholder;
+
+  const card = comp.card;
+  const cardCss = {
+    background: card?.background ?? bg,
+    border: card?.borderColor ? `${card.borderWidth ?? "1px"} solid ${card.borderColor}` : `1px solid ${line}`,
+    radius: card?.radius ?? radius,
+    shadow: card?.shadow ?? "none",
+    padding: card?.paddingPx ?? 18,
+  };
+  const cardCap = card
+    ? `${cardCss.background} / radius ${cardCss.radius}${card.shadow ? " / shadow measured" : ""}${card.paddingPx ? ` / ${card.paddingPx}px padding` : ""} · measured (most common card pattern)`
+    : "derived from theme — no repeated card pattern measurable";
+
+  const nav = comp.nav;
+  const navCap = nav
+    ? `${nav.heightPx ? `h${nav.heightPx}px / ` : ""}${nav.background ?? "transparent"}${nav.linkColor ? ` / links ${nav.linkColor}` : ""} · measured from the live header`
+    : "derived from theme";
+  const navLinkColor = nav?.linkColor ?? muted;
+
+  // ---- Content from the live site / brief ----------------------------------
   const brief = input.brief;
   const servicesFromBrief = (brief.services ?? "")
     .split(/[,\n;]+/)
     .map((s) => s.trim())
     .filter(Boolean);
-  // Live-site copy wins over brief reconstructions when the probe captured it.
   const navItems = (live?.navItems?.length ? live.navItems : brief.keyItems.length ? brief.keyItems : servicesFromBrief).slice(0, 4);
   if (!navItems.length) navItems.push(brief.businessType?.trim() ?? name);
   const liveSubheading = (live?.headings ?? []).filter((h) => h.sizePx <= 30)[0]?.text;
@@ -68,17 +111,20 @@ export function generateComponentPreviewHtml(data: PreviewData): string {
       ? `Supports the core goal: ${brief.goal.trim().replace(/\.$/, "").toLowerCase()}.`
       : `Copy to be written for ${brief.targetAudience?.trim() || "the target audience"}.`;
   const ctaLabel = live?.ctaText || brief.ctaGoal?.trim() || brief.goal?.trim() || name;
-  const faq1q = `What does ${name} offer?`;
-  const faq1a = servicesFromBrief.length
-    ? servicesFromBrief.slice(0, 4).join(", ") + "."
-    : brief.goal?.trim() || `Details from the ${name} brief.`;
-  const faq2q = brief.targetAudience?.trim() ? `Is this for ${brief.targetAudience.trim()}?` : `How do I get started?`;
-  const faq2a = brief.ctaGoal?.trim() ? `Yes — ${brief.ctaGoal.trim().replace(/\.$/, "").toLowerCase()}.` : brief.goal?.trim() || `See the ${name} brief for details.`;
+  const badgeSources = accents.length ? accents : [accent];
 
   const fontLink = [...new Set([bodyFont, displayFont])]
     .filter((f) => !/^(inter)$/i.test(f))
     .map((f) => `family=${encodeURIComponent(f).replace(/%20/g, "+")}:wght@400;500;600;700;800`)
     .join("&");
+
+  const block = (label: string, cap: string, body: string) => `
+  <div class="block"><div class="label">${esc(label)}</div>${body}<div class="cap">${esc(cap)}</div></div>`;
+
+  const field = (labelText: string, type: string, placeholder: string, value = "", error = "") => `
+    <div class="field"><label>${esc(labelText)}</label>
+      <input type="${type}" placeholder="${esc(placeholder)}" ${value ? `value="${esc(value)}"` : ""} class="${error ? "error" : ""}" />
+      ${error ? `<div class="err">${esc(error)}</div>` : ""}</div>`;
 
   return `<!doctype html>
 <html lang="en">
@@ -94,25 +140,31 @@ ${fontLink ? `<link rel="preconnect" href="https://fonts.googleapis.com" /><link
   .grid { max-width:880px; margin:0 auto; display:grid; gap:20px; }
   .block { background:var(--surface); border:1px solid var(--line); border-radius:var(--radius); padding:20px; }
   .label { font:600 10px/1 ui-monospace,monospace; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin-bottom:12px; }
+  .cap { margin-top:12px; font:400 11px/1.6 ui-monospace,monospace; color:var(--muted); }
   .row { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
-  .btn { padding:${btnPadY}px ${btnPadX}px; border-radius:var(--radius); font-weight:${btnW}; font-size:14px; border:0; cursor:pointer; font-family:inherit; transition:all ${btnMs}ms ease; text-transform:${(probe?.button?.textTransform as string) || "none"}; letter-spacing:${(probe?.button?.letterSpacing as string) || "normal"}; }
+  .btn { padding:${btnPadY}px ${btnPadX}px; border-radius:var(--radius); font-weight:${btnW}; font-size:14px; border:0; cursor:pointer; font-family:inherit; transition:all ${btnMs}ms ease; text-transform:${String(probe?.button?.textTransform ?? "none") || "none"}; letter-spacing:${String(probe?.button?.letterSpacing ?? "normal") || "normal"}; }
   .btn.primary { background:${esc(btnBg)}; color:${esc(btnColor)}; }
   .btn.primary:hover { filter:brightness(${isDark ? "1.12" : ".92"}); }
   .btn.secondary { background:transparent; color:var(--ink); border:1px solid var(--ink); }
   .btn.ghost { background:transparent; color:var(--muted); }
   .btn[disabled] { opacity:.45; cursor:not-allowed; }
-  .nav { display:flex; justify-content:space-between; align-items:center; }
-  .nav strong { font-family:'${esc(displayFont)}','${esc(bodyFont)}',sans-serif; font-weight:${Math.max(headingW, 600)}; }
-  .nav a { font-size:14px; color:var(--muted); text-decoration:none; margin-left:16px; }
+  .nav { display:flex; justify-content:space-between; align-items:center; ${nav?.heightPx ? `height:${Math.min(nav.heightPx, 96)}px;` : ""} ${nav?.background ? `background:${esc(nav.background)}; border-radius:calc(var(--radius) - 4px); padding:0 16px; margin:-6px; ` : ""} }
+  .nav strong { font-family:'${esc(displayFont)}','${esc(bodyFont)}',sans-serif; font-weight:${Math.max(headingW, 600)}; ${nav?.background && lum(nav.background) < 0.5 ? "color:#fff;" : ""} }
+  .nav a { font-size:14px; color:${esc(navLinkColor)}; text-decoration:none; margin-left:16px; }
   .nav a.active { color:var(--accent); font-weight:600; }
   .field label { display:block; font-size:13px; font-weight:600; margin-bottom:6px; }
-  .field input { width:100%; max-width:340px; padding:10px 12px; border:1px solid var(--line); border-radius:var(--radius); font-size:14px; background:var(--bg); color:var(--ink); font-family:inherit; }
+  .field input { width:100%; max-width:340px; padding:${inputCss.padY}px ${inputCss.padX}px; border:${esc(inputCss.borderWidth)} solid ${esc(inputCss.borderColor)}; border-radius:${esc(inputCss.radius)}; font-size:${inputCss.fontPx}px; background:${esc(inputCss.background)}; color:var(--ink); font-family:inherit; }
+  .field input:focus { outline:2px solid ${esc(accent)}; outline-offset:1px; }
   .field .error { border-color:#e5484d; } .err { color:#e5484d; font-size:12px; margin-top:4px; }
+  .field + .field { margin-top:12px; }
+  .forms { display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); }
+  .form-card { background:${esc(cardCss.background)}; border:${esc(cardCss.border)}; border-radius:${esc(cardCss.radius)}; padding:${cardCss.padding + 4}px; }
+  .form-card h4 { font-family:'${esc(displayFont)}','${esc(bodyFont)}',sans-serif; font-weight:${Math.max(headingW, 600)}; font-size:16px; margin-bottom:12px; }
+  .form-card .btn { margin-top:14px; width:100%; }
+  .form-card .alt { margin-top:10px; text-align:center; font-size:12px; color:var(--muted); }
   .badge { display:inline-block; padding:3px 10px; border-radius:99px; font:600 11px/1.6 ui-monospace,monospace; text-transform:uppercase; letter-spacing:.06em; }
-  .b1 { background:${mix(bg, accent, 0.16)}; color:var(--accent); }
-  .b2 { background:${mix(bg, "#22a06b", 0.16)}; color:#22a06b; } .b3 { background:${mix(bg, "#b45309", 0.16)}; color:#b45309; }
-  .card { border:1px solid var(--line); border-radius:var(--radius); padding:18px; max-width:280px; background:var(--bg); transition:transform ${btnMs}ms ease, box-shadow ${btnMs}ms ease; }
-  .card:hover { transform:translateY(-3px); box-shadow:0 10px 26px -18px rgba(8,9,10,.5); }
+  .card { background:${esc(cardCss.background)}; border:${esc(cardCss.border)}; border-radius:${esc(cardCss.radius)}; box-shadow:${esc(cardCss.shadow)}; padding:${cardCss.padding}px; max-width:300px; transition:transform ${btnMs}ms ease, box-shadow ${btnMs}ms ease; }
+  .card:hover { transform:translateY(-3px); }
   .card strong { font-family:'${esc(displayFont)}','${esc(bodyFont)}',sans-serif; font-weight:${Math.max(headingW, 600)}; }
   .faq summary { cursor:pointer; font-weight:600; font-size:14px; padding:10px 0; }
   .faq p { color:var(--muted); font-size:14px; padding-bottom:10px; }
@@ -121,26 +173,40 @@ ${fontLink ? `<link rel="preconnect" href="https://fonts.googleapis.com" /><link
 </head>
 <body>
 <div class="grid">
-  <div class="block nav-block"><div class="label">Navbar</div>
-    <div class="nav"><strong>${esc(name)}</strong><span>${navItems.map((it, i) => `<a href="#"${i === 0 ? ' class="active"' : ""}>${esc(it)}</a>`).join("")}</span></div>
-  </div>
-  <div class="block"><div class="label">Buttons — states (${esc(btnBg)} / radius ${esc(radius)} / ${btnMs}ms${probe?.button ? " · measured" : " · derived"})</div>
-    <div class="row"><button class="btn primary">${esc(ctaLabel)}</button><button class="btn secondary">${esc(navItems[1] ?? cardTitle)}</button><button class="btn ghost">${esc(navItems[2] ?? cardTitle)}</button><button class="btn primary" disabled>${esc(ctaLabel)}</button></div>
-  </div>
-  <div class="block"><div class="label">Badges</div>
-    <div class="row"><span class="badge b1">New</span><span class="badge b2">Completed</span><span class="badge b3">Pending</span></div>
-  </div>
-  <div class="block"><div class="label">Card — hover to lift</div>
-    <div class="card"><strong style="font-size:15px">${esc(cardTitle)}</strong><p style="font-size:14px;color:var(--muted);margin-top:6px">${esc(cardBody)}</p></div>
-  </div>
-  <div class="block"><div class="label">Form — states</div>
-    <div class="field"><label>Email</label><input placeholder="you@example.com" /></div>
-    <div class="field" style="margin-top:12px"><label>Phone</label><input class="error" value="123" /><div class="err">Enter a valid phone number.</div></div>
-  </div>
-  <div class="block faq"><div class="label">FAQ accordion</div>
-    <details open><summary>${esc(faq1q)}</summary><p>${esc(faq1a)}</p></details>
-    <details><summary>${esc(faq2q)}</summary><p>${esc(faq2a)}</p></details>
-  </div>
+  ${block("Navbar", navCap, `
+    <div class="nav"><strong>${esc(name)}</strong><span>${navItems.map((it, i) => `<a href="#"${i === 0 ? ' class="active"' : ""}>${esc(it)}</a>`).join("")}</span></div>`)}
+
+  ${block("Buttons — states", `${esc(btnBg)} / ${esc(btnColor)} / radius ${esc(radius)} / ${btnPadY}×${btnPadX}px / w${btnW} / ${btnMs}ms · ${measuredBtn ? "measured from the live CTA" : "derived"}`, `
+    <div class="row"><button class="btn primary">${esc(ctaLabel)}</button><button class="btn secondary">${esc(navItems[1] ?? cardTitle)}</button><button class="btn ghost">${esc(navItems[2] ?? cardTitle)}</button><button class="btn primary" disabled>${esc(ctaLabel)}</button></div>`)}
+
+  ${block("Forms — sign in / sign up", inputCap, `
+    <div class="forms">
+      <div class="form-card"><h4>Sign in to ${esc(name)}</h4>
+        ${field("Email", "email", livePlaceholder ?? "you@company.com")}
+        ${field("Password", "password", "••••••••")}
+        <button class="btn primary">Sign in</button>
+        <p class="alt">No account? ${esc(ctaLabel)}</p>
+      </div>
+      <div class="form-card"><h4>${esc(ctaLabel)}</h4>
+        ${field("Work email", "email", livePlaceholder ?? "you@company.com")}
+        ${field("Password", "password", "8+ characters", "short", "Password must be at least 8 characters.")}
+        <button class="btn primary">${esc(ctaLabel)}</button>
+        <p class="alt">By continuing you agree to the ${esc(name)} terms.</p>
+      </div>
+    </div>`)}
+
+  ${block("Card — hover to lift", cardCap, `
+    <div class="card"><strong style="font-size:15px">${esc(cardTitle)}</strong><p style="font-size:14px;color:var(--muted);margin-top:6px">${esc(cardBody)}</p></div>`)}
+
+  ${block("Badges", `chromatic accents from the extracted palette (${badgeSources.slice(0, 3).join(", ")})`, `
+    <div class="row">${badgeSources.slice(0, 3).map((a, i) => `<span class="badge" style="background:${esc(mix(bg, a, 0.16))};color:${esc(a)}">${esc(["New", "Active", "Beta"][i])}</span>`).join("")}
+      <span class="badge" style="background:${esc(mix(bg, "#22a06b", 0.16))};color:#22a06b">Completed</span></div>`)}
+
+  ${block("FAQ accordion", "content derived from the brief; chevron behavior standard", `
+    <div class="faq">
+      <details open><summary>What does ${esc(name)} offer?</summary><p>${esc(servicesFromBrief.length ? servicesFromBrief.slice(0, 4).join(", ") + "." : brief.goal?.trim() || `Details from the ${name} brief.`)}</p></details>
+      <details><summary>${esc(brief.targetAudience?.trim() ? `Is this for ${brief.targetAudience.trim()}?` : "How do I get started?")}</summary><p>${esc(brief.ctaGoal?.trim() ? `Yes — ${brief.ctaGoal.trim().replace(/\.$/, "").toLowerCase()}.` : brief.goal?.trim() || `See the ${name} brief for details.`)}</p></details>
+    </div>`)}
 </div>
 </body>
 </html>`;

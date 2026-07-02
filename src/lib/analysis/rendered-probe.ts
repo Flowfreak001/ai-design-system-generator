@@ -34,6 +34,33 @@ export type RenderedProbeResult = {
     letterSpacing?: string;
   };
   containerWidth?: number;
+  /** Measured component specs from the rendered page (inputs, cards, nav). */
+  components: {
+    input?: {
+      background?: string;
+      borderColor?: string;
+      borderWidth?: string;
+      radius?: string;
+      paddingY?: number;
+      paddingX?: number;
+      fontSizePx?: number;
+      heightPx?: number;
+      placeholder?: string;
+    };
+    card?: {
+      background?: string;
+      borderColor?: string;
+      borderWidth?: string;
+      radius?: string;
+      shadow?: string;
+      paddingPx?: number;
+    };
+    nav?: {
+      heightPx?: number;
+      background?: string;
+      linkColor?: string;
+    };
+  };
   /** Real rendered copy from the live page, so previews can show the site's
    *  actual headings/nav/CTA text rather than reconstructed placeholders. */
   content: {
@@ -68,7 +95,12 @@ export async function runRenderedProbe(url: string): Promise<RenderedProbeResult
       (globalThis as unknown as Record<string, unknown>).__name = (f: unknown) => f;
     });
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: NAV_TIMEOUT });
-    await page.waitForTimeout(2500); // let fonts/annimations/lazy CSS settle
+    // Let hydration finish: many sites mount hero forms/inputs client-side.
+    await page.waitForLoadState("networkidle", { timeout: 8000 }).catch(() => {});
+    await page
+      .waitForSelector("input[type='email'], input[type='text'], input[type='search']", { timeout: 4000, state: "attached" })
+      .catch(() => {});
+    await page.waitForTimeout(2500); // let fonts/animations/lazy CSS settle
 
     // ---- Measure the rendered page in one evaluate -----------------------
     const raw = await page.evaluate(() => {
@@ -116,6 +148,10 @@ export async function runRenderedProbe(url: string): Promise<RenderedProbeResult
       for (const p of [...document.querySelectorAll("p")].slice(0, 120)) {
         const t = (p as HTMLElement).innerText?.trim().replace(/\s+/g, " ") ?? "";
         const r = p.getBoundingClientRect();
+        // Real prose only — skip embedded schema/JSON and symbol-heavy text.
+        if (/@type|@context|[{}<>]|": "/.test(t)) continue;
+        const letters = (t.match(/[a-zA-Z\s]/g) ?? []).length;
+        if (t.length > 20 && letters / t.length < 0.8) continue;
         if (r.width > 100 && t.length > bodySample.length) bodySample = t;
       }
       bodySample = bodySample.slice(0, 220);
@@ -152,6 +188,8 @@ export async function runRenderedProbe(url: string): Promise<RenderedProbeResult
         const cs = getComputedStyle(el);
         if (cs.backgroundColor === "rgba(0, 0, 0, 0)") return false;
         const text = (el as HTMLElement).innerText?.trim() ?? "";
+        // Exclude a11y/consent chrome that pattern-matches as a "button".
+        if (/skip to|cookie|consent|accept all|privacy|manage preferences/i.test(text)) return false;
         return text.length > 1 && text.length < 40;
       });
       let button: Record<string, unknown> | null = null;
@@ -181,6 +219,68 @@ export async function runRenderedProbe(url: string): Promise<RenderedProbeResult
             })(),
           };
         }
+      }
+
+      // Component specs: first visible text input, most common card pattern,
+      // and the header/nav bar — all from computed styles.
+      let inputSpec: Record<string, unknown> | null = null;
+      for (const el of [...document.querySelectorAll("input[type='text'], input[type='email'], input[type='search'], input:not([type])")].slice(0, 20)) {
+        const r = el.getBoundingClientRect();
+        if (r.width < 120 || r.height < 24 || r.height > 80) continue;
+        const cs = getComputedStyle(el);
+        inputSpec = {
+          background: cs.backgroundColor,
+          borderColor: cs.borderTopColor,
+          borderWidth: cs.borderTopWidth,
+          radius: cs.borderRadius,
+          paddingY: Math.round(parseFloat(cs.paddingTop)),
+          paddingX: Math.round(parseFloat(cs.paddingLeft)),
+          fontSizePx: Math.round(parseFloat(cs.fontSize)),
+          heightPx: Math.round(r.height),
+          placeholder: (el as HTMLInputElement).placeholder || undefined,
+        };
+        break;
+      }
+
+      let cardSpec: Record<string, unknown> | null = null;
+      const cardTally = new Map<string, { count: number; spec: Record<string, unknown> }>();
+      for (const el of [...document.querySelectorAll("div, article, section > div, li")].slice(0, 1500)) {
+        const r = el.getBoundingClientRect();
+        if (r.width < 200 || r.width > 640 || r.height < 100 || r.height > 560) continue;
+        const cs = getComputedStyle(el);
+        const hasBorder = cs.borderTopWidth !== "0px" && cs.borderTopStyle !== "none";
+        const hasShadow = cs.boxShadow !== "none";
+        const radiusPx = parseFloat(cs.borderRadius);
+        if ((!hasBorder && !hasShadow) || !(radiusPx > 0)) continue;
+        if (cs.backgroundColor === "rgba(0, 0, 0, 0)") continue;
+        const key = `${cs.backgroundColor}|${cs.borderRadius}|${cs.borderTopColor}|${hasShadow}`;
+        const entry = cardTally.get(key) ?? {
+          count: 0,
+          spec: {
+            background: cs.backgroundColor,
+            borderColor: hasBorder ? cs.borderTopColor : undefined,
+            borderWidth: hasBorder ? cs.borderTopWidth : undefined,
+            radius: cs.borderRadius,
+            shadow: hasShadow ? cs.boxShadow.slice(0, 80) : undefined,
+            paddingPx: Math.round(parseFloat(cs.paddingTop)) || undefined,
+          },
+        };
+        entry.count += 1;
+        cardTally.set(key, entry);
+      }
+      cardSpec = [...cardTally.values()].sort((a, b) => b.count - a.count)[0]?.spec ?? null;
+
+      let navSpec: Record<string, unknown> | null = null;
+      const header = document.querySelector("header, nav");
+      if (header) {
+        const r = header.getBoundingClientRect();
+        const cs = getComputedStyle(header);
+        const firstLink = header.querySelector("a");
+        navSpec = {
+          heightPx: r.height > 30 && r.height < 200 ? Math.round(r.height) : undefined,
+          background: cs.backgroundColor !== "rgba(0, 0, 0, 0)" ? cs.backgroundColor : undefined,
+          linkColor: firstLink ? getComputedStyle(firstLink).color : undefined,
+        };
       }
 
       // Container width: widest centered block under 1600px
@@ -221,6 +321,9 @@ export async function runRenderedProbe(url: string): Promise<RenderedProbeResult
         txt: [...txt.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8),
         button,
         containerWidth,
+        inputSpec,
+        cardSpec,
+        navSpec,
         headingTexts,
         navItems,
         bodySample,
@@ -315,6 +418,38 @@ export async function runRenderedProbe(url: string): Promise<RenderedProbeResult
           }
         : undefined,
       containerWidth: raw.containerWidth,
+      components: {
+        input: raw.inputSpec
+          ? {
+              background: raw.inputSpec.background ? (rgbToHex(String(raw.inputSpec.background)) ?? undefined) : undefined,
+              borderColor: raw.inputSpec.borderColor ? (rgbToHex(String(raw.inputSpec.borderColor)) ?? undefined) : undefined,
+              borderWidth: (raw.inputSpec.borderWidth as string) || undefined,
+              radius: (raw.inputSpec.radius as string) || undefined,
+              paddingY: raw.inputSpec.paddingY as number | undefined,
+              paddingX: raw.inputSpec.paddingX as number | undefined,
+              fontSizePx: raw.inputSpec.fontSizePx as number | undefined,
+              heightPx: raw.inputSpec.heightPx as number | undefined,
+              placeholder: raw.inputSpec.placeholder as string | undefined,
+            }
+          : undefined,
+        card: raw.cardSpec
+          ? {
+              background: raw.cardSpec.background ? (rgbToHex(String(raw.cardSpec.background)) ?? undefined) : undefined,
+              borderColor: raw.cardSpec.borderColor ? (rgbToHex(String(raw.cardSpec.borderColor)) ?? undefined) : undefined,
+              borderWidth: (raw.cardSpec.borderWidth as string) || undefined,
+              radius: (raw.cardSpec.radius as string) || undefined,
+              shadow: (raw.cardSpec.shadow as string) || undefined,
+              paddingPx: raw.cardSpec.paddingPx as number | undefined,
+            }
+          : undefined,
+        nav: raw.navSpec
+          ? {
+              heightPx: raw.navSpec.heightPx as number | undefined,
+              background: raw.navSpec.background ? (rgbToHex(String(raw.navSpec.background)) ?? undefined) : undefined,
+              linkColor: raw.navSpec.linkColor ? (rgbToHex(String(raw.navSpec.linkColor)) ?? undefined) : undefined,
+            }
+          : undefined,
+      },
       content: {
         headings: raw.headingTexts,
         navItems: raw.navItems,
