@@ -39,7 +39,7 @@ export async function signUpAction(
   if (result.error || !result.user) return { error: result.error ?? "Sign up failed." };
 
   await createSession(result.user);
-  redirect("/projects");
+  redirect("/dashboard");
 }
 
 export async function signInAction(
@@ -56,7 +56,7 @@ export async function signInAction(
   if (result.error || !result.user) return { error: result.error ?? "Sign in failed." };
 
   await createSession(result.user);
-  redirect("/projects");
+  redirect("/dashboard");
 }
 
 export async function signOutAction(): Promise<void> {

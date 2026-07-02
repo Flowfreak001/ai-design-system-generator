@@ -7,9 +7,9 @@ import { Button } from "@/components/ui/button";
 import { PROJECT_TYPES } from "@/lib/validators/project";
 
 const inputCls =
-  "w-full rounded-xl border border-line bg-white/[0.02] px-3.5 py-2.5 text-sm text-ink " +
+  "w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink " +
   "placeholder:text-faint transition-colors duration-200 " +
-  "focus:border-brand/50 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand";
+  "focus:border-accent/50 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent";
 
 function Field({
   label,
@@ -25,7 +25,7 @@ function Field({
   return (
     <div>
       <label htmlFor={name} className="mb-1.5 block text-sm font-medium">
-        {label} {required && <span className="text-brand">*</span>}
+        {label} {required && <span className="text-accent">*</span>}
       </label>
       <input id={name} name={name} required={required} placeholder={placeholder} className={inputCls} />
     </div>
@@ -92,7 +92,7 @@ export function ProjectForm() {
               <label
                 key={t.value}
                 className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors duration-200 ${
-                  on ? "border-brand/50 bg-brand/[0.08]" : "border-line bg-white/[0.02] hover:border-line-strong"
+                  on ? "border-accent/50 bg-accent-soft" : "border-line bg-surface hover:border-line-strong"
                 }`}
               >
                 <input
@@ -101,7 +101,7 @@ export function ProjectForm() {
                   value={t.value}
                   checked={on}
                   onChange={() => setType(t.value)}
-                  className="mt-1 accent-[#7c6cf7]"
+                  className="mt-1 accent-[#E94B6F]"
                 />
                 <span>
                   <span className="block text-sm font-semibold">{t.label}</span>

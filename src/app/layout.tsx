@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, Geist_Mono } from "next/font/google";
+import { Inter, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-const display = Plus_Jakarta_Sans({
-  variable: "--font-display",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
   display: "swap",
 });
 
@@ -37,9 +36,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${display.variable} ${mono.variable} h-full antialiased`}
+      className={`${inter.variable} ${mono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-canvas text-ink">
+      <body className="min-h-full flex flex-col bg-canvas text-body">
         {children}
       </body>
     </html>

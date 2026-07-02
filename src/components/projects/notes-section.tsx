@@ -33,14 +33,14 @@ export function NotesSection({
         <input
           name="title"
           placeholder="Title (optional)"
-          className="mb-3 w-full rounded-xl border border-line bg-white/[0.02] px-3.5 py-2.5 text-sm placeholder:text-faint focus:border-brand/50 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand"
+          className="mb-3 w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm placeholder:text-faint focus:border-accent/50 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
         />
         <textarea
           name="content"
           rows={4}
           required
           placeholder="Client approved the scope on the call. Payment terms: 50/50."
-          className="w-full rounded-xl border border-line bg-white/[0.02] px-3.5 py-2.5 text-sm placeholder:text-faint focus:border-brand/50 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand"
+          className="w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm placeholder:text-faint focus:border-accent/50 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent"
         />
         <Button type="submit" disabled={pending} className="mt-4 disabled:opacity-50">
           {pending ? "Saving…" : "Save note"}

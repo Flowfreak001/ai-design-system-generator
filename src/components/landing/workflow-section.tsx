@@ -2,55 +2,59 @@
 
 import { motion, useReducedMotion } from "framer-motion";
 import { SectionHeading } from "./section";
+import { WorkflowNodeCard, NodeConnector } from "@/components/workflow/workflow-node";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
-const STEPS = [
-  { n: "01", t: "Create project", d: "Website/app build or automation workflow — pick the type, name the client." },
-  { n: "02", t: "Add the brief", d: "Goals, audience, pages or processes, pain points, and what needs human approval." },
-  { n: "03", t: "Generate files & workflow", d: "Scope, design, content, proposals, build prompts — plus a workflow blueprint for automation projects." },
-  { n: "04", t: "Track versions & approvals", d: "Every file versioned, every AI run logged, approval points where they matter." },
-  { n: "05", t: "Deliver the handoff", d: "A clean HANDOFF.md and delivery package the client can actually use." },
+const POINTS = [
+  { t: "Nodes anyone can read", d: "Triggers, AI steps, conditions, actions, and approvals — labeled in plain language." },
+  { t: "Blueprint before build", d: "Design and agree the flow with your client before any integration work starts." },
+  { t: "Status you can see", d: "Every node shows its state; every run is logged with step-by-step detail." },
 ];
 
 export function WorkflowSection() {
   const reduce = useReducedMotion();
   return (
-    <section id="how" className="border-y border-line bg-surface/40 scroll-mt-20">
-      <div className="mx-auto max-w-6xl px-5 sm:px-8 py-24 md:py-32">
-        <SectionHeading
-          eyebrow="How it works"
-          title="From first client call to final handoff."
-          intro="A structured path through delivery — the AI does the drafting, you make the decisions."
-        />
-
-        <div className="relative mt-16">
-          <div className="absolute left-0 right-0 top-[22px] hidden h-px bg-gradient-to-r from-brand/10 via-brand/50 to-accent/30 lg:block" />
-          <motion.ol
-            className="grid gap-8 lg:grid-cols-5"
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, margin: "-80px" }}
-            variants={{ hidden: {}, show: { transition: { staggerChildren: 0.1 } } }}
-          >
-            {STEPS.map((s) => (
-              <motion.li
-                key={s.n}
-                variants={{
-                  hidden: { opacity: 0, y: reduce ? 0 : 16 },
-                  show: { opacity: 1, y: 0, transition: { duration: 0.55, ease: EASE } },
-                }}
-                className="relative"
-              >
-                <span className="relative z-10 grid h-11 w-11 place-items-center rounded-full border border-line-strong bg-canvas font-mono text-sm text-brand">
-                  {s.n}
-                </span>
-                <h3 className="mt-5 text-[15px] font-semibold">{s.t}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted">{s.d}</p>
-              </motion.li>
+    <section id="workflow" className="mx-auto max-w-[1240px] px-5 sm:px-12 py-24 md:py-28 scroll-mt-20">
+      <div className="grid items-center gap-12 lg:grid-cols-2">
+        <div>
+          <SectionHeading
+            eyebrow="Visual workflow builder"
+            title="Build workflows your clients can understand."
+            intro="A plumber's enquiry flow, drawn the way you'd explain it on a whiteboard."
+          />
+          <ul className="mt-8 grid gap-5">
+            {POINTS.map((p) => (
+              <li key={p.t} className="flex gap-3.5">
+                <span className="mt-1 h-4 w-4 shrink-0 rounded-full border-2 border-accent/60 bg-accent-soft" />
+                <div>
+                  <p className="text-[15px] font-semibold text-ink">{p.t}</p>
+                  <p className="mt-1 text-sm leading-relaxed text-muted">{p.d}</p>
+                </div>
+              </li>
             ))}
-          </motion.ol>
+          </ul>
         </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: reduce ? 0 : 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-80px" }}
+          transition={{ duration: 0.7, ease: EASE }}
+          className="canvas-grid rounded-2xl border border-line p-5 sm:p-8"
+        >
+          <div className="mx-auto flex max-w-xs flex-col items-center">
+            <WorkflowNodeCard kind="TRIGGER" title="Website form submitted" description="New enquiry arrives from the site or WhatsApp." />
+            <NodeConnector />
+            <WorkflowNodeCard kind="AI_CLASSIFY" title="Classify enquiry" description="Extract service type, urgency, location, missing info." />
+            <NodeConnector label="Urgent?" />
+            <WorkflowNodeCard kind="CREATE_LEAD" title="Save lead & notify owner" description="Lead recorded; owner alerted for emergencies." />
+            <NodeConnector />
+            <WorkflowNodeCard kind="HUMAN_APPROVAL" title="Owner reviews AI-drafted reply" description="Nothing reaches the customer without a yes." status="Waiting" />
+            <NodeConnector />
+            <WorkflowNodeCard kind="SEND_EMAIL" title="Send response" description="Approved reply goes out; follow-up scheduled." />
+          </div>
+        </motion.div>
       </div>
     </section>
   );

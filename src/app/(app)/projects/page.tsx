@@ -25,7 +25,7 @@ export default async function ProjectsPage() {
 
       {projects.length === 0 ? (
         <FadeUp className="card mt-12 flex flex-col items-center justify-center px-6 py-20 text-center">
-          <span className="grid h-12 w-12 place-items-center rounded-xl border border-line-strong bg-white/[0.03] text-brand text-lg">
+          <span className="grid h-12 w-12 place-items-center rounded-xl border border-line-strong bg-panel text-accent text-lg">
             ◆
           </span>
           <h2 className="mt-5 text-lg font-semibold">No projects yet</h2>

@@ -6,9 +6,9 @@ import { Button } from "@/components/ui/button";
 import type { AuthFormState } from "@/app/(app)/auth-actions";
 
 const inputCls =
-  "w-full rounded-xl border border-line bg-white/[0.02] px-3.5 py-2.5 text-sm text-ink " +
+  "w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink " +
   "placeholder:text-faint transition-colors duration-200 " +
-  "focus:border-brand/50 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand";
+  "focus:border-accent/50 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent";
 
 function Field({
   label,
@@ -59,7 +59,7 @@ export function AuthForm({
   return (
     <div className="mx-auto w-full max-w-sm">
       <div className="text-center">
-        <span className="mx-auto grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-brand to-brand-2 text-white">
+        <span className="mx-auto grid h-10 w-10 place-items-center rounded-xl bg-accent text-white">
           ◆
         </span>
         <h1 className="mt-5 text-2xl font-bold tracking-tight">
@@ -108,14 +108,14 @@ export function AuthForm({
         {isSignup ? (
           <>
             Already have an account?{" "}
-            <Link href="/signin" className="text-brand hover:underline">
+            <Link href="/signin" className="text-accent hover:underline">
               Sign in
             </Link>
           </>
         ) : (
           <>
             New here?{" "}
-            <Link href="/signup" className="text-brand hover:underline">
+            <Link href="/signup" className="text-accent hover:underline">
               Create a workspace
             </Link>
           </>

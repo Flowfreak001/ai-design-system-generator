@@ -1,7 +1,9 @@
 import { LandingHero } from "@/components/landing/landing-hero";
 import { FeatureSection } from "@/components/landing/feature-section";
 import { WorkflowSection } from "@/components/landing/workflow-section";
-import { OutputFilesSection } from "@/components/landing/output-files-section";
+import { WorkspaceSection } from "@/components/landing/workspace-section";
+import { UseCasesSection } from "@/components/landing/use-cases-section";
+import { ApprovalSection, InfraSection } from "@/components/landing/approval-infra-sections";
 import { FinalCTA } from "@/components/landing/final-cta";
 
 export default function Home() {
@@ -10,7 +12,10 @@ export default function Home() {
       <LandingHero />
       <FeatureSection />
       <WorkflowSection />
-      <OutputFilesSection />
+      <WorkspaceSection />
+      <UseCasesSection />
+      <ApprovalSection />
+      <InfraSection />
       <FinalCTA />
     </>
   );

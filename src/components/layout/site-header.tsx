@@ -5,10 +5,10 @@ import { useEffect, useState } from "react";
 import { LinkButton } from "@/components/ui/button";
 
 const LINKS = [
-  { label: "Features", href: "/#features" },
-  { label: "How it works", href: "/#how" },
-  { label: "Output", href: "/#output" },
-  { label: "Projects", href: "/projects" },
+  { label: "Product", href: "/#product" },
+  { label: "Use Cases", href: "/#use-cases" },
+  { label: "Workflow Builder", href: "/#workflow" },
+  { label: "Agency OS", href: "/#agency" },
 ];
 
 export function SiteHeader() {
@@ -22,21 +22,19 @@ export function SiteHeader() {
 
   return (
     <header
-      className={`fixed inset-x-0 top-0 z-50 transition-all duration-300 ${
-        solid ? "border-b border-line bg-canvas/80 backdrop-blur-xl" : "border-b border-transparent"
+      className={`fixed inset-x-0 top-0 z-50 bg-canvas/90 backdrop-blur transition-[border-color] duration-300 ${
+        solid ? "border-b border-line" : "border-b border-transparent"
       }`}
     >
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 sm:px-8">
-        <Link href="/" className="flex items-center gap-2.5 font-semibold tracking-tight">
-          <span className="grid h-7 w-7 place-items-center rounded-lg bg-gradient-to-br from-brand to-brand-2 text-white text-sm">
+      <div className="mx-auto flex h-16 max-w-[1240px] items-center justify-between px-5 sm:px-12">
+        <Link href="/" className="flex items-center gap-2.5 font-semibold tracking-tight text-ink">
+          <span className="grid h-7 w-7 place-items-center rounded-lg bg-accent text-white text-sm">
             ◆
           </span>
-          <span>
-            Project OS<span className="text-brand">.</span>
-          </span>
+          Project OS
         </Link>
 
-        <nav className="hidden items-center gap-8 md:flex" aria-label="Primary">
+        <nav className="hidden items-center gap-7 md:flex" aria-label="Primary">
           {LINKS.map((l) => (
             <Link
               key={l.href}
@@ -52,8 +50,8 @@ export function SiteHeader() {
           <LinkButton href="/signin" variant="ghost" size="md" className="hidden sm:inline-flex">
             Sign in
           </LinkButton>
-          <LinkButton href="/projects/new" size="md">
-            New project
+          <LinkButton href="/signup" size="md">
+            Get started
           </LinkButton>
         </div>
       </div>

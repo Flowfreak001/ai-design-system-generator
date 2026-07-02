@@ -96,7 +96,7 @@ export default async function ProjectDetailPage({
             <li key={s.id}>
               <a
                 href={`#${s.id}`}
-                className="block whitespace-nowrap rounded-lg px-3 py-1.5 text-sm text-muted transition-colors duration-200 hover:bg-white/[0.05] hover:text-ink"
+                className="block whitespace-nowrap rounded-lg px-3 py-1.5 text-sm text-muted transition-colors duration-200 hover:bg-panel hover:text-ink"
               >
                 {s.label}
               </a>
@@ -149,7 +149,7 @@ export default async function ProjectDetailPage({
               <div key={v.id} className="flex items-center justify-between gap-4 px-5 py-3">
                 <span className="truncate font-mono text-xs text-ink">{v.file.name}</span>
                 <span className="flex shrink-0 items-center gap-4 font-mono text-[11px] text-faint">
-                  <span className="rounded bg-white/[0.05] px-1.5 py-0.5">v{v.version}</span>
+                  <span className="rounded bg-panel px-1.5 py-0.5">v{v.version}</span>
                   {new Date(v.createdAt).toLocaleString("en-US", {
                     month: "short",
                     day: "numeric",

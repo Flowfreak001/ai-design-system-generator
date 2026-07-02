@@ -43,7 +43,7 @@ export function GeneratedFilesViewer({ files }: { files: ViewerFile[] }) {
               <button
                 onClick={() => setActiveId(f.id)}
                 className={`flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 font-mono text-xs transition-colors duration-200 ${
-                  on ? "bg-brand/15 text-brand" : "text-muted hover:bg-white/[0.04] hover:text-ink"
+                  on ? "bg-accent-soft text-accent" : "text-muted hover:bg-panel hover:text-ink"
                 }`}
               >
                 <span className="truncate">{f.name}</span>

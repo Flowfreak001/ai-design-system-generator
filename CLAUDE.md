@@ -103,15 +103,26 @@ WorkflowRun/Approval are schema-ready but not yet surfaced in UI.
 
 ### Design system (UI)
 
-Dark premium look — tokens in `globals.css` `@theme` (`canvas`, `surface`,
-`ink`, `muted`, `brand` indigo→violet, `accent` cyan, hairline `line`).
-Plus Jakarta Sans + Geist Mono. Helpers: `.aurora`, `.text-gradient`,
-`.eyebrow`, `.card`. Motion: light, 0.55–0.9s, ease `[0.22,1,0.36,1]`, no
-bounce/spin.
+n8n-inspired LIGHT system (single theme) — tokens in `globals.css` `@theme`:
+`canvas` #FAFAF8, `surface` #FFF cards, `panel` #F4F1EE wells, `line` #E6E2DD,
+text `ink`/`body`/`muted`/`faint`, one rose accent `accent` #E94B6F (+ hover,
+soft), semantic soft pairs (success/warning/danger/info). Inter + Geist Mono.
+Helpers: `.card`, `.panel`, `.canvas-grid` (workflow dot grid), `.eyebrow`.
+Color explains state only. Motion: light Framer Motion (fade-up, small lifts),
+0.55–0.85s ease [0.22,1,0.36,1], reduced-motion safe.
+
+Shared workflow visuals: `components/workflow/workflow-node.tsx`
+(WorkflowNodeCard + NodeConnector, typed node styling) — used by the homepage
+preview, hero ProductMockup, and the app's WorkflowBlueprint.
+
+App shell: `components/layout/dashboard-shell.tsx` — left sidebar
+(Dashboard, Projects live; Workflows/Approvals/Leads/Templates/Settings marked
+"soon"), top bar (search, Create project, sign out). Post-auth lands on
+`/dashboard` (summary cards + recent projects).
 
 ## Status
 
-Agency OS foundation complete: repositioned landing, type-aware project
+Agency OS foundation + auth + n8n-inspired light redesign complete: repositioned landing, type-aware project
 creation, type-specific file generation with versions, agent-run timeline,
 workflow blueprint display, notes/decisions, Railway deploy config + worker.
 Not yet built: real AI agents, workflow execution/approval queue UI, leads UI,

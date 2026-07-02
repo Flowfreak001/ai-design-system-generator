@@ -7,7 +7,7 @@ import { signInAction } from "../auth-actions";
 export const metadata: Metadata = { title: "Sign in" };
 
 export default async function SignInPage() {
-  if (await auth()) redirect("/projects");
+  if (await auth()) redirect("/dashboard");
   return (
     <div className="flex flex-1 items-center justify-center px-5 py-20">
       <AuthForm mode="signin" action={signInAction} />

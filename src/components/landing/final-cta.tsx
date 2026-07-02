@@ -3,21 +3,23 @@ import { LinkButton } from "@/components/ui/button";
 
 export function FinalCTA() {
   return (
-    <section className="mx-auto max-w-6xl px-5 sm:px-8 py-24 md:pb-28">
-      <FadeUp className="relative overflow-hidden rounded-3xl border border-line-strong px-8 py-16 text-center md:py-20">
-        <div className="aurora pointer-events-none absolute inset-0 -z-10 opacity-80" />
-        <p className="eyebrow">Start now</p>
-        <h2 className="mx-auto mt-4 max-w-2xl font-bold tracking-tight text-[clamp(2rem,4vw,3.2rem)] leading-[1.05]">
-          Deliver your next project with a{" "}
-          <span className="text-gradient">system</span>, not a scramble.
+    <section className="mx-auto max-w-[1240px] px-5 sm:px-12 py-24 md:py-28">
+      <FadeUp className="card relative overflow-hidden px-8 py-16 text-center md:py-20">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-accent to-transparent"
+        />
+        <h2 className="mx-auto max-w-2xl font-semibold tracking-[-0.025em] text-[clamp(1.9rem,3.6vw,2.8rem)] leading-[1.1]">
+          Simple enough to start. Structured enough to deliver.
         </h2>
-        <p className="mx-auto mt-5 max-w-xl text-lg text-muted">
-          Create a project, capture the brief, and generate the delivery
-          documents in minutes.
+        <p className="mx-auto mt-4 max-w-xl text-lg leading-relaxed text-muted">
+          Create client projects, generate build-ready files, design
+          small-business workflows, and keep every approval and handoff
+          organized.
         </p>
-        <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
-          <LinkButton href="/projects/new" size="lg">
-            Create Project
+        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+          <LinkButton href="/signup" size="lg">
+            Start building your workspace
           </LinkButton>
           <LinkButton href="/projects" variant="secondary" size="lg">
             View projects
