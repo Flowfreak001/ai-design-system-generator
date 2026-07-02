@@ -7,6 +7,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { signOutAction } from "@/app/(app)/auth-actions";
 import type { SessionUser } from "@/lib/auth";
 import type { ReactNode } from "react";
@@ -100,9 +101,10 @@ const CRUMBS: [RegExp, string[]][] = [
   [/^\/projects/, ["Projects"]],
 ];
 
-function navItemCls(active: boolean, disabled = false) {
+function navItemCls(active: boolean, disabled = false, collapsed = false) {
   return [
     "relative flex w-full items-center gap-2.5 rounded-lg px-2.5 py-[7px] text-[13.5px] font-medium transition-colors duration-150",
+    collapsed ? "justify-center px-0" : "",
     disabled
       ? "cursor-default text-faint"
       : active
@@ -119,6 +121,15 @@ export function DashboardShell({
   children: ReactNode;
 }) {
   const pathname = usePathname();
+  const [collapsed, setCollapsed] = useState(false);
+  useEffect(() => {
+    setCollapsed(localStorage.getItem("pos-sidebar") === "collapsed");
+  }, []);
+  const toggle = () => {
+    const next = !collapsed;
+    setCollapsed(next);
+    localStorage.setItem("pos-sidebar", next ? "collapsed" : "open");
+  };
   const crumbs = CRUMBS.find(([re]) => re.test(pathname))?.[1] ?? ["Workspace"];
   const initials = (user.name ?? user.email)
     .split(/[\s@.]+/)
@@ -129,40 +140,55 @@ export function DashboardShell({
   return (
     <div className="flex min-h-screen flex-1">
       {/* Sidebar */}
-      <aside className="sticky top-0 hidden h-screen w-[250px] shrink-0 flex-col border-r border-line bg-surface md:flex">
-        <Link href="/" className="flex items-center gap-2.5 px-4 pt-5 pb-4" aria-label="Project OS home">
-          <span className="grid h-8 w-8 place-items-center rounded-lg bg-accent text-[15px] text-white">◆</span>
-          <span className="min-w-0">
-            <span className="block text-[14px] font-semibold leading-tight text-ink">Project OS</span>
-            <span className="block truncate text-[11.5px] leading-tight text-muted">Agency workspace</span>
-          </span>
-        </Link>
+      <aside className={`sticky top-0 hidden h-screen shrink-0 flex-col border-r border-line bg-surface transition-[width] duration-200 md:flex ${collapsed ? "w-[64px]" : "w-[216px]"}`}>
+        <div className={`flex items-center pt-4 pb-3 ${collapsed ? "flex-col gap-2 px-0" : "justify-between gap-1 pl-3.5 pr-2"}`}>
+          <Link href="/" className="flex min-w-0 items-center gap-2.5" aria-label="Project OS home">
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-accent text-[15px] text-white">◆</span>
+            {!collapsed && <span className="truncate text-[14px] font-semibold text-ink">Project OS</span>}
+          </Link>
+          <button
+            type="button"
+            onClick={toggle}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            className="grid h-7 w-7 shrink-0 cursor-pointer place-items-center rounded-md text-muted transition-colors hover:bg-panel hover:text-ink"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <rect x="3.5" y="4.5" width="17" height="15" rx="2.5" stroke="currentColor" strokeWidth="1.7" />
+              <path d="M9.5 4.5v15" stroke="currentColor" strokeWidth="1.7" />
+            </svg>
+          </button>
+        </div>
 
-        <nav className="mt-2 flex-1 overflow-y-auto px-3" aria-label="App">
+        <nav className={`mt-1 flex-1 overflow-y-auto ${collapsed ? "px-2.5" : "px-3"}`} aria-label="App">
           {NAV_GROUPS.map((group) => (
-            <div key={group.title} className="mb-5">
-              <p className="px-2.5 pb-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-faint">
-                {group.title}
-              </p>
+            <div key={group.title} className="mb-4">
+              {!collapsed && (
+                <p className="px-2.5 pb-1.5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-faint">
+                  {group.title}
+                </p>
+              )}
               <div className="grid gap-0.5">
                 {group.items.map((item) => {
                   if (item.soon) {
                     return (
-                      <span key={item.label} className={navItemCls(false, true)} aria-disabled="true">
+                      <span key={item.label} className={navItemCls(false, true, collapsed)} aria-disabled="true" title={`${item.label} — coming soon`}>
                         {ICONS[item.icon]}
-                        {item.label}
-                        <span className="ml-auto rounded-full border border-line px-1.5 py-px text-[9.5px] font-medium uppercase tracking-wide text-faint">
-                          soon
-                        </span>
+                        {!collapsed && item.label}
+                        {!collapsed && (
+                          <span className="ml-auto rounded-full border border-line px-1.5 py-px text-[9.5px] font-medium uppercase tracking-wide text-faint">
+                            soon
+                          </span>
+                        )}
                       </span>
                     );
                   }
                   const active = pathname.startsWith(item.href!);
                   return (
-                    <Link key={item.label} href={item.href!} aria-current={active ? "page" : undefined} className={navItemCls(active)}>
-                      {active && <span aria-hidden="true" className="absolute -left-3 h-4 w-[3px] rounded-full bg-accent" />}
+                    <Link key={item.label} href={item.href!} aria-current={active ? "page" : undefined} title={collapsed ? item.label : undefined} className={navItemCls(active, false, collapsed)}>
+                      {active && <span aria-hidden="true" className={`absolute h-4 w-[3px] rounded-full bg-accent ${collapsed ? "-left-1.5" : "-left-3"}`} />}
                       {ICONS[item.icon]}
-                      {item.label}
+                      {!collapsed && item.label}
                     </Link>
                   );
                 })}
@@ -172,15 +198,17 @@ export function DashboardShell({
         </nav>
 
         {/* User */}
-        <div className="border-t border-line p-3">
-          <div className="flex items-center gap-2.5 rounded-lg px-2 py-1.5">
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-accent text-[11px] font-semibold text-white">
+        <div className={`border-t border-line ${collapsed ? "p-2" : "p-3"}`}>
+          <div className={`flex items-center gap-2.5 rounded-lg ${collapsed ? "flex-col px-0 py-1" : "px-2 py-1.5"}`}>
+            <span title={user.email} className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-accent text-[11px] font-semibold text-white">
               {initials}
             </span>
-            <span className="min-w-0 flex-1">
-              <span className="block truncate text-[13px] font-medium leading-tight text-ink">{user.name ?? "Account"}</span>
-              <span className="block truncate text-[11.5px] leading-tight text-muted">{user.email}</span>
-            </span>
+            {!collapsed && (
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[13px] font-medium leading-tight text-ink">{user.name ?? "Account"}</span>
+                <span className="block truncate text-[11.5px] leading-tight text-muted">{user.email}</span>
+              </span>
+            )}
             <form action={signOutAction}>
               <button
                 type="submit"
