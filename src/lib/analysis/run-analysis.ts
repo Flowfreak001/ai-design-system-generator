@@ -6,6 +6,63 @@ import { prisma } from "@/lib/db/client";
 import { toGenerationInput } from "@/lib/projects";
 import { fetchSiteSource, analyzeAnimations, extractAnimationAnalysis, fallbackAnimationAnalysis } from "./animation-extractor";
 import { analyzeWebsiteStructure, analyzeVisualAndTokens } from "./site-analyzer";
+import { runRenderedProbe, type RenderedProbeResult } from "./rendered-probe";
+
+/** Overlay rendered-probe measurements onto the statically-derived tokens. */
+function mergeRendered(
+  tokens: ReturnType<typeof analyzeVisualAndTokens>["tokens"],
+  probe: RenderedProbeResult,
+) {
+  const color: Record<string, string> = { ...tokens.color };
+  // Rendered palette: accent from the real primary CTA, surfaces from painted areas.
+  const accent = probe.palette.find((c) => c.role === "accent");
+  if (accent) color.accent = accent.value;
+  const bgs = probe.palette.filter((c) => c.role === "background");
+  if (bgs[0]) color.background = bgs[0].value;
+  const texts = probe.palette.filter((c) => c.role === "text");
+  if (texts[0]) color.ink = texts[0].value;
+
+  const typography: Record<string, string> = { ...tokens.typography };
+  if (probe.typography.bodyFamily) typography.primary = probe.typography.bodyFamily;
+  if (probe.typography.headingFamily && probe.typography.headingFamily !== probe.typography.bodyFamily) {
+    typography.display = probe.typography.headingFamily;
+  }
+
+  const metrics = {
+    ...(tokens.metrics ?? { breakpoints: [], spacingScale: [], typeScale: [] }),
+    bodyFontSizePx: probe.typography.bodySizePx ?? tokens.metrics?.bodyFontSizePx,
+    bodyLineHeight: probe.typography.bodyLineHeight ?? tokens.metrics?.bodyLineHeight,
+    headingWeight: probe.typography.headingWeight ?? tokens.metrics?.headingWeight,
+    containerWidth: probe.containerWidth ?? tokens.metrics?.containerWidth,
+    typeScale: probe.typography.headingSizesPx.length
+      ? [...new Set([...(tokens.metrics?.typeScale ?? []), ...probe.typography.headingSizesPx])].sort((a, b) => a - b).slice(0, 10)
+      : tokens.metrics?.typeScale ?? [],
+    button: probe.button
+      ? {
+          radius: probe.button.radius ?? tokens.metrics?.button?.radius,
+          fontWeight: probe.button.fontWeight ?? tokens.metrics?.button?.fontWeight,
+          paddingY: probe.button.paddingY ?? tokens.metrics?.button?.paddingY,
+          paddingX: probe.button.paddingX ?? tokens.metrics?.button?.paddingX,
+          transitionMs: probe.button.transitionMs ?? tokens.metrics?.button?.transitionMs,
+        }
+      : tokens.metrics?.button,
+  };
+
+  return {
+    ...tokens,
+    confidence: "high",
+    assumptions: [
+      "Measured from the RENDERED page in a real browser (computed styles); static-CSS values used only as fallback.",
+    ],
+    color,
+    typography,
+    metrics,
+    renderedProbe: {
+      palette: probe.palette,
+      button: probe.button ?? null,
+    },
+  };
+}
 
 async function saveJsonFile(projectId: string, name: string, data: unknown) {
   const content = JSON.stringify(data, null, 2);
@@ -65,12 +122,39 @@ export async function runWebsiteAnalysis(projectId: string) {
     );
 
     const website = analyzeWebsiteStructure(source, url);
-    const { visual, tokens } = analyzeVisualAndTokens(source, url);
+    let { visual, tokens } = analyzeVisualAndTokens(source, url);
     const animation = source
       ? extractAnimationAnalysis(source, url as string)
       : url
         ? fallbackAnimationAnalysis(url, "site could not be fetched")
         : await analyzeAnimations(null);
+
+    // Rendered-page probe (real browser). Optional: falls back cleanly when
+    // no browser is available in the environment (e.g. web dyno on Railway).
+    const probe = url ? await runRenderedProbe(url) : null;
+    if (probe) {
+      tokens = mergeRendered(tokens, probe) as typeof tokens;
+      animation.scrollAnimations.push(...probe.scrollFindings);
+      animation.stickyPinnedSections.push(...probe.stickyFindings);
+      if (probe.scrollFindings.length || probe.stickyFindings.length) {
+        animation.meta.confidence = "high";
+      }
+      animation.meta.assumptions.push("Scroll/sticky findings verified by rendered scroll probe.");
+      await step(
+        "Rendered-page probe",
+        `Measured computed styles in headless Chromium: ${probe.palette.length} painted colors, ` +
+          `body ${probe.typography.bodyFamily ?? "?"} ${probe.typography.bodySizePx ?? "?"}px, ` +
+          `${probe.button ? "primary CTA measured" : "no CTA isolated"}, ` +
+          `${probe.scrollFindings.length + probe.stickyFindings.length} scroll behaviors verified.`,
+      );
+    } else {
+      await step(
+        "Rendered-page probe",
+        url
+          ? "Browser probe unavailable in this environment — static-CSS heuristics used (values labeled accordingly)."
+          : "Skipped — no URL.",
+      );
+    }
 
     await step(
       "Extracted animation patterns",

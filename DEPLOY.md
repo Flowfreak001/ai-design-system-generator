@@ -65,3 +65,15 @@ needs `DATABASE_URL` + `REDIS_URL` (no `next build`). Optional: `WORKER_CONCURRE
   `prisma migrate deploy` and `prisma.config.ts` run at deploy/start time.
 - Node engine is pinned to `>=20.9.0` (Next.js 16 requirement).
 - No secrets are committed; everything sensitive comes from Railway env vars.
+
+## Rendered-page probe (Playwright)
+
+Website analysis uses a headless-Chromium probe for real rendered measurements
+(computed styles, painted palette, live CTA styling). It needs a browser:
+
+- **Local dev:** `npx playwright install chromium` (already done on this machine).
+- **Railway:** the default web build has no browser — analysis automatically
+  falls back to static-CSS heuristics and labels values accordingly. To enable
+  the probe in production, either add `npx playwright install chromium --with-deps`
+  to the build (heavier image) or run analysis on the worker service with a
+  Playwright-enabled base image.
