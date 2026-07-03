@@ -17,6 +17,12 @@ import { createSectionTheme } from "@/components/sections/section-theme";
 import type { SectionTheme, SectionComponent, SectionType } from "@/components/sections/types";
 import type { SectionContext } from "@/lib/sections";
 import type { SectionPattern } from "@/lib/references/types";
+import { searchElements, groupElements } from "@/lib/element-library/search";
+import { recommendElements } from "@/lib/element-library/recommendations";
+import { isReady } from "@/lib/element-library/registry";
+import { KIND_LABEL, KIND_BADGE } from "@/lib/element-library/categories";
+import { ELEMENT_ICONS } from "./element-icons";
+import type { ElementItem, ElementLibraryContext } from "@/lib/element-library/types";
 import { arrayMove } from "@dnd-kit/sortable";
 import type {
   SitemapCanvas,
@@ -94,6 +100,12 @@ export function DesignEditor({
   approveStage: (projectId: string, stage: string) => Promise<{ error?: string }>;
 }) {
   const [tab, setTab] = useState<Tab>("sitemap");
+  // Base context for Add-Elements recommendations (enriched per page downstream).
+  const recommendCtx: ElementLibraryContext = {
+    websiteType: siteContext.websiteType,
+    industry: siteContext.industry,
+    goals: siteContext.goals,
+  };
   const [pages, setPagesState] = useState<CanvasPage[]>(initialSitemap.pages);
   const [style, setStyleState] = useState<StyleGuideCanvas>(initialStyle);
   const [approvals, setApprovals] = useState<Approvals>(initialApprovals);
@@ -331,6 +343,7 @@ export function DesignEditor({
               schemes={style.colors}
               previewTheme={createSectionTheme(style)}
               referencePatterns={referencePatterns}
+              recommendCtx={recommendCtx}
               onAddPage={addPageInCategory}
               onRemovePage={removePage}
               onRenamePage={renamePage}
@@ -358,6 +371,7 @@ export function DesignEditor({
               selectedPage={selectedPage}
               style={style}
               referencePatterns={referencePatterns}
+              recommendCtx={recommendCtx}
               onSelect={setSelectedPageId}
               onAddPage={addPage}
               onRenamePage={renamePage}
@@ -491,7 +505,7 @@ function SectionFrameIcon() {
 }
 
 function SitemapEditor({
-  pages, schemes, previewTheme, referencePatterns, onAddPage, onRemovePage, onRenamePage, onDuplicatePage, onPatchPageMeta,
+  pages, schemes, previewTheme, referencePatterns, recommendCtx, onAddPage, onRemovePage, onRenamePage, onDuplicatePage, onPatchPageMeta,
   onAddSection, onRemoveSection, onPatchSection, onMoveSection, onDuplicateSection,
   onGeneratePage, onGenerateAll, onApplyGlobal, onMarkApproved, onOpenWireframe, approved, onApprove, busy,
 }: {
@@ -499,6 +513,7 @@ function SitemapEditor({
   schemes: CanvasColor[];
   previewTheme: SectionTheme;
   referencePatterns: SectionPattern[];
+  recommendCtx: ElementLibraryContext;
   onAddPage: (category: PageCategory, parentId?: string) => void;
   onRemovePage: (id: string) => void;
   onRenamePage: (id: string, name: string) => void;
@@ -632,7 +647,7 @@ function SitemapEditor({
       </div>
 
       {/* Add section drawer for the chosen page */}
-      <AddSectionDrawer open={Boolean(addForPage)} previewTheme={previewTheme} patterns={referencePatterns} onClose={() => setAddForPage(null)} onAdd={(name, keepOpen, variant) => { if (addForPage) onAddSection(addForPage, name, variant); if (!keepOpen) setAddForPage(null); }} />
+      <AddSectionDrawer open={Boolean(addForPage)} previewTheme={previewTheme} patterns={referencePatterns} recommendCtx={{ ...recommendCtx, pageName: pages.find((p) => p.id === addForPage)?.name, presentKinds: pages.find((p) => p.id === addForPage)?.sections.map((s) => sectionTypeForKind(sectionKind(s.name))) }} onClose={() => setAddForPage(null)} onAdd={(name, keepOpen, variant) => { if (addForPage) onAddSection(addForPage, name, variant); if (!keepOpen) setAddForPage(null); }} />
 
       {/* Section edit drawer */}
       <Drawer open={Boolean(editSection)} onClose={() => setEditing(null)} title="Section" subtitle={editSection ? `Type: ${sectionKind(editSection.name)}` : undefined} width={340}>
@@ -769,13 +784,14 @@ function SitemapPageMenu({ onGenerate, onAddChild, onDuplicate, onRename, onDele
 // ----------------------------------------- Wireframe (real page canvas)
 
 function WireframeEditor({
-  pages, selectedPage, style, referencePatterns, onSelect, onAddPage, onRenamePage, onRemovePage, onDuplicatePage, onCyclePageSource, onPatchPageMeta,
+  pages, selectedPage, style, referencePatterns, recommendCtx, onSelect, onAddPage, onRenamePage, onRemovePage, onDuplicatePage, onCyclePageSource, onPatchPageMeta,
   onAddSection, onRemoveSection, onPatchSection, onMoveSection, onDuplicateSection, onAutoWireframe, approved, onApprove, busy,
 }: {
   pages: CanvasPage[];
   selectedPage?: CanvasPage;
   style: StyleGuideCanvas;
   referencePatterns: SectionPattern[];
+  recommendCtx: ElementLibraryContext;
   onSelect: (id: string) => void;
   onAddPage: () => void;
   onRenamePage: (id: string, name: string) => void;
@@ -859,7 +875,7 @@ function WireframeEditor({
       </div>
 
       {/* ---------- Add Section drawer ---------- */}
-      <AddSectionDrawer open={addOpen} previewTheme={createSectionTheme(style)} patterns={referencePatterns} onClose={() => setAddOpen(false)} onAdd={addSectionFromLibrary} />
+      <AddSectionDrawer open={addOpen} previewTheme={createSectionTheme(style)} patterns={referencePatterns} recommendCtx={{ ...recommendCtx, pageName: selectedPage?.name, pageType: selectedPage?.pageType, presentKinds: selectedPage?.sections.map((s) => sectionTypeForKind(sectionKind(s.name))) }} onClose={() => setAddOpen(false)} onAdd={addSectionFromLibrary} />
 
       {/* ---------- Section Settings drawer ---------- */}
       <Drawer
@@ -913,16 +929,30 @@ const NAME_FOR_TYPE: Record<string, string> = {
   gallery: "Gallery", dashboard: "Dashboard Preview", directory: "Listings", "scroll-media": "Sticky Media",
 };
 
-function AddSectionDrawer({ open, previewTheme, patterns = [], onClose, onAdd }: { open: boolean; previewTheme: SectionTheme; patterns?: SectionPattern[]; onClose: () => void; onAdd: (name: string, keepOpen: boolean, variant?: string) => void }) {
+type DrawerTab = "recommended" | "sections" | "blocks" | "atomic" | "references";
+const DRAWER_TABS: { id: DrawerTab; label: string }[] = [
+  { id: "recommended", label: "Recommended" },
+  { id: "sections", label: "Sections" },
+  { id: "blocks", label: "Blocks" },
+  { id: "atomic", label: "Elements" },
+  { id: "references", label: "References" },
+];
+
+function AddSectionDrawer({ open, previewTheme, patterns = [], recommendCtx = {}, onClose, onAdd }: { open: boolean; previewTheme: SectionTheme; patterns?: SectionPattern[]; recommendCtx?: ElementLibraryContext; onClose: () => void; onAdd: (name: string, keepOpen: boolean, variant?: string) => void }) {
   const [q, setQ] = useState("");
   const [multi, setMulti] = useState(false);
+  const [tab, setTab] = useState<DrawerTab>("recommended");
   const [expanded, setExpanded] = useState<string | null>(null);
   const query = q.trim().toLowerCase();
+
   const groups = SECTION_CATEGORIES.map((g) => ({
     ...g,
     items: g.items.filter((i) => !query || i.toLowerCase().includes(query)),
   })).filter((g) => g.items.length);
   const refs = patterns.filter((p) => !query || p.name.toLowerCase().includes(query) || p.sectionType.includes(query) || p.styleTags.some((t) => t.toLowerCase().includes(query)));
+  const recommended = recommendElements(recommendCtx, 6).filter((e) => !query || e.name.toLowerCase().includes(query));
+  const blockGroups = groupElements(searchElements({ text: query, kind: "block" }));
+  const atomicGroups = groupElements(searchElements({ text: query, kind: "atomic" }));
 
   // Insert a saved reference pattern as a section with its matched variant.
   const addPattern = (p: SectionPattern) => {
@@ -930,94 +960,161 @@ function AddSectionDrawer({ open, previewTheme, patterns = [], onClose, onAdd }:
     const name = NAME_FOR_TYPE[type] ?? "Content Block";
     onAdd(name, multi, p.matchedComponent?.variantId);
   };
+  // Insert a ready library item (section/block that maps to a section component).
+  const addItem = (e: ElementItem) => { if (isReady(e) && e.insertName) onAdd(e.insertName, multi, e.variant); };
 
   return (
-    <Drawer open={open} onClose={onClose} title="Add section" subtitle="Expand a section to preview its layouts, then click to add" width={360}>
+    <Drawer open={open} onClose={onClose} title="Add elements" subtitle="Sections, blocks and elements — click a ready item to add it" width={360}>
       <div className="sticky top-0 z-10 border-b border-line bg-surface p-3">
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search sections…" autoFocus className="w-full rounded-lg border border-line px-3 py-1.5 text-[13px]" />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search elements, blocks, sections…" autoFocus className="w-full rounded-lg border border-line px-3 py-1.5 text-[13px]" />
         <label className="mt-2 flex items-center gap-2 text-[12px] text-muted">
           <input type="checkbox" checked={multi} onChange={(e) => setMulti(e.target.checked)} className="accent-accent" />
           Keep open to add multiple
         </label>
         {query && (
-          <button type="button" onClick={() => onAdd(q.trim(), multi)} className="mt-2 w-full rounded-lg border border-dashed border-accent px-3 py-1.5 text-[12.5px] font-medium text-accent hover:bg-accent-soft">
-            ＋ Add custom “{q.trim()}”
+          <button type="button" onClick={() => onAdd(q.trim(), multi)} className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-accent px-3 py-1.5 text-[12.5px] font-medium text-accent hover:bg-accent-soft">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" /></svg>
+            Add custom “{q.trim()}”
           </button>
         )}
-      </div>
-      <div className="p-3">
-        {/* From the project's Section Reference Library — always shown on top,
-            in a highlighted panel, even when empty. */}
-        <div className="mb-3 rounded-xl border border-accent/30 bg-accent-soft/40 p-2.5">
-          <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-accent">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <rect x="3.5" y="4.5" width="17" height="15" rx="2.5" stroke="currentColor" strokeWidth="1.7" />
-              <circle cx="9" cy="10" r="1.6" stroke="currentColor" strokeWidth="1.7" />
-              <path d="m4.5 17 4.2-4.2a1.5 1.5 0 0 1 2.1 0L15 16.5m-1.5-1.5 1.7-1.7a1.5 1.5 0 0 1 2.1 0l2.2 2.2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-            From your Reference Library
-          </p>
-          {refs.length > 0 ? (
-            <div className="grid gap-2">
-              {refs.map((p) => {
-                const type = (p.matchedComponent?.type ?? sectionTypeForKind(sectionKind(p.sectionType))) as SectionType;
-                const Comp = getSectionComponent(type, p.matchedComponent?.variantId);
-                return (
-                  <button key={p.id} type="button" onClick={() => addPattern(p)} className="group overflow-hidden rounded-lg border border-line bg-surface text-left transition-colors hover:border-accent">
-                    <div className="pointer-events-none overflow-hidden bg-surface" style={{ height: 96 }}>
-                      {Comp ? <div style={{ width: 1100, zoom: 0.26 } as React.CSSProperties}><Comp theme={previewTheme} /></div>
-                        : <div className="grid h-full place-items-center text-[11px] text-faint">{p.customSpec?.suggestedComponentName ?? "Custom section"} · needs build</div>}
-                    </div>
-                    <div className="flex items-center justify-between border-t border-line px-2.5 py-1.5">
-                      <span className="truncate text-[11.5px] font-medium text-body">{p.name}</span>
-                      <span className="shrink-0 text-[11px] font-medium text-accent opacity-0 transition-opacity group-hover:opacity-100">Add</span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          ) : (
-            <p className="px-0.5 py-1 text-[11.5px] text-muted">
-              {query ? "No saved references match your search." : <>No saved references yet. <a href="references" className="font-medium text-accent hover:underline">Add one in the Library →</a></>}
-            </p>
-          )}
+        <div className="mt-2.5 flex gap-1 overflow-x-auto">
+          {DRAWER_TABS.map((t) => (
+            <button key={t.id} type="button" onClick={() => setTab(t.id)}
+              className={`shrink-0 rounded-full px-2.5 py-1 text-[12px] font-medium transition-colors ${tab === t.id ? "bg-accent text-white" : "bg-panel text-muted hover:text-ink"}`}>
+              {t.label}
+            </button>
+          ))}
         </div>
-        {groups.map((g) => (
-          <div key={g.category} className="mb-3">
-            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-faint">{g.category}</p>
-            <div className="grid gap-2">
-              {g.items.map((name) => {
-                const variants = getSectionVariants(sectionTypeForKind(sectionKind(name)));
-                const isOpen = expanded === name;
-                return (
-                  <div key={name} className={`overflow-hidden rounded-lg border ${isOpen ? "border-accent" : "border-line"}`}>
-                    <button
-                      type="button"
-                      onClick={() => setExpanded(isOpen ? null : name)}
-                      className={`flex w-full items-center justify-between px-3 py-2 text-left text-[13px] text-ink ${isOpen ? "bg-accent-soft/40" : "hover:bg-panel"}`}
-                    >
-                      <span>{name}{variants.length > 1 && <span className="ml-1.5 text-[11px] text-faint">· {variants.length} layouts</span>}</span>
-                      <span className={`text-faint transition-transform ${isOpen ? "rotate-180" : ""}`}>⌄</span>
-                    </button>
-                    {isOpen && (
-                      <div className="grid gap-2 border-t border-line bg-panel/40 p-2">
-                        {variants.map((v) => (
-                          <VariantThumbPreview key={v.id} Comp={v.component} theme={previewTheme} label={v.label} onClick={() => onAdd(name, multi, v.id)} />
-                        ))}
-                        {variants.length === 0 && (
-                          <button type="button" onClick={() => onAdd(name, multi)} className="rounded-md px-2 py-1.5 text-left text-[12px] text-accent hover:bg-accent-soft">＋ Add {name}</button>
+      </div>
+
+      <div className="p-3">
+        {tab === "recommended" && (
+          <>
+            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-accent">Recommended for this page</p>
+            {recommended.length > 0 ? (
+              <div className="grid grid-cols-2 gap-2">{recommended.map((e) => <ElementCard key={e.id} item={e} onAdd={() => addItem(e)} />)}</div>
+            ) : <p className="px-1 text-[12.5px] text-faint">No recommendations match your search.</p>}
+          </>
+        )}
+
+        {tab === "sections" && (
+          <>
+            {groups.map((g) => (
+              <div key={g.category} className="mb-3">
+                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-faint">{g.category}</p>
+                <div className="grid gap-2">
+                  {g.items.map((name) => {
+                    const variants = getSectionVariants(sectionTypeForKind(sectionKind(name)));
+                    const isOpen = expanded === name;
+                    return (
+                      <div key={name} className={`overflow-hidden rounded-lg border ${isOpen ? "border-accent" : "border-line"}`}>
+                        <button type="button" onClick={() => setExpanded(isOpen ? null : name)}
+                          className={`flex w-full items-center justify-between px-3 py-2 text-left text-[13px] text-ink ${isOpen ? "bg-accent-soft/40" : "hover:bg-panel"}`}>
+                          <span>{name}{variants.length > 1 && <span className="ml-1.5 text-[11px] text-faint">· {variants.length} layouts</span>}</span>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true" className={`text-faint transition-transform ${isOpen ? "rotate-180" : ""}`}><path d="m6 9 6 6 6-6" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                        </button>
+                        {isOpen && (
+                          <div className="grid gap-2 border-t border-line bg-panel/40 p-2">
+                            {variants.map((v) => (
+                              <VariantThumbPreview key={v.id} Comp={v.component} theme={previewTheme} label={v.label} onClick={() => onAdd(name, multi, v.id)} />
+                            ))}
+                            {variants.length === 0 && (
+                              <button type="button" onClick={() => onAdd(name, multi)} className="rounded-md px-2 py-1.5 text-left text-[12px] text-accent hover:bg-accent-soft">Add {name}</button>
+                            )}
+                          </div>
                         )}
                       </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+            {groups.length === 0 && <p className="px-1 text-[13px] text-faint">No matches. Use “Add custom”.</p>}
+          </>
+        )}
+
+        {tab === "blocks" && <ElementGroupList groups={blockGroups} onAdd={addItem} />}
+        {tab === "atomic" && (
+          <>
+            <p className="mb-2 rounded-lg bg-panel px-2.5 py-1.5 text-[11.5px] text-muted">Atomic elements help build custom sections. Insertion into a section is coming soon.</p>
+            <ElementGroupList groups={atomicGroups} onAdd={addItem} />
+          </>
+        )}
+
+        {tab === "references" && (
+          <div className="rounded-xl border border-accent/30 bg-accent-soft/40 p-2.5">
+            <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-accent">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <rect x="3.5" y="4.5" width="17" height="15" rx="2.5" stroke="currentColor" strokeWidth="1.7" />
+                <circle cx="9" cy="10" r="1.6" stroke="currentColor" strokeWidth="1.7" />
+                <path d="m4.5 17 4.2-4.2a1.5 1.5 0 0 1 2.1 0L15 16.5m-1.5-1.5 1.7-1.7a1.5 1.5 0 0 1 2.1 0l2.2 2.2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              From your Reference Library
+            </p>
+            {refs.length > 0 ? (
+              <div className="grid gap-2">
+                {refs.map((p) => {
+                  const type = (p.matchedComponent?.type ?? sectionTypeForKind(sectionKind(p.sectionType))) as SectionType;
+                  const Comp = getSectionComponent(type, p.matchedComponent?.variantId);
+                  return (
+                    <button key={p.id} type="button" onClick={() => addPattern(p)} className="group overflow-hidden rounded-lg border border-line bg-surface text-left transition-colors hover:border-accent">
+                      <div className="pointer-events-none overflow-hidden bg-surface" style={{ height: 96 }}>
+                        {Comp ? <div style={{ width: 1100, zoom: 0.26 } as React.CSSProperties}><Comp theme={previewTheme} /></div>
+                          : <div className="grid h-full place-items-center text-[11px] text-faint">{p.customSpec?.suggestedComponentName ?? "Custom section"} · needs build</div>}
+                      </div>
+                      <div className="flex items-center justify-between border-t border-line px-2.5 py-1.5">
+                        <span className="truncate text-[11.5px] font-medium text-body">{p.name}</span>
+                        <span className="shrink-0 text-[11px] font-medium text-accent opacity-0 transition-opacity group-hover:opacity-100">Add</span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="px-0.5 py-1 text-[11.5px] text-muted">
+                {query ? "No saved references match your search." : <>No saved references yet. <a href="references" className="font-medium text-accent hover:underline">Add one in the Library →</a></>}
+              </p>
+            )}
           </div>
-        ))}
-        {groups.length === 0 && <p className="px-1 text-[13px] text-faint">No matches. Use “Add custom”.</p>}
+        )}
       </div>
     </Drawer>
+  );
+}
+
+// A compact two-column library card: icon + name + type/status badges + Add.
+function ElementCard({ item, onAdd }: { item: ElementItem; onAdd: () => void }) {
+  const ready = isReady(item);
+  return (
+    <button type="button" disabled={!ready} onClick={onAdd} title={item.description}
+      className={`group flex flex-col gap-1.5 rounded-lg border p-2.5 text-left transition-colors ${ready ? "border-line hover:border-accent hover:bg-accent-soft/30" : "cursor-not-allowed border-dashed border-line opacity-70"}`}>
+      <div className="flex items-center justify-between">
+        <span className="text-body">{ELEMENT_ICONS[item.icon] ?? ELEMENT_ICONS.div}</span>
+        <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${KIND_BADGE[item.kind]}`}>{KIND_LABEL[item.kind]}</span>
+      </div>
+      <span className="truncate text-[12px] font-medium text-ink">{item.name}</span>
+      <div className="flex items-center justify-between">
+        <span className="truncate text-[10.5px] text-faint">{item.category}</span>
+        {ready ? <span className="shrink-0 text-[10.5px] font-medium text-accent opacity-0 transition-opacity group-hover:opacity-100">Add</span>
+          : <span className="shrink-0 rounded-full border border-line px-1.5 text-[9px] font-medium uppercase text-faint">soon</span>}
+      </div>
+    </button>
+  );
+}
+
+function ElementGroupList({ groups, onAdd }: { groups: { group: string; items: ElementItem[] }[]; onAdd: (e: ElementItem) => void }) {
+  if (groups.length === 0) return <p className="px-1 text-[13px] text-faint">No matches.</p>;
+  return (
+    <>
+      {groups.map((g) => (
+        <div key={g.group} className="mb-3">
+          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-faint">{g.group}</p>
+          <div className="grid grid-cols-2 gap-2">
+            {g.items.map((e) => <ElementCard key={e.id} item={e} onAdd={() => onAdd(e)} />)}
+          </div>
+        </div>
+      ))}
+    </>
   );
 }
 
