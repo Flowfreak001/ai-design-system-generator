@@ -479,12 +479,43 @@ function SitemapEditor({
   const [cat, setCat] = useState<PageCategory>("main");
   const [addForPage, setAddForPage] = useState<string | null>(null);
   const [editing, setEditing] = useState<{ pageId: string; sid: string } | null>(null);
+  const [zoom, setZoom] = useState(1);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const visible = pages.filter((p) => (p.category ?? "main") === cat);
   const editSection = editing ? pages.find((p) => p.id === editing.pageId)?.sections.find((s) => s.id === editing.sid) ?? null : null;
 
+  const zoomBy = (d: number) => setZoom((z) => Math.max(0.3, Math.min(1.5, +(z + d).toFixed(2))));
+  const fit = () => {
+    const c = scrollRef.current;
+    if (!c) return;
+    const natural = c.scrollWidth / zoom;
+    setZoom(Math.max(0.3, Math.min(1, (c.clientWidth - 8) / natural)));
+  };
+  // Ctrl/⌘ + wheel (and trackpad pinch) zooms toward the cursor, like the canvas.
+  useEffect(() => {
+    const c = scrollRef.current;
+    if (!c) return;
+    const onWheel = (e: WheelEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return;
+      e.preventDefault();
+      const rect = c.getBoundingClientRect();
+      const offX = e.clientX - rect.left, offY = e.clientY - rect.top;
+      const px = c.scrollLeft + offX, py = c.scrollTop + offY;
+      setZoom((z) => {
+        const nz = Math.max(0.3, Math.min(1.5, +(z * (e.deltaY < 0 ? 1.1 : 1 / 1.1)).toFixed(3)));
+        const ratio = nz / z;
+        requestAnimationFrame(() => { c.scrollLeft = px * ratio - offX; c.scrollTop = py * ratio - offY; });
+        return nz;
+      });
+    };
+    c.addEventListener("wheel", onWheel, { passive: false });
+    return () => c.removeEventListener("wheel", onWheel);
+  }, []);
+
   return (
-    <div className="p-6">
+    <div className="flex h-full flex-col">
+      <div className="px-6 pt-6">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-[16px] font-semibold text-ink">Visual Sitemap</h2>
@@ -511,7 +542,11 @@ function SitemapEditor({
         })}
         <button type="button" onClick={() => onAddPage(cat)} className="ml-auto flex items-center gap-1 rounded-md px-2 py-1 text-[12.5px] font-medium text-accent hover:bg-accent-soft">＋ Add page</button>
       </div>
+      </div>
 
+      {/* Zoomable / scrollable board area (Ctrl/⌘ + wheel zooms toward cursor). */}
+      <div ref={scrollRef} className="relative min-h-0 flex-1 overflow-auto px-6 pb-24">
+      <div style={{ zoom } as React.CSSProperties}>
       {visible.length === 0 ? (
         <div className="grid place-items-center rounded-2xl border border-dashed border-line py-16 text-center">
           <p className="text-[13px] text-muted">No pages in this category yet.</p>
@@ -540,6 +575,19 @@ function SitemapEditor({
           ))}
         </div>
       )}
+      </div>
+      </div>
+
+      {/* Zoom controls pinned to the screen bottom, like the design/wireframe canvas */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-4 z-40 flex items-center justify-center">
+        <div className="pointer-events-auto flex items-center gap-1 rounded-xl border border-line bg-surface/95 p-1 shadow-lg backdrop-blur">
+          <button type="button" onClick={() => zoomBy(-0.1)} className="grid h-7 w-7 place-items-center rounded-md text-body hover:bg-panel">−</button>
+          <span className="w-11 text-center text-[12px] tabular-nums text-body">{Math.round(zoom * 100)}%</span>
+          <button type="button" onClick={() => zoomBy(0.1)} className="grid h-7 w-7 place-items-center rounded-md text-body hover:bg-panel">＋</button>
+          <button type="button" onClick={fit} className="rounded-md px-2 py-1 text-[12px] font-medium text-body hover:bg-panel">Fit</button>
+          <button type="button" onClick={() => setZoom(1)} className="rounded-md px-2 py-1 text-[12px] font-medium text-body hover:bg-panel">100%</button>
+        </div>
+      </div>
 
       {/* Add section drawer for the chosen page */}
       <AddSectionDrawer open={Boolean(addForPage)} onClose={() => setAddForPage(null)} onAdd={(name, keepOpen) => { if (addForPage) onAddSection(addForPage, name); if (!keepOpen) setAddForPage(null); }} />
