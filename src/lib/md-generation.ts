@@ -4,7 +4,7 @@
 
 import { prisma } from "@/lib/db/client";
 import { toGenerationInput } from "@/lib/projects";
-import { MD_GENERATORS, type GeneratorContext } from "@/lib/generators";
+import { BRAND_GENERATORS, DESIGN_GENERATORS, type GeneratorContext } from "@/lib/generators";
 import type { AnimationAnalysis } from "@/lib/analysis/animation-extractor";
 import type { AiScreenshotAnalysis } from "@/lib/ai/types";
 import type {
@@ -72,16 +72,13 @@ async function saveMdFile(projectId: string, name: string, content: string) {
   return version;
 }
 
-export async function runMdGeneration(projectId: string) {
+type Gen = { agent: string; run: (ctx: GeneratorContext) => { name: string; content: string } };
+
+async function runGenerators(projectId: string, runName: string, generators: Gen[]) {
   const { ctx, analysisCount } = await loadContext(projectId);
 
   const run = await prisma.agentRun.create({
-    data: {
-      projectId,
-      name: "MD design-system generation",
-      status: "running",
-      input: { analysisFilesFound: analysisCount },
-    },
+    data: { projectId, name: runName, status: "running", input: { analysisFilesFound: analysisCount } },
   });
   const step = (title: string, detail: string) =>
     prisma.agentStep.create({ data: { runId: run.id, title, status: "completed", detail } });
@@ -89,13 +86,11 @@ export async function runMdGeneration(projectId: string) {
   try {
     await step(
       "Loaded inputs",
-      `Project brief + ${analysisCount}/4 analysis files${
-        analysisCount < 4 ? " — missing analysis will be marked as assumptions" : ""
-      }.`,
+      `Project brief + ${analysisCount} analysis file(s)${analysisCount === 0 ? " — no scan yet, values will be marked as assumptions" : ""}.`,
     );
 
     const produced: string[] = [];
-    for (const g of MD_GENERATORS) {
+    for (const g of generators) {
       const artifact = g.run(ctx);
       const version = await saveMdFile(projectId, artifact.name, artifact.content);
       produced.push(artifact.name);
@@ -106,10 +101,8 @@ export async function runMdGeneration(projectId: string) {
       where: { id: run.id },
       data: { status: "completed", output: { files: produced } },
     });
-    await prisma.project.update({
-      where: { id: projectId },
-      data: { status: "IN_PROGRESS" },
-    });
+    await prisma.project.update({ where: { id: projectId }, data: { status: "IN_PROGRESS" } });
+    return produced;
   } catch (err) {
     await prisma.agentRun.update({
       where: { id: run.id },
@@ -117,6 +110,14 @@ export async function runMdGeneration(projectId: string) {
     });
     throw err;
   }
+}
 
-  return run.id;
+/** Phase 1 — brand foundation (BRAND.md, BRAND_GUIDELINES.md, CREATIVE_DIRECTION.md). */
+export async function runBrandGeneration(projectId: string) {
+  return runGenerators(projectId, "Brand guideline generation", BRAND_GENERATORS);
+}
+
+/** Phase 2 — full design system. Only after the brand guideline is approved. */
+export async function runMdGeneration(projectId: string) {
+  return runGenerators(projectId, "MD design-system generation", DESIGN_GENERATORS);
 }

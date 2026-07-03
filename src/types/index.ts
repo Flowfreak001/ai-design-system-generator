@@ -23,6 +23,11 @@ export type ProjectBrief = {
   fontPreference?: string;
   brandPersonality?: string;
   toneOfVoice?: string;
+  // Two-phase flow: brand foundation first, then design system.
+  /** Chosen after brand approval — drives the design-system generators. */
+  designType?: string;
+  /** True once the user approves the generated brand guideline. */
+  brandApproved?: boolean;
   // Step 4 — website structure
   keyItems: string[]; // required pages / workflows
   services?: string;

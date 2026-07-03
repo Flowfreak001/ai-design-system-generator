@@ -69,5 +69,5 @@ ${
 ${visionBlock(ctx, ["visualLayout", "imageTreatment", "colorUsage"])}
 ${a.section()}
 `;
-  return { name: "CREATIVE.md", content };
+  return { name: "CREATIVE_DIRECTION.md", content };
 }

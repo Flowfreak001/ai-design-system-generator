@@ -6,11 +6,13 @@ import { createProjectSchema, createNoteSchema } from "@/lib/validators/project"
 import { createProject, deleteProject, addNote, ownsProject } from "@/lib/projects";
 import { startGeneration } from "@/lib/jobs";
 import { runWebsiteAnalysis } from "@/lib/analysis/run-analysis";
-import { runMdGeneration } from "@/lib/md-generation";
+import { runMdGeneration, runBrandGeneration } from "@/lib/md-generation";
 import { runPreviewGeneration } from "@/lib/preview";
 import { runAiVisionAnalysis } from "@/lib/ai/ai-flow";
+import { DESIGN_TYPES } from "@/lib/validators/project";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/db/client";
+import { Prisma } from "@/generated/prisma/client";
 import { z } from "zod";
 
 export type FormState = { error?: string } | undefined;
@@ -78,6 +80,44 @@ export async function generateAction(projectId: string) {
   revalidatePath(`/projects/${projectId}`);
 }
 
+/** Merge fields into the project's brief input (JSON). */
+async function patchBrief(projectId: string, patch: Record<string, unknown>) {
+  const input = await prisma.projectInput.findFirst({ where: { projectId, category: "brief" } });
+  if (!input) return;
+  const brief = (input.data ?? {}) as Record<string, unknown>;
+  await prisma.projectInput.update({
+    where: { id: input.id },
+    data: { data: { ...brief, ...patch } as Prisma.InputJsonValue },
+  });
+}
+
+// ---- Two-phase flow: Brand foundation → approval → Design system ----------
+
+/** Phase 1 — generate BRAND.md, BRAND_GUIDELINES.md, CREATIVE_DIRECTION.md. */
+export async function generateBrandAction(projectId: string) {
+  const user = await requireUser();
+  if (!user.agencyId || !(await ownsProject(projectId, user.agencyId))) return;
+  await runBrandGeneration(projectId);
+  revalidatePath(`/projects/${projectId}`);
+}
+
+/** User approves the brand guideline — unlocks the design phase. */
+export async function approveBrandAction(projectId: string) {
+  const user = await requireUser();
+  if (!user.agencyId || !(await ownsProject(projectId, user.agencyId))) return;
+  await patchBrief(projectId, { brandApproved: true });
+  revalidatePath(`/projects/${projectId}`);
+}
+
+export async function setDesignTypeAction(projectId: string, designType: string) {
+  const user = await requireUser();
+  if (!user.agencyId || !(await ownsProject(projectId, user.agencyId))) return { error: "Not found" };
+  if (!(DESIGN_TYPES as readonly string[]).includes(designType)) return { error: "Invalid design type" };
+  await patchBrief(projectId, { designType });
+  revalidatePath(`/projects/${projectId}`);
+  return {};
+}
+
 export async function runAiVisionAction(projectId: string) {
   const user = await requireUser();
   if (!user.agencyId || !(await ownsProject(projectId, user.agencyId))) return;
@@ -88,6 +128,14 @@ export async function runAiVisionAction(projectId: string) {
 export async function generateMdAction(projectId: string) {
   const user = await requireUser();
   if (!user.agencyId || !(await ownsProject(projectId, user.agencyId))) return;
+  // Gate: the design system is generated only after the brand guideline exists
+  // and is approved — the brand is the source of truth.
+  const brandInput = await prisma.projectInput.findFirst({ where: { projectId, category: "brief" } });
+  const approved = Boolean((brandInput?.data as { brandApproved?: boolean } | null)?.brandApproved);
+  const hasBrand = await prisma.generatedFile.count({ where: { projectId, name: "BRAND_GUIDELINES.md" } });
+  if (!approved || !hasBrand) {
+    throw new Error("Approve the brand guideline before generating the design system.");
+  }
   await runMdGeneration(projectId);
   revalidatePath(`/projects/${projectId}`);
 }

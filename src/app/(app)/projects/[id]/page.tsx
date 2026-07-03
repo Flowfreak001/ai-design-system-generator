@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProject, getFileVersions, toGenerationInput } from "@/lib/projects";
 import { requireUser } from "@/lib/auth";
-import { deriveStatus, recommendedNextAction, STATUS_STYLES } from "@/lib/status";
+import { deriveStatus, STATUS_STYLES } from "@/lib/status";
 import {
   generateAction,
   deleteProjectAction,
@@ -12,7 +12,11 @@ import {
   generatePreviewAction,
   saveScreenshotsAction,
   runAiVisionAction,
+  generateBrandAction,
+  approveBrandAction,
+  setDesignTypeAction,
 } from "../actions";
+import { DesignTypePicker } from "@/components/projects/design-type-picker";
 import { TypeBadge } from "@/components/projects/status-badge";
 import { GeneratedFilesViewer } from "@/components/projects/generated-files-viewer";
 import { PreviewPanel } from "@/components/projects/preview-panel";
@@ -92,7 +96,6 @@ export default async function ProjectWorkspacePage({
 
   const statusInput = { status: project.status, files: project.files, hasReferenceUrls };
   const status = deriveStatus(statusInput);
-  const next = recommendedNextAction(statusInput);
 
   const analysisFiles = project.files.filter((f) => ANALYSIS_NAMES.includes(f.name));
   const docFiles = project.files.filter(
@@ -108,7 +111,17 @@ export default async function ProjectWorkspacePage({
   const runAiVision = runAiVisionAction.bind(null, id);
   const updateReferences = updateReferencesAction.bind(null, id);
   const generateDelivery = generateAction.bind(null, id);
+  const generateBrand = generateBrandAction.bind(null, id);
+  const approveBrand = approveBrandAction.bind(null, id);
   const remove = deleteProjectAction.bind(null, id);
+
+  // Two-phase flow: the brand guideline is the foundation, and the design
+  // system is only unlocked after that guideline is generated and approved.
+  const fileNames = new Set(project.files.map((f) => f.name));
+  const hasBrandGuidelines = fileNames.has("BRAND_GUIDELINES.md");
+  const brandApproved = Boolean(b.brandApproved);
+  const designType = b.designType;
+  const hasDesignSystem = fileNames.has("DESIGN.md");
 
   const timeline = [
     { label: "Created", done: true },
@@ -117,37 +130,113 @@ export default async function ProjectWorkspacePage({
     { label: "Exported", done: project.status === "DELIVERED" },
   ];
 
-  const nextForm =
-    next.action === "generate-md" ? generateMd : next.action === "generate-preview" ? generatePreview : null;
-
   const overview = (
     <div className="grid gap-4">
-      {/* Recommended next action */}
-      <FadeUp className="card flex flex-wrap items-center justify-between gap-4 border-accent/25 bg-accent-soft/40 p-5">
-        <div>
-          <p className="font-mono text-[10px] uppercase tracking-wider text-accent">Recommended next step</p>
-          <p className="mt-1 text-[15px] font-semibold text-ink">{next.title}</p>
-          <p className="mt-0.5 max-w-xl text-[13px] text-body">{next.description}</p>
+      {/* Phase 1 — Brand foundation */}
+      <FadeUp className="card border-accent/25 bg-accent-soft/30 p-5">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-wider text-accent">Phase 1 · Foundation</p>
+            <p className="mt-1 text-[15px] font-semibold text-ink">Brand guideline</p>
+            <p className="mt-0.5 max-w-xl text-[13px] text-body">
+              The brand is the source of truth. Generate it from your business details, references, and
+              screenshots — then review and approve it before designing anything.
+            </p>
+          </div>
+          {brandApproved ? (
+            <span className="rounded-full bg-success-soft px-3 py-1 text-xs font-medium text-success">✓ Approved</span>
+          ) : hasBrandGuidelines ? (
+            <span className="rounded-full bg-warning-soft px-3 py-1 text-xs font-medium text-warning">Awaiting approval</span>
+          ) : null}
         </div>
-        {nextForm ? (
+        <div className="mt-4 flex flex-wrap items-center gap-2.5">
           <ActionDialog
             projectId={id}
-            trigger="button"
-            title={next.title}
-            description={next.description}
-            confirmText={`${next.description} Run it now?`}
-            runName={next.action === "generate-md" ? "MD design-system generation" : "Preview generation"}
-            action={nextForm}
+            title={hasBrandGuidelines ? "Regenerate Brand Guideline" : "Generate Brand Guideline"}
+            description="BRAND.md · BRAND_GUIDELINES.md · CREATIVE_DIRECTION.md from your brief + analysis"
+            confirmText="Generate the brand foundation (brand at a glance, color system, typography direction, tone, and creative direction) from the brief and latest analysis. Run it now?"
+            runName="Brand guideline generation"
+            action={generateBrand}
           />
+          {hasBrandGuidelines && !brandApproved && (
+            <form action={approveBrand}>
+              <Button type="submit" variant="primary" size="sm">
+                Approve brand guideline
+              </Button>
+            </form>
+          )}
+        </div>
+        {hasBrandGuidelines && (
+          <p className="mt-3 text-[12px] text-muted">
+            Review the generated files in the Generated Files tab. Approve to unlock the design system.
+          </p>
+        )}
+      </FadeUp>
+
+      {/* Phase 2 — Design system (locked until the brand is approved) */}
+      <FadeUp className={`card p-5 ${brandApproved ? "" : "opacity-70"}`}>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="font-mono text-[10px] uppercase tracking-wider text-muted">Phase 2 · Build</p>
+            <p className="mt-1 text-[15px] font-semibold text-ink">Design system</p>
+            <p className="mt-0.5 max-w-xl text-[13px] text-body">
+              Choose what you&rsquo;re designing, then generate the full system — components, content, motion,
+              UX, SEO, and a Claude Code build prompt — from the approved brand.
+            </p>
+          </div>
+          {hasDesignSystem && (
+            <span className="rounded-full bg-success-soft px-3 py-1 text-xs font-medium text-success">✓ Generated</span>
+          )}
+        </div>
+
+        {!brandApproved ? (
+          <p className="mt-4 rounded-lg bg-panel px-3.5 py-2.5 text-[13px] text-muted">
+            🔒 Approve the brand guideline above to unlock the design system.
+          </p>
         ) : (
-          <ActionDialog
-            projectId={id}
-            trigger="button"
-            title="Download ZIP"
-            description="Full package — brief, analysis, design system, prompts, and preview."
-            confirmText="Download the full export package and mark this project as Exported?"
-            downloadHref={`/api/projects/${id}/export`}
-          />
+          <div className="mt-4 grid gap-4">
+            <div>
+              <p className="text-[12px] font-medium text-ink">What are you designing?</p>
+              <div className="mt-2">
+                <DesignTypePicker projectId={id} current={designType} save={setDesignTypeAction} />
+              </div>
+            </div>
+            <div className="grid items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <ActionDialog
+                projectId={id}
+                title={hasDesignSystem ? "Regenerate Design System" : "Generate Design System"}
+                description="DESIGN, COMPONENTS, CONTENT, ANIMATION, UX, SEO + build prompt"
+                confirmText="Generate the full design system from the approved brand and latest analysis. Existing files get a new version. Run it now?"
+                runName="MD design-system generation"
+                action={generateMd}
+                disabledNote={designType ? undefined : "Choose a design type first."}
+              />
+              <ActionDialog
+                projectId={id}
+                title="Analyze References"
+                description="Scan the reference site for tokens, metrics, and motion"
+                confirmText="Scan the reference website in a real browser and refresh the analysis files (palette, typography, metrics, animation). Existing analysis is versioned, not lost. Run it now?"
+                runName="Website analysis run"
+                action={analyze}
+                disabledNote={hasReferenceUrls ? undefined : "Add reference URLs to improve design accuracy."}
+              />
+              <ActionDialog
+                projectId={id}
+                title="Generate Preview"
+                description="Visual specimen sheet from tokens + files"
+                confirmText="Render the branded preview and component sheet from the current tokens and files. Run it now?"
+                runName="Preview generation"
+                action={generatePreview}
+              />
+              <ActionDialog
+                projectId={id}
+                title="Export Files"
+                description="Full ZIP package for your build tool"
+                confirmText="Download the full export package (brief, analysis, design system, prompts, preview) and mark this project as Exported?"
+                downloadHref={`/api/projects/${id}/export`}
+              />
+            </div>
+          </div>
         )}
       </FadeUp>
 
@@ -168,43 +257,6 @@ export default async function ProjectWorkspacePage({
             </li>
           ))}
         </ol>
-      </div>
-
-      {/* Quick actions — uniform cards; each confirms in a dialog and shows
-          its live progress there, so the grid never stretches mid-run. */}
-      <div className="grid items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <ActionDialog
-          projectId={id}
-          title="Analyze References"
-          description="Scan the reference site for tokens, metrics, and motion"
-          confirmText="Scan the reference website in a real browser and refresh the four analysis files (palette, typography, metrics, animation). Existing analysis is versioned, not lost. Run it now?"
-          runName="Website analysis run"
-          action={analyze}
-          disabledNote={hasReferenceUrls ? undefined : "Add reference URLs to improve design accuracy."}
-        />
-        <ActionDialog
-          projectId={id}
-          title="Generate MD Files"
-          description="8 design-system files from the brief + analysis"
-          confirmText="Generate the 8 MD design-system files from the project brief and latest analysis. Existing files get a new version. Run it now?"
-          runName="MD design-system generation"
-          action={generateMd}
-        />
-        <ActionDialog
-          projectId={id}
-          title="Generate Preview"
-          description="Visual specimen sheet from tokens + files"
-          confirmText="Render the branded preview and component sheet from the current tokens and files. Run it now?"
-          runName="Preview generation"
-          action={generatePreview}
-        />
-        <ActionDialog
-          projectId={id}
-          title="Export Files"
-          description="Full ZIP package for your build tool"
-          confirmText="Download the full export package (brief, analysis, design system, prompts, preview) and mark this project as Exported?"
-          downloadHref={`/api/projects/${id}/export`}
-        />
       </div>
 
       {/* Summary */}

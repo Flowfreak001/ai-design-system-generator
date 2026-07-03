@@ -16,7 +16,7 @@ import { STYLE_PREFERENCES } from "@/lib/validators/project";
 
 const STEPS = [
   { id: 1, label: "Basics" },
-  { id: 2, label: "Website" },
+  { id: 2, label: "Brand References" },
   { id: 3, label: "Review" },
 ];
 const LAST = STEPS.length;
@@ -243,6 +243,7 @@ export function ProjectWizard({
                 <Field label="Business type" name="businessType" required placeholder="e.g. Car rental, plumber, restaurant" invalid={missing.includes("businessType")} />
               </div>
               <Area label="Website goal" name="goal" required placeholder="What should the website achieve? e.g. Generate booking enquiries" invalid={missing.includes("goal")} />
+              <Area label="Target audience" name="targetAudience" placeholder="Who is this for? e.g. Tourists and business travelers renting cars in Nairobi (optional)" />
               {clients.length > 0 ? (
                 <div className="grid gap-5 sm:grid-cols-2">
                   <Field label="Client name" name="clientName" placeholder="Contact person" />
@@ -268,7 +269,7 @@ export function ProjectWizard({
           <div className={panel(2)}>
             <div className="card grid gap-5 p-6">
               <div>
-                <h3 className="text-base font-semibold">Website &amp; style</h3>
+                <h3 className="text-base font-semibold">Brand references &amp; style</h3>
                 <p className="mt-1 text-[13px] text-muted">
                   Paste the website to learn its design from. Everything here is optional —
                   but the more pages you add, the more accurate the design system.

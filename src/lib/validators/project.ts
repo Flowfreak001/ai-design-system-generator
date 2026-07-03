@@ -21,6 +21,21 @@ export const PLATFORM_TARGETS = [
 
 export const ANIMATION_PREFERENCES = ["None", "Minimal", "Premium", "Bold"] as const;
 
+/** What the user wants to design — chosen after the brand guideline is approved. */
+export const DESIGN_TYPES = [
+  "Marketing Website",
+  "SaaS Platform",
+  "Directory Platform",
+  "Marketplace",
+  "Booking Platform",
+  "Client Portal",
+  "Dashboard",
+  "Mobile App",
+  "Ecommerce",
+  "Landing Page",
+  "Custom Platform",
+] as const;
+
 export const STYLE_PREFERENCES = [
   "Clean & minimal",
   "Bold & expressive",

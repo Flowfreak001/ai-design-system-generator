@@ -7,24 +7,38 @@ export type { GeneratorContext, MdArtifact } from "./context";
 
 import type { GeneratorContext, MdArtifact } from "./context";
 import { generateBrandMd } from "./brand-generator";
+import { generateBrandGuidelinesMd } from "./brand-guidelines-generator";
 import { generateDesignMd } from "./design-generator";
 import { generateCreativeMd } from "./creative-generator";
 import { generateContentMd } from "./content-generator";
 import { generateComponentsMd } from "./components-generator";
 import { generateAnimationMd } from "./animation-generator";
+import { generateUxMd } from "./ux-generator";
 import { generateSeoMd } from "./seo-generator";
 import { generatePromptMd } from "./prompt-generator";
 
-export const MD_GENERATORS: { agent: string; run: (ctx: GeneratorContext) => MdArtifact }[] = [
+type Gen = { agent: string; run: (ctx: GeneratorContext) => MdArtifact };
+
+// Phase 1 — Brand foundation (generated first, approved before design).
+export const BRAND_GENERATORS: Gen[] = [
   { agent: "Brand Strategist", run: generateBrandMd },
-  { agent: "Design Systems", run: generateDesignMd },
+  { agent: "Brand Guidelines", run: generateBrandGuidelinesMd },
   { agent: "Creative Director", run: generateCreativeMd },
-  { agent: "Content Strategist", run: generateContentMd },
+];
+
+// Phase 2 — Design system (generated only after brand approval + design type).
+export const DESIGN_GENERATORS: Gen[] = [
+  { agent: "Design Systems", run: generateDesignMd },
   { agent: "Component Architect", run: generateComponentsMd },
+  { agent: "Content Strategist", run: generateContentMd },
   { agent: "Motion Designer", run: generateAnimationMd },
+  { agent: "UX Architect", run: generateUxMd },
   { agent: "SEO Specialist", run: generateSeoMd },
   { agent: "Prompt Engineer", run: generatePromptMd },
 ];
+
+/** All generators (both phases) — used where the split doesn't matter. */
+export const MD_GENERATORS: Gen[] = [...BRAND_GENERATORS, ...DESIGN_GENERATORS];
 
 export function generateAllMd(ctx: GeneratorContext): MdArtifact[] {
   return MD_GENERATORS.map((g) => g.run(ctx));
