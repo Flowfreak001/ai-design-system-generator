@@ -42,6 +42,17 @@ export function generatePreviewHtml(data: PreviewData): string {
     };
   })?.renderedProbe;
   const live = probe?.content;
+  // Multi-page evidence (scope + accuracy + detected components) so the preview
+  // is honest about what was analyzed and which sections are real vs missing.
+  const mp = (tokens as unknown as {
+    multiPage?: {
+      scope?: string;
+      note?: string;
+      accuracy?: { level: string; score: number };
+      componentInventory?: Record<string, boolean | number>;
+      recommendedPagesMissing?: string[];
+    };
+  })?.multiPage;
   // Casing is a measured property, not a style choice: only uppercase what the
   // reference site actually renders uppercase.
   const headingTransform = probe?.headingTransform && probe.headingTransform !== "none" ? probe.headingTransform : "none";
@@ -402,6 +413,10 @@ ${fontLink ? `<link rel="preconnect" href="https://fonts.googleapis.com" /><link
   .cell .l { font:600 10px/1.6 ui-monospace,monospace; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin-top:10px; }
   ul.motion { list-style:none; display:grid; gap:10px; padding:0; }
   ul.motion li { border-left:2px solid var(--accent); padding:4px 0 4px 16px; color:var(--muted); font-size:14px; }
+  .scope { border:1px solid var(--line); border-left:3px solid var(--accent); background:var(--surface); border-radius:8px; padding:12px 16px; margin-bottom:16px; font-size:13px; color:var(--muted); line-height:1.5; }
+  .scope b { color:var(--ink); }
+  .scope .acc { display:inline-block; margin-left:6px; font:600 11px/1 ui-monospace,monospace; color:var(--accent); }
+  .scope-missing { margin-top:6px; font-size:12px; }
   .legend { display:flex; flex-wrap:wrap; gap:8px 20px; margin-bottom:22px; font-size:12px; color:var(--muted); }
   .legend span { display:flex; align-items:center; gap:7px; }
   .legend .dot { width:9px; height:9px; border-radius:50%; display:inline-block; }
@@ -422,6 +437,11 @@ ${fontLink ? `<link rel="preconnect" href="https://fonts.googleapis.com" /><link
     <span class="brand">${esc(name)}</span>
     <span class="src">${esc(input.brief.businessType ?? "design system")}${tokens?.sourceUrl ? ` · extracted from ${esc(String(tokens.sourceUrl))}` : ""} · confidence: ${esc(String(tokens?.confidence ?? "n/a"))}</span>
   </header>
+
+  ${mp ? `<div class="scope">
+    <b>Analysis scope:</b> ${esc(mp.note ?? "")} ${mp.accuracy ? `<span class="acc">Accuracy: ${esc(mp.accuracy.level)} (${mp.accuracy.score}/100)</span>` : ""}
+    ${mp.recommendedPagesMissing?.length ? `<div class="scope-missing">Not detected / not provided: ${mp.recommendedPagesMissing.map(esc).join(", ")} page(s).</div>` : ""}
+  </div>` : ""}
 
   <div class="legend">
     <span><i class="dot measured"></i>Measured — computed from the rendered live page</span>

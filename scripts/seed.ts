@@ -33,6 +33,7 @@ async function main() {
     targetAudience: undefined,
     referenceUrls: [] as string[],
     existingWebsiteUrl: undefined,
+    pageUrls: [] as string[],
     competitorUrls: [] as string[],
     stylePreference: undefined,
     primaryColor: undefined,

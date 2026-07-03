@@ -207,6 +207,172 @@ function rankCrawlCandidates(links: { url: string; text: string }[]): string[] {
     .slice(0, 3);
 }
 
+// ---- Multi-page structure scan -------------------------------------------
+// A lightweight per-page scan that detects the REAL sections/components a page
+// contains, so the design system is built from evidence — never a fixed
+// hero/services/FAQ/CTA template. Runs in the page context via page.evaluate.
+export type PageStructure = {
+  url: string;
+  ok: boolean;
+  pageType: string;
+  title?: string;
+  metaDescription?: string;
+  h1: string[];
+  h2: string[];
+  sections: string[];
+  components: {
+    navbar: boolean;
+    hero: boolean;
+    cards: number;
+    forms: number;
+    faq: boolean;
+    pricing: boolean;
+    testimonials: boolean;
+    gallery: boolean;
+    booking: boolean;
+    cta: boolean;
+    footer: boolean;
+  };
+  formFields: { type: string; label: string }[];
+  ctaText?: string;
+  navItems: string[];
+};
+
+function classifyPageType(url: string, h1: string): string {
+  const u = url.toLowerCase();
+  const h = h1.toLowerCase();
+  const test = (re: RegExp) => re.test(u) || re.test(h);
+  if (/\/(about|team|company|story|who-we-are)/.test(u) || /about|our (team|story|company)/.test(h)) return "about";
+  if (test(/servic|solution|what-we-do|offering/)) return "services";
+  if (test(/contact|get-in-touch|reach-us/)) return "contact";
+  if (test(/book|appointment|reserv|schedul|quote/)) return "booking";
+  if (test(/faq|frequently|help|support/)) return "faq";
+  if (test(/pric|plans|packages/)) return "pricing";
+  if (test(/blog|news|articles|insights|resources/)) return "blog";
+  if (test(/portfolio|case-stud|work|project|gallery/)) return "portfolio";
+  try {
+    const path = new URL(url).pathname.replace(/\/$/, "");
+    if (path === "" || path === "/" || path === "/home" || path === "/index") return "homepage";
+  } catch {
+    /* ignore */
+  }
+  return "other";
+}
+
+function pageStructureScanner(): Omit<PageStructure, "url" | "ok" | "pageType"> {
+  const txt = (el: Element | null) => (el?.textContent ?? "").replace(/\s+/g, " ").trim();
+  const body = document.body.innerText || "";
+  const q = (sel: string) => [...document.querySelectorAll(sel)];
+
+  const h1 = q("h1").map((e) => txt(e)).filter((t) => t.length > 1 && t.length < 160).slice(0, 6);
+  const h2 = q("h2").map((e) => txt(e)).filter((t) => t.length > 1 && t.length < 160).slice(0, 30);
+
+  // Section labels: h2 headings inside <section>/[class*=section] blocks.
+  const sections = [...new Set(
+    q("section h2, [class*='section'] h2, main > div h2").map((e) => txt(e)).filter((t) => t.length > 1 && t.length < 90),
+  )].slice(0, 24);
+
+  // Forms + fields
+  const forms = q("form").filter((f) => f.querySelector("input, textarea, select"));
+  const formFields = forms.length
+    ? [...forms[0].querySelectorAll("input, textarea, select")].slice(0, 10).map((el) => {
+        const input = el as HTMLInputElement;
+        const id = input.id;
+        const label = id ? txt(document.querySelector(`label[for='${id}']`)) : "";
+        return { type: input.type || el.tagName.toLowerCase(), label: label || input.placeholder || input.name || "" };
+      }).filter((f) => f.type !== "hidden")
+    : [];
+
+  // Cards: repeated bordered/shadowed blocks of similar size.
+  let cards = 0;
+  const cardKey = new Map<string, number>();
+  for (const el of q("div, article, li").slice(0, 1500)) {
+    const r = el.getBoundingClientRect();
+    if (r.width < 180 || r.width > 640 || r.height < 90 || r.height > 620) continue;
+    const cs = getComputedStyle(el);
+    const bordered = (cs.borderTopWidth !== "0px" && cs.borderTopStyle !== "none") || cs.boxShadow !== "none";
+    if (!bordered || parseFloat(cs.borderRadius) <= 0) continue;
+    const k = `${Math.round(r.width / 20)}x${cs.borderRadius}`;
+    cardKey.set(k, (cardKey.get(k) ?? 0) + 1);
+  }
+  cards = Math.max(0, ...[...cardKey.values()].filter((n) => n >= 2));
+
+  const has = (re: RegExp) => re.test(body);
+  const hasClass = (re: RegExp) => q("[class]").some((e) => re.test((e.className || "").toString()));
+
+  const components = {
+    navbar: q("header a, nav a").length >= 2,
+    hero: q("h1").some((h) => h.getBoundingClientRect().top < 700) && q("a, button").length > 0,
+    cards,
+    forms: forms.length,
+    faq: q("details").length >= 2 || /frequently asked|\bFAQ\b/i.test(body) || hasClass(/faq/i),
+    pricing: hasClass(/pric/i) || /\/mo\b|\/month|per month|\$\d|£\d|€\d/.test(body) && /pricing|plan/i.test(body),
+    testimonials: hasClass(/testimonial|review|quote/i) || /what (our )?(customers|clients) say|testimonial/i.test(body),
+    gallery: hasClass(/gallery|portfolio|case-stud|masonry/i) || q("img").length >= 8,
+    booking: forms.some((f) => f.querySelector("input[type='date'], input[type='time']")) || /book (now|online)|appointment|reserve|schedule a/i.test(body),
+    cta: /get started|sign up|start free|book now|get a quote|contact us|request a demo/i.test(body),
+    footer: q("footer").length > 0,
+  };
+
+  const primaryBtn = q("a, button, [role='button']").find((el) => {
+    const r = el.getBoundingClientRect();
+    return r.width >= 60 && r.width <= 360 && r.height >= 30 && r.height <= 72 && getComputedStyle(el).backgroundColor !== "rgba(0, 0, 0, 0)";
+  });
+  const ctaText = primaryBtn ? txt(primaryBtn).slice(0, 40) : undefined;
+
+  const navItems = [...new Set(
+    q("header a, nav a").map((a) => (a as HTMLElement).innerText?.trim().replace(/\s+/g, " ") ?? "").filter((t) => t.length > 1 && t.length < 26),
+  )].slice(0, 10);
+
+  return {
+    title: document.title || undefined,
+    metaDescription: (document.querySelector("meta[name='description']") as HTMLMetaElement | null)?.content || undefined,
+    h1,
+    h2,
+    sections,
+    components,
+    formFields,
+    ctaText,
+    navItems,
+  };
+}
+
+/** Scan multiple pages for their real section/component structure. Reuses one
+ *  browser; bounded per-page timeouts. Returns one PageStructure per URL. */
+export async function scanPages(urls: string[], onProgress?: ProbeProgress): Promise<PageStructure[]> {
+  const out: PageStructure[] = [];
+  if (!urls.length) return out;
+  let browser: import("playwright").Browser | null = null;
+  try {
+    const { chromium } = await import("playwright");
+    browser = await chromium.launch({ headless: true });
+    const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    await page.addInitScript(() => {
+      (globalThis as unknown as Record<string, unknown>).__name = (f: unknown) => f;
+    });
+    for (const url of urls.slice(0, 10)) {
+      try {
+        await onProgress?.("Scanning page structure", `Detecting real sections & components on ${url.replace(/^https?:\/\//, "")}…`);
+        await page.goto(url, { waitUntil: "domcontentloaded", timeout: 20000 });
+        await page.waitForLoadState("networkidle", { timeout: 5000 }).catch(() => {});
+        await page.waitForTimeout(1500);
+        const raw = await page.evaluate(pageStructureScanner);
+        out.push({ url, ok: true, pageType: classifyPageType(url, raw.h1[0] ?? ""), ...raw });
+      } catch {
+        out.push({
+          url, ok: false, pageType: classifyPageType(url, ""), h1: [], h2: [], sections: [], navItems: [], formFields: [],
+          components: { navbar: false, hero: false, cards: 0, forms: 0, faq: false, pricing: false, testimonials: false, gallery: false, booking: false, cta: false, footer: false },
+        });
+      }
+    }
+    return out;
+  } catch {
+    return out; // browser unavailable — caller falls back
+  } finally {
+    await browser?.close().catch(() => {});
+  }
+}
+
 /** Optional progress reporter so callers can stream live sub-steps. */
 export type ProbeProgress = (title: string, detail: string) => Promise<void> | void;
 

@@ -11,6 +11,10 @@ export type ProjectBrief = {
   // Step 2 — design references (all optional)
   referenceUrls: string[];
   existingWebsiteUrl?: string;
+  /** Extra pages of the client's own site to analyze (about, services, faq,
+   *  pricing, contact/booking, blog, portfolio…). More pages = a truer
+   *  section/component inventory. Page type is auto-classified, not labeled. */
+  pageUrls: string[];
   competitorUrls: string[];
   stylePreference?: string;
   // Step 3 — brand inputs (all optional)

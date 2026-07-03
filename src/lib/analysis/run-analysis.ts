@@ -6,7 +6,8 @@ import { prisma } from "@/lib/db/client";
 import { toGenerationInput } from "@/lib/projects";
 import { fetchSiteSource, analyzeAnimations, extractAnimationAnalysis, fallbackAnimationAnalysis } from "./animation-extractor";
 import { analyzeWebsiteStructure, analyzeVisualAndTokens } from "./site-analyzer";
-import { runRenderedProbe, type RenderedProbeResult } from "./rendered-probe";
+import { runRenderedProbe, scanPages, type RenderedProbeResult } from "./rendered-probe";
+import { buildMultiPageAnalysis } from "./section-evidence";
 
 /** Overlay rendered-probe measurements onto the statically-derived tokens. */
 function mergeRendered(
@@ -115,12 +116,23 @@ export async function runWebsiteAnalysis(projectId: string) {
 
   const input = toGenerationInput(project);
   const isUrl = (r: string) => /^https?:\/\//i.test(r);
+  // Primary page (design-token source): the client's own site first.
   const url =
     input.brief.existingWebsiteUrl?.trim() ||
+    input.brief.pageUrls.find(isUrl) ||
     input.brief.referenceUrls.find(isUrl) ||
     project.business?.website ||
     input.brief.brandRefs.find(isUrl) ||
     null;
+  // All the client's pages to scan for the real section/component inventory.
+  const allPageUrls = [
+    ...(input.brief.existingWebsiteUrl?.trim() ? [input.brief.existingWebsiteUrl.trim()] : []),
+    ...input.brief.pageUrls.filter(isUrl),
+    ...input.brief.referenceUrls.filter(isUrl),
+  ]
+    .map((u) => u.trim().replace(/\/$/, ""))
+    .filter((u, i, arr) => arr.indexOf(u) === i)
+    .slice(0, 10);
 
   const run = await prisma.agentRun.create({
     data: {
@@ -198,6 +210,31 @@ export async function runWebsiteAnalysis(projectId: string) {
         `(confidence: ${animation.meta.confidence}).`,
     );
 
+    // ---- Multi-page evidence: scan every provided page for its real sections
+    // and components, then build the inventory + accuracy score. ------------
+    const pages = allPageUrls.length
+      ? await scanPages(allPageUrls, async (t, d) => { await step(t, d); })
+      : [];
+    const multiPage = buildMultiPageAnalysis(projectId, pages, probe);
+    // Make the evidence available to the preview + MD generators (flows via
+    // DESIGN_TOKENS.json), so sections are rendered/generated from detection.
+    (tokens as unknown as Record<string, unknown>).multiPage = {
+      scope: multiPage.scope,
+      note: multiPage.note,
+      componentInventory: multiPage.componentInventory,
+      sectionInventory: multiPage.sectionInventory,
+      pagesAnalyzed: multiPage.pagesAnalyzed,
+      accuracy: multiPage.accuracy,
+      faqDetected: multiPage.faqDetected,
+      recommendedPagesMissing: multiPage.recommendedPagesMissing,
+    };
+    await step(
+      "Built section evidence",
+      `${multiPage.pagesAnalyzed.filter((p) => p.ok).length}/${allPageUrls.length || 0} page(s) scanned · ` +
+        `${multiPage.sectionEvidence.length} section evidence entries · ` +
+        `accuracy: ${multiPage.accuracy.level} (${multiPage.accuracy.score}/100). ${multiPage.note}`,
+    );
+
     await saveJsonFile(projectId, "WEBSITE_ANALYSIS.json", website);
     await saveJsonFile(projectId, "VISUAL_ANALYSIS.json", visual);
     await saveJsonFile(projectId, "DESIGN_TOKENS.json", tokens);
@@ -226,6 +263,8 @@ export async function runWebsiteAnalysis(projectId: string) {
         savedFiles.push("SCROLL_ANIMATION_ANALYSIS.json");
       }
     }
+    await saveJsonFile(projectId, "MULTI_PAGE_WEBSITE_ANALYSIS.json", multiPage);
+    savedFiles.push("MULTI_PAGE_WEBSITE_ANALYSIS.json");
     await step("Saved analysis files", `${savedFiles.join(", ")} (versioned).`);
 
     await prisma.agentRun.update({

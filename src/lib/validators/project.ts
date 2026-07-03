@@ -61,6 +61,7 @@ export const createProjectSchema = z.object({
   targetAudience: optionalText,
   referenceUrls: listField,
   existingWebsiteUrl: optionalText,
+  pageUrls: listField,
   competitorUrls: listField,
   stylePreference: optionalText,
   primaryColor: optionalText,

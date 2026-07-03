@@ -40,6 +40,7 @@ export async function createProjectAction(
     targetAudience: str(formData, "targetAudience"),
     referenceUrls: str(formData, "referenceUrls"),
     existingWebsiteUrl: str(formData, "existingWebsiteUrl"),
+    pageUrls: str(formData, "pageUrls"),
     competitorUrls: str(formData, "competitorUrls"),
     stylePreference: str(formData, "stylePreference"),
     primaryColor: str(formData, "primaryColor"),

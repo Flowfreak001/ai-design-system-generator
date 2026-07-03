@@ -290,8 +290,18 @@ export function ProjectWizard({
                   Reference websites help us understand the design style. They are optional but recommended.
                 </p>
               </div>
-              <Area label="Reference website URLs" name="referenceUrls" placeholder="One per line — sites whose style you like" />
-              <Field label="Existing website URL" name="existingWebsiteUrl" placeholder="https://… (if the business already has a site)" />
+              <Field label="Existing website / homepage URL" name="existingWebsiteUrl" placeholder="https://… (the client's own site)" />
+              <Area
+                label="Additional page URLs to analyze"
+                name="pageUrls"
+                placeholder="One per line — about, services, pricing, FAQ, contact, booking, portfolio, blog…"
+              />
+              <p className="-mt-3 text-[12px] text-muted">
+                Add as many page URLs as available. More pages help the system capture the real
+                section structure, forms, cards, FAQs, buttons, and responsive behavior — instead of
+                assuming a fixed layout. Page types are detected automatically.
+              </p>
+              <Area label="Reference website URLs" name="referenceUrls" placeholder="One per line — other sites whose style you like" />
               <Area label="Competitor URLs" name="competitorUrls" placeholder="One per line" />
               <Select label="Style preference" name="stylePreference" options={STYLE_PREFERENCES} />
             </div>
