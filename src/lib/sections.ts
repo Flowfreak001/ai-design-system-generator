@@ -4,7 +4,7 @@
 
 export type SectionKind =
   | "navbar" | "hero" | "features" | "services" | "socialproof" | "workflow"
-  | "showcase" | "usecases" | "comparison" | "integrations" | "form" | "booking"
+  | "showcase" | "scrollmedia" | "usecases" | "comparison" | "integrations" | "form" | "booking"
   | "pricing" | "faq" | "testimonials" | "gallery" | "cta" | "footer"
   | "directory" | "dashboard" | "generic";
 
@@ -22,7 +22,8 @@ export function sectionKind(name: string): SectionKind {
   if (/integration|ecosystem|works with|app grid/.test(n)) return "integrations";
   if (/compar|why choose|why us|versus|\bvs\b/.test(n)) return "comparison";
   if (/use ?case|industries|industry/.test(n)) return "usecases";
-  if (/showcase|template|case stud|journey|story|scroll/.test(n)) return "showcase";
+  if (/scroll media|scroll story|sticky media|expanding media|\bjourney\b|scroll reveal/.test(n)) return "scrollmedia";
+  if (/showcase|template|case stud/.test(n)) return "showcase";
   if (/stats|metrics|numbers|by the numbers/.test(n)) return "socialproof";
   if (/gallery|portfolio|our work/.test(n)) return "gallery";
   if (/booking|calendar|availab|reserv|appointment/.test(n)) return "booking";
@@ -46,6 +47,7 @@ export function componentNameForKind(kind: SectionKind): string {
     socialproof: "LogoCloud",
     workflow: "StepByStepProcess",
     showcase: "CaseStudyCards",
+    scrollmedia: "ScrollExpandMedia",
     usecases: "UseCaseCards",
     comparison: "ComparisonTable",
     integrations: "IntegrationLogoCloud",

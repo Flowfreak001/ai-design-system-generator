@@ -15,6 +15,7 @@ export type SectionType =
   | "use-cases"
   | "comparison"
   | "integrations"
+  | "scroll-media"
   | "booking-form"
   | "contact-form"
   | "quote-form"

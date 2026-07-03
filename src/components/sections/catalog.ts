@@ -57,7 +57,12 @@ export const SECTION_CATALOG: Partial<Record<SectionType, SectionCatalogEntry>> 
     variants: [
       V("templates", "Template Gallery", "TemplateGallery", "showcase", ["saas", "platform", "ecommerce"]),
       V("case-studies", "Case Study Cards", "CaseStudyCards", "showcase", ["agency", "professional-service", "software"]),
-      V("scroll-media", "Sticky Expanding Media", "ScrollExpandMedia", "showcase/ScrollExpandMedia", ["agency", "creative", "portfolio"], { exportNotes: "Scroll-linked: block stays sticky while a centered media grows from small to full-bleed over a large serif statement, evolving through stages. Respect prefers-reduced-motion (render at final size)." }),
+    ],
+  },
+  "scroll-media": {
+    label: "Scroll Media",
+    variants: [
+      V("expand", "Sticky Expanding Media", "ScrollExpandMedia", "scroll-media/ScrollExpandMedia", ["agency", "creative", "portfolio"], { exportNotes: "Scroll-linked: block stays sticky while a centered media grows from small to full-bleed over a large serif statement, evolving through stages. Respect prefers-reduced-motion (render at final size)." }),
     ],
   },
   "use-cases": {
@@ -164,6 +169,7 @@ export function sectionTypeForKind(kind: string): SectionType {
     navbar: "navbar", hero: "hero", services: "services", features: "features",
     socialproof: "social-proof", workflow: "workflow", showcase: "showcase",
     usecases: "use-cases", comparison: "comparison", integrations: "integrations",
+    scrollmedia: "scroll-media",
     form: "contact-form", booking: "booking-form", pricing: "pricing", faq: "faq",
     testimonials: "testimonials", gallery: "gallery", cta: "cta", footer: "footer",
     directory: "directory", dashboard: "dashboard", generic: "features",
