@@ -23,6 +23,10 @@ export type CanvasSection = {
   status?: SectionStatus;
   /** Layout variant hint for the wireframe/design (e.g. "split", "centered"). */
   variant?: string;
+  /** Style scheme name (from the Style Guide colors) applied to this section. */
+  scheme?: string;
+  /** Asset placement hint (e.g. "left", "right", "background", "none"). */
+  asset?: string;
 };
 
 export type CanvasPage = {
@@ -33,6 +37,9 @@ export type CanvasPage = {
   /** React Flow node position (persisted so the layout survives reloads). */
   x?: number;
   y?: number;
+  /** Parent page id for sitemap hierarchy (optional). */
+  parentId?: string;
+  status?: SectionStatus;
 };
 
 export type SitemapCanvas = {
