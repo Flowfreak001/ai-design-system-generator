@@ -12,12 +12,17 @@ export type CanvasSource =
   | "vision-detected"
   | "assumed";
 
+export type SectionStatus = "draft" | "approved" | "rejected";
+
 export type CanvasSection = {
   id: string;
   name: string;
   note?: string;
   source: CanvasSource;
   global?: boolean;
+  status?: SectionStatus;
+  /** Layout variant hint for the wireframe/design (e.g. "split", "centered"). */
+  variant?: string;
 };
 
 export type CanvasPage = {
