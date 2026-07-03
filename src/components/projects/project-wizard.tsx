@@ -174,6 +174,41 @@ function Chip({
   );
 }
 
+/** Editable review summary card — lists filled rows + an Edit button. */
+function SummaryCard({
+  title,
+  onEdit,
+  rows,
+}: {
+  title: string;
+  onEdit: () => void;
+  rows: [string, string][];
+}) {
+  const filled = rows.filter(([, v]) => v && v.trim());
+  return (
+    <div className="card p-5">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-sm font-semibold text-ink">{title}</p>
+        <Button type="button" variant="ghost" size="sm" onClick={onEdit} className="h-7 px-2 text-[12px]">
+          Edit
+        </Button>
+      </div>
+      {filled.length ? (
+        <dl className="mt-3 grid gap-2">
+          {filled.map(([k, v]) => (
+            <div key={k} className="grid grid-cols-[130px_1fr] gap-3 text-sm">
+              <dt className="pt-0.5 font-mono text-[11px] uppercase tracking-wider text-faint">{k}</dt>
+              <dd className="whitespace-pre-line text-body">{v}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : (
+        <p className="mt-2 text-[13px] text-faint">Nothing added.</p>
+      )}
+    </div>
+  );
+}
+
 const toggle = (set: Set<string>, v: string) => {
   const next = new Set(set);
   if (next.has(v)) next.delete(v);
@@ -275,6 +310,27 @@ export function ProjectWizard({
     setStep(next);
   };
 
+  // Guard against early creation: the project is created ONLY from the final
+  // Review step. Enter-key submits from any earlier field, or any programmatic
+  // submit, are cancelled and turned into a "go to next step" instead.
+  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    if (step !== LAST) {
+      e.preventDefault();
+      goTo(step + 1);
+      return;
+    }
+    // On the Review step, re-validate the whole flow before allowing creation.
+    for (let s = 1; s < LAST; s++) {
+      const err = validateStep(s);
+      if (err) {
+        e.preventDefault();
+        setStep(s);
+        setStepError(err);
+        return;
+      }
+    }
+  };
+
   const panel = (n: number) =>
     n === step ? "animate-in fade-in slide-in-from-bottom-2 duration-300" : "hidden";
 
@@ -286,7 +342,7 @@ export function ProjectWizard({
   });
 
   return (
-    <form ref={formRef} action={formAction} className="grid gap-6">
+    <form ref={formRef} action={formAction} onSubmit={onSubmit} className="grid gap-6">
       {/* Hidden inputs carrying card/chip selections (newline-joined → listField). */}
       <input type="hidden" name="type" value="WEBSITE_APP" />
       <input type="hidden" name="websiteType" value={websiteType} />
@@ -525,37 +581,49 @@ export function ProjectWizard({
           </div>
         </div>
 
-        {/* Step 6 — Review */}
+        {/* Step 6 — Review & Create. Nothing is created until the final button. */}
         <div className={panel(6)}>
           <div className="grid gap-4">
-            <div className="card p-6">
+            <div>
               <h3 className="text-base font-semibold">Review &amp; create</h3>
-              <dl className="mt-4 grid gap-2.5">
-                {[
-                  ["Project", readText("name")],
-                  ["Business", `${readText("businessName")}${readText("businessType") ? ` · ${readText("businessType")}` : ""}`],
-                  ["Industry", industry],
-                  ["Website type", websiteType],
-                  ["Goals", [...goals].join(", ")],
-                  ["Features", allFeatures.join(", ")],
-                  ["Pages", [...pages].join(", ")],
-                  ["Main reference", readText("mainReferenceUrl")],
-                  ["Brand evidence", [
-                    readText("primaryColor") ? "brand color" : "",
-                    readText("existingWebsiteUrl") ? "existing site" : "",
-                    readText("referenceUrls") ? "extra refs" : "",
-                  ].filter(Boolean).join(", ")],
-                  ["Learn from ref", [...learn].join(", ")],
-                ]
-                  .filter(([, v]) => v)
-                  .map(([k, v]) => (
-                    <div key={k} className="grid grid-cols-[130px_1fr] gap-3 text-sm">
-                      <dt className="pt-0.5 font-mono text-[11px] uppercase tracking-wider text-faint">{k}</dt>
-                      <dd className="text-body">{v}</dd>
-                    </div>
-                  ))}
-              </dl>
+              <p className="mt-1 text-[13px] text-muted">
+                Check everything below. Use <span className="font-medium text-body">Edit</span> on any card to change a step.
+                Your workspace is created only when you click <span className="font-medium text-body">Create Design Workspace</span>.
+              </p>
             </div>
+
+            <SummaryCard title="Business basics" onEdit={() => goTo(1)} rows={[
+              ["Project", readText("name")],
+              ["Business", `${readText("businessName")}${readText("businessType") ? ` · ${readText("businessType")}` : ""}`],
+              ["Industry", industry],
+              ["Target audience", readText("targetAudience")],
+            ]} />
+
+            <SummaryCard title="Website type" onEdit={() => goTo(2)} rows={[["Type", websiteType]]} />
+
+            <SummaryCard title="Goals & features" onEdit={() => goTo(3)} rows={[
+              ["Goals", [...goals].join(", ")],
+              ["Features", allFeatures.join(", ")],
+            ]} />
+
+            <SummaryCard title="Pages needed" onEdit={() => goTo(4)} rows={[
+              ["Pages", [...pages].join(", ")],
+              ["Approx count", readText("pageCount")],
+              ["Notes", readText("pageNotes")],
+            ]} />
+
+            <SummaryCard title="Reference sources" onEdit={() => goTo(5)} rows={[
+              ["Primary reference", readText("mainReferenceUrl")],
+              ["Additional refs", readText("referenceUrls")],
+              ["Existing site", readText("existingWebsiteUrl")],
+              ["Learn from ref", [...learn].join(", ")],
+            ]} />
+
+            <SummaryCard title="Brand evidence" onEdit={() => goTo(5)} rows={[
+              ["Primary color", readText("primaryColor")],
+              ["Secondary color", readText("secondaryColor")],
+            ]} />
+
             <div className="card flex items-center justify-between gap-4 p-5">
               <div>
                 <p className="text-sm font-semibold text-ink">Estimated accuracy</p>
