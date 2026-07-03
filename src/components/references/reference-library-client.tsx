@@ -12,7 +12,7 @@ import { analyzeReferenceAction, saveReferencePatternAction, deleteReferencePatt
 import { generateSectionFromReferencePattern, filterPatterns } from "@/lib/references/pattern";
 import {
   SECTION_TYPE_OPTIONS, WEBSITE_TYPE_OPTIONS, INDUSTRY_OPTIONS, PATTERN_GOAL_OPTIONS,
-  VISUAL_STYLE_TAGS, LAYOUT_TAGS, INTERACTION_TAGS, CONVERSION_TAGS,
+  VISUAL_STYLE_TAGS, LAYOUT_TAGS, INTERACTION_TAGS,
   type ReferenceSectionType, type SectionPattern,
 } from "@/lib/references/types";
 
@@ -44,7 +44,6 @@ export function ReferenceLibraryClient({ projectId, projectName, initialPatterns
   const [styleTags, setStyleTags] = useState<string[]>([]);
   const [layoutTags, setLayoutTags] = useState<string[]>([]);
   const [interactionTags, setInteractionTags] = useState<string[]>([]);
-  const [conversionTags, setConversionTags] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
   const [draft, setDraft] = useState<SectionPattern | null>(null);
   const [busy, start] = useTransition();
@@ -79,7 +78,7 @@ export function ReferenceLibraryClient({ projectId, projectName, initialPatterns
       const r = await analyzeReferenceAction(projectId, {
         imageDataUrl: full, thumbnailUrl: thumb, sectionType,
         websiteType: resolvedWebsiteType, industry, patternGoal,
-        styleTags, layoutTags, interactionTags, conversionTags, notes,
+        styleTags, layoutTags, interactionTags, notes,
       });
       if (r.error) setErr(r.error); else setDraft(r.pattern ?? null);
     });
@@ -91,7 +90,7 @@ export function ReferenceLibraryClient({ projectId, projectName, initialPatterns
       if (r.error) { setErr(r.error); return; }
       setPatterns((cur) => [{ ...draft, approved: true }, ...cur.filter((p) => p.id !== draft.id)]);
       setDraft(null); setFull(""); setThumb(""); setNotes(""); setAddOpen(false);
-      setStyleTags([]); setLayoutTags([]); setInteractionTags([]); setConversionTags([]);
+      setStyleTags([]); setLayoutTags([]); setInteractionTags([]);
     });
   };
   const remove = (id: string) => start(async () => { await deleteReferencePatternAction(projectId, id); setPatterns((cur) => cur.filter((p) => p.id !== id)); });
@@ -226,7 +225,6 @@ export function ReferenceLibraryClient({ projectId, projectName, initialPatterns
                   <TagGroup title="Visual style" tags={VISUAL_STYLE_TAGS} selected={styleTags} onToggle={toggle(setStyleTags)} />
                   <TagGroup title="Layout style" tags={LAYOUT_TAGS} selected={layoutTags} onToggle={toggle(setLayoutTags)} />
                   <TagGroup title="Interaction style" tags={INTERACTION_TAGS} selected={interactionTags} onToggle={toggle(setInteractionTags)} />
-                  <TagGroup title="Conversion style" tags={CONVERSION_TAGS} selected={conversionTags} onToggle={toggle(setConversionTags)} />
 
                   <label className="mt-4 block text-[11px] font-medium uppercase tracking-wide text-faint">What do you like about it?</label>
                   <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} className="mt-1 w-full rounded-lg border border-line px-2.5 py-1.5 text-[13px]" placeholder="Example: I like the split layout, accordion interaction, large image area, strong headline hierarchy, and clean CTA placement." />
