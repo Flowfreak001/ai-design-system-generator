@@ -440,11 +440,15 @@ function pageStatusOf(p: CanvasPage, sitemapApproved: boolean): PageStatus {
   return "in-progress";
 }
 
-const SECTION_ICON: Record<string, string> = {
-  navbar: "▭", hero: "◤", features: "▦", services: "▤", form: "✉", booking: "🗓",
-  pricing: "$", faq: "?", testimonials: "❝", gallery: "▣", cta: "➤", footer: "▭",
-  directory: "≣", dashboard: "▩", generic: "▢",
-};
+// Small monitor glyph shown only on framed Header/Footer rows (like the ref).
+function SectionFrameIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-success">
+      <rect x="3" y="4" width="18" height="13" rx="1.5" />
+      <path d="M8 20h8M12 17v3" />
+    </svg>
+  );
+}
 
 function SitemapEditor({
   pages, schemes, onAddPage, onRemovePage, onRenamePage, onDuplicatePage, onPatchPageMeta,
@@ -514,7 +518,7 @@ function SitemapEditor({
           <button type="button" onClick={() => onAddPage(cat)} className="mt-3 rounded-lg border border-accent px-4 py-2 text-[13px] font-medium text-accent hover:bg-accent-soft">＋ Add a page</button>
         </div>
       ) : (
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="grid items-start gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {visible.map((p) => (
             <SitemapPageCard
               key={p.id}
@@ -610,7 +614,7 @@ function SitemapPageCard({
           <button type="button" onClick={onGenerate} className="mt-2 text-[12px] font-medium text-accent hover:underline">✦ Generate sections</button>
         </div>
       ) : (
-        <div className="grid gap-1 p-2">
+        <div className="grid gap-2 p-3">
           {page.sections.map((s, i) => (
             <SitemapSectionRow
               key={s.id} section={s} first={i === 0} last={i === page.sections.length - 1}
@@ -619,7 +623,6 @@ function SitemapPageCard({
           ))}
         </div>
       )}
-      <button type="button" onClick={onAddSection} className="mx-2 mb-2 rounded-lg border border-dashed border-line py-1.5 text-[12px] font-medium text-muted hover:border-accent hover:text-accent">＋ Add section</button>
     </div>
   );
 }
@@ -628,16 +631,14 @@ function SitemapSectionRow({ section, first, last, onEdit, onUp, onDown, onDelet
   section: CanvasSection; first: boolean; last: boolean; onEdit: () => void; onUp: () => void; onDown: () => void; onDelete: () => void;
 }) {
   const kind = sectionKind(section.name);
-  const framed = kind === "navbar" || kind === "footer"; // Header/Footer shown as framed rows
-  const dot = section.status === "approved" ? "bg-success" : section.status === "rejected" ? "bg-danger" : "bg-warning";
+  const framed = kind === "navbar" || kind === "footer"; // Header/Footer carry an icon
   return (
-    <div className={`group flex items-center gap-2 rounded-lg border px-2.5 py-2 ${framed ? "border-success/40 bg-success-soft/30" : "border-transparent hover:border-line hover:bg-panel"}`}>
-      <span className="text-[11px] text-faint">{SECTION_ICON[kind] ?? "▢"}</span>
-      <button type="button" onClick={onEdit} className="min-w-0 flex-1 truncate text-left text-[12.5px] text-ink">
+    <div className={`group flex items-center gap-2.5 rounded-lg border px-3 py-2.5 transition-colors ${framed ? "border-success/40" : "border-line hover:border-line-strong"}`}>
+      {framed && <SectionFrameIcon />}
+      <button type="button" onClick={onEdit} className="min-w-0 flex-1 truncate text-left text-[13px] text-ink">
         {section.name}
         {section.global && <span className="ml-1.5 rounded bg-accent-soft px-1 py-0.5 text-[9px] font-medium text-accent">global</span>}
       </button>
-      <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${dot}`} title={section.status ?? "draft"} />
       <span className="flex shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100">
         <button type="button" onClick={onUp} disabled={first} className="px-0.5 text-[12px] text-faint hover:text-ink disabled:opacity-25">↑</button>
         <button type="button" onClick={onDown} disabled={last} className="px-0.5 text-[12px] text-faint hover:text-ink disabled:opacity-25">↓</button>
