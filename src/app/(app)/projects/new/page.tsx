@@ -16,7 +16,7 @@ export default async function NewProjectPage({
   const clients = user.agencyId ? await listClients(user.agencyId) : [];
 
   return (
-    <div className="mx-auto max-w-2xl px-5 sm:px-8 py-8">
+    <div className="px-5 py-8 sm:px-8">
       <Link href="/projects" className="text-sm text-muted transition-colors hover:text-ink">
         ← Projects
       </Link>
