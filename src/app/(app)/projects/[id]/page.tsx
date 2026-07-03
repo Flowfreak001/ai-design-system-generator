@@ -15,8 +15,17 @@ import {
   generateBrandAction,
   approveBrandAction,
   setDesignTypeAction,
+  approveStageAction,
+  confirmPagesAction,
 } from "../actions";
-import { DesignTypePicker } from "@/components/projects/design-type-picker";
+import { computePipeline } from "@/lib/pipeline";
+import {
+  ProjectPipeline,
+  type DiscoveredPage,
+  type CanvasPage,
+  type WireframePage,
+  type StyleGuide,
+} from "@/components/projects/project-pipeline";
 import { TypeBadge } from "@/components/projects/status-badge";
 import { GeneratedFilesViewer } from "@/components/projects/generated-files-viewer";
 import { PreviewPanel } from "@/components/projects/preview-panel";
@@ -121,7 +130,99 @@ export default async function ProjectWorkspacePage({
   const hasBrandGuidelines = fileNames.has("BRAND_GUIDELINES.md");
   const brandApproved = Boolean(b.brandApproved);
   const designType = b.designType;
-  const hasDesignSystem = fileNames.has("DESIGN.md");
+
+  // ---- Derive pipeline data from real analysis (never hardcoded) -----------
+  const parse = <T,>(name: string): T | null => {
+    const raw = project.files.find((f) => f.name === name)?.content;
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw) as T;
+    } catch {
+      return null;
+    }
+  };
+  type MultiPage = {
+    pagesAnalyzed?: { url: string; pageType: string; ok: boolean; title?: string }[];
+    sections?: { sectionName: string; pageType: string; confidence: "high" | "medium" }[];
+  };
+  const multi = parse<MultiPage>("MULTI_PAGE_WEBSITE_ANALYSIS.json");
+  const tokens = parse<{
+    color?: Record<string, string>;
+    fonts?: string[];
+    sourceUrl?: string;
+    confidence?: string;
+    metrics?: { headingWeight?: number; bodyFontSizePx?: number; spacingBase?: number; radiusPx?: number };
+  }>("DESIGN_TOKENS.json");
+
+  const discovered: DiscoveredPage[] = (multi?.pagesAnalyzed ?? []).map((p) => ({
+    url: p.url,
+    pageType: p.pageType,
+    title: p.title,
+    ok: p.ok,
+  }));
+
+  // Sitemap = confirmed/discovered page types ∪ selected page needs, labelled.
+  const discoveredTypes = new Set(discovered.filter((d) => d.ok).map((d) => d.pageType));
+  const sitemap: CanvasPage[] = (() => {
+    const out: CanvasPage[] = [];
+    const seen = new Set<string>();
+    const push = (name: string, source: string) => {
+      const key = name.toLowerCase();
+      if (name && !seen.has(key)) {
+        seen.add(key);
+        out.push({ name, source });
+      }
+    };
+    for (const d of discovered.filter((x) => x.ok)) push(d.title || d.pageType, "detected");
+    for (const p of b.keyItems ?? []) push(p, discoveredTypes.has(p.toLowerCase()) ? "detected" : "user-added");
+    return out;
+  })();
+
+  // Wireframe = detected sections grouped by page (source from confidence).
+  const wireframe: WireframePage[] = (() => {
+    const byPage = new Map<string, { label: string; source: string }[]>();
+    for (const s of multi?.sections ?? []) {
+      const arr = byPage.get(s.pageType) ?? [];
+      arr.push({ label: s.sectionName, source: s.confidence === "high" ? "extracted" : "reference-inspired" });
+      byPage.set(s.pageType, arr);
+    }
+    return [...byPage.entries()].map(([page, sections]) => ({ page, sections }));
+  })();
+
+  const styleGuide: StyleGuide = tokens
+    ? {
+        host: tokens.sourceUrl ? tokens.sourceUrl.replace(/^https?:\/\//, "").replace(/\/$/, "") : null,
+        source: tokens.confidence === "high" ? "extracted" : "inferred",
+        colors: Object.entries(tokens.color ?? {})
+          .filter(([, v]) => typeof v === "string" && v.startsWith("#"))
+          .slice(0, 8)
+          .map(([name, value]) => ({ name, value })),
+        bodyFont: tokens.fonts?.[0] ?? null,
+        displayFont: tokens.fonts?.[1] ?? tokens.fonts?.[0] ?? null,
+        bodySizePx: tokens.metrics?.bodyFontSizePx ?? 16,
+        headingWeight: tokens.metrics?.headingWeight ?? 600,
+        radiusPx: tokens.metrics?.radiusPx ?? 12,
+        spacingPx: tokens.metrics?.spacingBase ?? 8,
+      }
+    : null;
+
+  const pipeline = computePipeline({
+    fileNames,
+    brief: {
+      brandApproved: b.brandApproved,
+      pagesConfirmed: b.pagesConfirmed,
+      sitemapApproved: b.sitemapApproved,
+      wireframeApproved: b.wireframeApproved,
+      styleApproved: b.styleApproved,
+      designApproved: b.designApproved,
+    },
+    status: project.status,
+    hasReference: hasReferenceUrls,
+  });
+
+  const crawl = analyze; // the crawl stage reuses the website-analysis action
+  const approveStage = approveStageAction.bind(null, id);
+  const confirmPages = confirmPagesAction.bind(null, id);
 
   const timeline = [
     { label: "Created", done: true },
@@ -132,113 +233,33 @@ export default async function ProjectWorkspacePage({
 
   const overview = (
     <div className="grid gap-4">
-      {/* Phase 1 — Brand foundation */}
-      <FadeUp className="card border-accent/25 bg-accent-soft/30 p-5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p className="font-mono text-[10px] uppercase tracking-wider text-accent">Phase 1 · Foundation</p>
-            <p className="mt-1 text-[15px] font-semibold text-ink">Brand guideline</p>
-            <p className="mt-0.5 max-w-xl text-[13px] text-body">
-              The brand is the source of truth. Generate it from your business details, references, and
-              screenshots — then review and approve it before designing anything.
-            </p>
-          </div>
-          {brandApproved ? (
-            <span className="rounded-full bg-success-soft px-3 py-1 text-xs font-medium text-success">✓ Approved</span>
-          ) : hasBrandGuidelines ? (
-            <span className="rounded-full bg-warning-soft px-3 py-1 text-xs font-medium text-warning">Awaiting approval</span>
-          ) : null}
-        </div>
-        <div className="mt-4 flex flex-wrap items-center gap-2.5">
-          <ActionDialog
-            projectId={id}
-            title={hasBrandGuidelines ? "Regenerate Brand Guideline" : "Generate Brand Guideline"}
-            description="BRAND.md · BRAND_GUIDELINES.md · CREATIVE_DIRECTION.md from your brief + analysis"
-            confirmText="Generate the brand foundation (brand at a glance, color system, typography direction, tone, and creative direction) from the brief and latest analysis. Run it now?"
-            runName="Brand guideline generation"
-            action={generateBrand}
-          />
-          {hasBrandGuidelines && !brandApproved && (
-            <form action={approveBrand}>
-              <Button type="submit" variant="primary" size="sm">
-                Approve brand guideline
-              </Button>
-            </form>
-          )}
-        </div>
-        {hasBrandGuidelines && (
-          <p className="mt-3 text-[12px] text-muted">
-            Review the generated files in the Generated Files tab. Approve to unlock the design system.
-          </p>
-        )}
-      </FadeUp>
-
-      {/* Phase 2 — Design system (locked until the brand is approved) */}
-      <FadeUp className={`card p-5 ${brandApproved ? "" : "opacity-70"}`}>
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <p className="font-mono text-[10px] uppercase tracking-wider text-muted">Phase 2 · Build</p>
-            <p className="mt-1 text-[15px] font-semibold text-ink">Design system</p>
-            <p className="mt-0.5 max-w-xl text-[13px] text-body">
-              Choose what you&rsquo;re designing, then generate the full system — components, content, motion,
-              UX, SEO, and a Claude Code build prompt — from the approved brand.
-            </p>
-          </div>
-          {hasDesignSystem && (
-            <span className="rounded-full bg-success-soft px-3 py-1 text-xs font-medium text-success">✓ Generated</span>
-          )}
-        </div>
-
-        {!brandApproved ? (
-          <p className="mt-4 rounded-lg bg-panel px-3.5 py-2.5 text-[13px] text-muted">
-            🔒 Approve the brand guideline above to unlock the design system.
-          </p>
-        ) : (
-          <div className="mt-4 grid gap-4">
-            <div>
-              <p className="text-[12px] font-medium text-ink">What are you designing?</p>
-              <div className="mt-2">
-                <DesignTypePicker projectId={id} current={designType} save={setDesignTypeAction} />
-              </div>
-            </div>
-            <div className="grid items-stretch gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <ActionDialog
-                projectId={id}
-                title={hasDesignSystem ? "Regenerate Design System" : "Generate Design System"}
-                description="DESIGN, COMPONENTS, CONTENT, ANIMATION, UX, SEO + build prompt"
-                confirmText="Generate the full design system from the approved brand and latest analysis. Existing files get a new version. Run it now?"
-                runName="MD design-system generation"
-                action={generateMd}
-                disabledNote={designType ? undefined : "Choose a design type first."}
-              />
-              <ActionDialog
-                projectId={id}
-                title="Analyze References"
-                description="Scan the reference site for tokens, metrics, and motion"
-                confirmText="Scan the reference website in a real browser and refresh the analysis files (palette, typography, metrics, animation). Existing analysis is versioned, not lost. Run it now?"
-                runName="Website analysis run"
-                action={analyze}
-                disabledNote={hasReferenceUrls ? undefined : "Add reference URLs to improve design accuracy."}
-              />
-              <ActionDialog
-                projectId={id}
-                title="Generate Preview"
-                description="Visual specimen sheet from tokens + files"
-                confirmText="Render the branded preview and component sheet from the current tokens and files. Run it now?"
-                runName="Preview generation"
-                action={generatePreview}
-              />
-              <ActionDialog
-                projectId={id}
-                title="Export Files"
-                description="Full ZIP package for your build tool"
-                confirmText="Download the full export package (brief, analysis, design system, prompts, preview) and mark this project as Exported?"
-                downloadHref={`/api/projects/${id}/export`}
-              />
-            </div>
-          </div>
-        )}
-      </FadeUp>
+      {/* Design pipeline — Brand foundation first, every later stage gated. */}
+      <ProjectPipeline
+        projectId={id}
+        stages={pipeline}
+        brandExists={hasBrandGuidelines}
+        brandApproved={brandApproved}
+        designType={designType}
+        hasReference={hasReferenceUrls}
+        discovered={discovered}
+        confirmedPages={b.confirmedPages ?? []}
+        sitemap={sitemap}
+        wireframe={wireframe}
+        style={styleGuide}
+        previewExists={Boolean(previewHtml)}
+        producedFiles={docFiles.map((f) => f.name)}
+        exportHref={`/api/projects/${id}/export`}
+        actions={{
+          generateBrand,
+          approveBrand,
+          crawl,
+          confirmPages,
+          approveStage,
+          setDesignType: setDesignTypeAction,
+          generateMd,
+          generatePreview,
+        }}
+      />
 
       {/* Status timeline */}
       <div className="card p-5">

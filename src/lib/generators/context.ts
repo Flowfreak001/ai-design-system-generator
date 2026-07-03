@@ -69,6 +69,10 @@ export class Assumptions {
     if (!this.items.length) return "## Assumptions\n\n- None — all inputs above come from project data or site analysis.";
     return `## Assumptions\n\n${this.items.map((a) => `- ${a}`).join("\n")}`;
   }
+  /** Raw list — for JSON artifacts (e.g. STYLE_DIRECTION.json). */
+  list(): string[] {
+    return [...this.items];
+  }
 }
 
 /** Tokens with graceful fallback + assumption tracking. */

@@ -466,27 +466,56 @@ export function ProjectWizard({
           </div>
         </div>
 
-        {/* Step 5 — Brand references */}
+        {/* Step 5 — Reference sources */}
         <div className={panel(5)}>
-          <div className="card grid gap-5 p-6">
-            <div>
-              <h3 className="text-base font-semibold">Brand references</h3>
-              <p className="mt-1 text-[13px] text-muted">
-                We learn the design from real sites. The more you add, the more accurate the system.
-              </p>
+          <div className="grid gap-4">
+            <div className="card grid gap-5 p-6">
+              <div>
+                <h3 className="text-base font-semibold">Reference sources</h3>
+                <p className="mt-1 text-[13px] text-muted">
+                  Add the main reference site only. The system will crawl and discover the
+                  important pages automatically — you confirm them in the workspace.
+                </p>
+              </div>
+              <Field
+                label="Primary reference website URL"
+                name="mainReferenceUrl"
+                required
+                placeholder="https://a-site-whose-design-you-like.com"
+                hint="The primary site we crawl for pages, tokens, layout, and sections."
+                invalid={Boolean(stepError) && step === 5}
+              />
+              <Area label="Additional reference URLs" name="referenceUrls" placeholder="One per line — other sites whose style you like (optional)" />
+              <Field label="Existing client / business website URL" name="existingWebsiteUrl" placeholder="https://yourcurrentsite.com (if any)" />
             </div>
-            <Field label="Existing website URL" name="existingWebsiteUrl" placeholder="https://yourcurrentsite.com (if any)" />
-            <Field
-              label="Main reference website URL"
-              name="mainReferenceUrl"
-              required
-              placeholder="https://a-site-whose-design-you-like.com"
-              hint="The primary site we analyze for tokens, layout, and sections."
-              invalid={Boolean(stepError) && step === 5}
-            />
-            <Area label="Additional reference URLs" name="referenceUrls" placeholder="One per line — other sites whose style you like" />
-            <div>
-              <p className="mb-2 text-sm font-medium">What should we learn from the reference?</p>
+
+            <div className="card grid gap-5 p-6">
+              <div>
+                <h3 className="text-base font-semibold">Brand evidence</h3>
+                <p className="mt-1 text-[13px] text-muted">All optional — anything you add sharpens the brand guideline.</p>
+              </div>
+              <div className="grid gap-5 sm:grid-cols-2">
+                <Field label="Primary brand color" name="primaryColor" placeholder="#1E5AFF (if you have one)" />
+                <Field label="Secondary brand color" name="secondaryColor" placeholder="#0B1F3A (optional)" />
+              </div>
+              {/* Upload placeholders — wiring lands with the References tab uploader. */}
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-xl border border-dashed border-line bg-panel/50 px-4 py-5 text-center">
+                  <p className="text-[13px] font-medium text-body">Logo upload</p>
+                  <p className="mt-0.5 text-[12px] text-faint">Add later on the References tab</p>
+                </div>
+                <div className="rounded-xl border border-dashed border-line bg-panel/50 px-4 py-5 text-center">
+                  <p className="text-[13px] font-medium text-body">Reference screenshots</p>
+                  <p className="mt-0.5 text-[12px] text-faint">Add later on the References tab</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="card grid gap-4 p-6">
+              <div>
+                <p className="text-sm font-semibold text-ink">What should we learn from the reference?</p>
+                <p className="mt-0.5 text-[13px] text-muted">Guides what the brand guideline and style guide pull from the site.</p>
+              </div>
               <div className="flex flex-wrap gap-2">
                 {REFERENCE_LEARN_OPTIONS.map((l) => (
                   <Chip key={l} label={l} selected={learn.has(l)} onClick={() => setLearn((s) => toggle(s, l))} />
@@ -511,6 +540,11 @@ export function ProjectWizard({
                   ["Features", allFeatures.join(", ")],
                   ["Pages", [...pages].join(", ")],
                   ["Main reference", readText("mainReferenceUrl")],
+                  ["Brand evidence", [
+                    readText("primaryColor") ? "brand color" : "",
+                    readText("existingWebsiteUrl") ? "existing site" : "",
+                    readText("referenceUrls") ? "extra refs" : "",
+                  ].filter(Boolean).join(", ")],
                   ["Learn from ref", [...learn].join(", ")],
                 ]
                   .filter(([, v]) => v)
@@ -552,7 +586,7 @@ export function ProjectWizard({
           </Button>
         ) : (
           <Button type="submit" size="lg" disabled={pending} className="disabled:opacity-50">
-            {pending ? "Creating…" : "Create Design System Project"}
+            {pending ? "Creating…" : "Create Design Workspace"}
           </Button>
         )}
       </div>

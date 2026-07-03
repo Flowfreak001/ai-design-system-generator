@@ -117,6 +117,35 @@ export async function approveBrandAction(projectId: string) {
   revalidatePath(`/projects/${projectId}`);
 }
 
+// Pipeline stage gates. Each approval sets a flag on the brief so the next
+// stage unlocks (Brand → Crawl → Sitemap → Wireframe → Style → Design → Files).
+const STAGE_FLAGS: Record<string, string> = {
+  sitemap: "sitemapApproved",
+  wireframe: "wireframeApproved",
+  style: "styleApproved",
+  design: "designApproved",
+};
+
+export async function approveStageAction(projectId: string, stage: string) {
+  const user = await requireUser();
+  if (!user.agencyId || !(await ownsProject(projectId, user.agencyId))) return { error: "Not found" };
+  const flag = STAGE_FLAGS[stage];
+  if (!flag) return { error: "Unknown stage" };
+  await patchBrief(projectId, { [flag]: true });
+  revalidatePath(`/projects/${projectId}`);
+  return {};
+}
+
+/** Confirm the pages discovered by the reference crawl (user can trim/add). */
+export async function confirmPagesAction(projectId: string, pages: string[]) {
+  const user = await requireUser();
+  if (!user.agencyId || !(await ownsProject(projectId, user.agencyId))) return { error: "Not found" };
+  const clean = pages.map((p) => String(p).trim()).filter(Boolean).slice(0, 40);
+  await patchBrief(projectId, { confirmedPages: clean, pagesConfirmed: true });
+  revalidatePath(`/projects/${projectId}`);
+  return {};
+}
+
 export async function setDesignTypeAction(projectId: string, designType: string) {
   const user = await requireUser();
   if (!user.agencyId || !(await ownsProject(projectId, user.agencyId))) return { error: "Not found" };
@@ -136,13 +165,19 @@ export async function runAiVisionAction(projectId: string) {
 export async function generateMdAction(projectId: string) {
   const user = await requireUser();
   if (!user.agencyId || !(await ownsProject(projectId, user.agencyId))) return;
-  // Gate: the design system is generated only after the brand guideline exists
-  // and is approved — the brand is the source of truth.
+  // Gate: MD files are generated only after brand + structure + style are ready
+  // (brand approved, sitemap + wireframe + style guide + design canvas approved).
   const brandInput = await prisma.projectInput.findFirst({ where: { projectId, category: "brief" } });
-  const approved = Boolean((brandInput?.data as { brandApproved?: boolean } | null)?.brandApproved);
+  const b = (brandInput?.data ?? {}) as {
+    brandApproved?: boolean;
+    designApproved?: boolean;
+  };
   const hasBrand = await prisma.generatedFile.count({ where: { projectId, name: "BRAND_GUIDELINES.md" } });
-  if (!approved || !hasBrand) {
+  if (!b.brandApproved || !hasBrand) {
     throw new Error("Approve the brand guideline before generating the design system.");
+  }
+  if (!b.designApproved) {
+    throw new Error("Approve the design canvas before generating the MD files.");
   }
   await runMdGeneration(projectId);
   revalidatePath(`/projects/${projectId}`);

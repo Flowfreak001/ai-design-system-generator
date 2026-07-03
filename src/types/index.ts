@@ -37,6 +37,15 @@ export type ProjectBrief = {
   designType?: string;
   /** True once the user approves the generated brand guideline. */
   brandApproved?: boolean;
+  // Design pipeline stage gates (Brand → Crawl → Sitemap → Wireframe → Style →
+  // Design → Files → Export). Each is set true once the user confirms the stage.
+  pagesConfirmed?: boolean;
+  /** Page types/URLs the user confirmed after the reference crawl. */
+  confirmedPages?: string[];
+  sitemapApproved?: boolean;
+  wireframeApproved?: boolean;
+  styleApproved?: boolean;
+  designApproved?: boolean;
   // Step 4 — website structure
   keyItems: string[]; // required pages / workflows
   services?: string;

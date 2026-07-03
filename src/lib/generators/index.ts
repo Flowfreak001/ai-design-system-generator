@@ -8,6 +8,8 @@ export type { GeneratorContext, MdArtifact } from "./context";
 import type { GeneratorContext, MdArtifact } from "./context";
 import { generateBrandMd } from "./brand-generator";
 import { generateBrandGuidelinesMd } from "./brand-guidelines-generator";
+import { generateStyleDirectionMd } from "./style-direction-generator";
+import { generateCodexPromptMd } from "./codex-prompt-generator";
 import { generateDesignMd } from "./design-generator";
 import { generateCreativeMd } from "./creative-generator";
 import { generateContentMd } from "./content-generator";
@@ -24,6 +26,7 @@ export const BRAND_GENERATORS: Gen[] = [
   { agent: "Brand Strategist", run: generateBrandMd },
   { agent: "Brand Guidelines", run: generateBrandGuidelinesMd },
   { agent: "Creative Director", run: generateCreativeMd },
+  { agent: "Style Director", run: generateStyleDirectionMd },
 ];
 
 // Phase 2 — Design system (generated only after brand approval + design type).
@@ -35,6 +38,7 @@ export const DESIGN_GENERATORS: Gen[] = [
   { agent: "UX Architect", run: generateUxMd },
   { agent: "SEO Specialist", run: generateSeoMd },
   { agent: "Prompt Engineer", run: generatePromptMd },
+  { agent: "Codex Prompt Engineer", run: generateCodexPromptMd },
 ];
 
 /** All generators (both phases) — used where the split doesn't matter. */

@@ -71,13 +71,15 @@ export const PAGE_OPTIONS = [
 ] as const;
 
 export const REFERENCE_LEARN_OPTIONS = [
+  "Visual style",
   "Colors",
   "Typography",
   "Layout",
   "Animation",
   "Sections",
   "Forms",
-  "Overall style",
+  "Navigation",
+  "Overall experience",
 ] as const;
 
 type Feature = (typeof FEATURE_OPTIONS)[number];
