@@ -61,6 +61,7 @@ export type StyleGuide = {
 
 export type EvidenceInfo = {
   refUrls: string[];
+  crawlTarget: string | null;
   screenshots: number;
   logoPresent: boolean;
   brandColors: string[];
@@ -518,6 +519,13 @@ function EvidenceBody({
   const colors = evidence.brandColors.length ? evidence.brandColors : style?.colors.map((c) => c.value) ?? [];
   const fonts = [style?.bodyFont, style?.displayFont].filter(Boolean) as string[];
 
+  // Warn when the already-discovered pages came from a different site than the
+  // current crawl target (i.e. the reference was changed after the last crawl).
+  const hostOf = (u: string) => { try { return new URL(u).host.replace(/^www\./, ""); } catch { return ""; } };
+  const targetHost = evidence.crawlTarget ? hostOf(evidence.crawlTarget) : "";
+  const staleDiscovery =
+    Boolean(targetHost) && discovered.length > 0 && !discovered.some((d) => hostOf(d.url) === targetHost);
+
   return (
     <div className="grid gap-4">
       <p className="text-[13px] text-body">
@@ -553,6 +561,18 @@ function EvidenceBody({
           <span className="text-[12px] text-muted">{discovered.length} page{discovered.length === 1 ? "" : "s"} discovered</span>
         )}
       </div>
+
+      {evidence.crawlTarget && (
+        <p className="-mt-1 text-[12px] text-muted">
+          Crawls: <span className="font-medium text-ink">{targetHost || evidence.crawlTarget}</span>
+        </p>
+      )}
+      {staleDiscovery && (
+        <p className="rounded-lg bg-warning-soft px-3 py-2 text-[12px] text-warning">
+          The pages below were discovered from a different site than your current reference
+          (<span className="font-medium">{targetHost}</span>). Re-crawl to refresh them.
+        </p>
+      )}
 
       {discovered.length > 0 && (
         <div className="grid gap-2">

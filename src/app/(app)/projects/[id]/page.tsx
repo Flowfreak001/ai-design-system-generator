@@ -231,6 +231,7 @@ export default async function ProjectWorkspacePage({
     parse<{ assumptions?: string[] }>("MULTI_PAGE_WEBSITE_ANALYSIS.json")?.assumptions ?? [];
   const evidence = {
     refUrls: refUrls.map((r) => r.url),
+    crawlTarget: b.mainReferenceUrl?.trim() || refUrls[0]?.url || b.existingWebsiteUrl?.trim() || null,
     screenshots: screenshots.length,
     logoPresent: Boolean(b.logoDataUrl),
     brandColors: [b.primaryColor, b.secondaryColor].filter(Boolean) as string[],
