@@ -8,12 +8,16 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { sectionKind } from "./wireframe-block";
-import { Drawer, Popover } from "./overlays";
-import { ProjectCanvas } from "./project-canvas";
-import { SECTION_CATEGORIES, suggestSectionsForPage } from "@/lib/sections";
-import { arrayMove } from "@dnd-kit/sortable";
+import { PuckStage, AddSectionsHint } from "./puck-stage";
+import { suggestSectionsForPage } from "@/lib/sections";
 import { SitemapFlow } from "./sitemap-flow";
+import {
+  ensurePages,
+  puckToSections,
+  KIND_LABEL,
+  type MultiPagePuck,
+  type PuckData,
+} from "@/lib/puck-canvas";
 import type {
   SitemapCanvas,
   StyleGuideCanvas,
@@ -61,28 +65,34 @@ function SourceTag({ source, onClick }: { source: CanvasSource; onClick?: () => 
 const uid = (p = "n") =>
   typeof crypto !== "undefined" && crypto.randomUUID ? `${p}-${crypto.randomUUID().slice(0, 8)}` : `${p}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 
-const LAYOUT_VARIANTS = ["default", "centered", "split", "grid", "minimal", "full-width"];
-const ASSET_PLACEMENTS = ["none", "left", "right", "background", "top"];
 
 export function DesignEditor({
   projectId,
   projectName,
   initialSitemap,
   initialStyle,
+  initialWireframe = null,
+  initialDesign = null,
   features = [],
   approvals: initialApprovals,
   saveSitemap,
   saveStyle,
+  saveWireframe,
+  saveDesign,
   approveStage,
 }: {
   projectId: string;
   projectName: string;
   initialSitemap: SitemapCanvas;
   initialStyle: StyleGuideCanvas;
+  initialWireframe?: MultiPagePuck | null;
+  initialDesign?: MultiPagePuck | null;
   features?: string[];
   approvals: Approvals;
   saveSitemap: (projectId: string, canvas: SitemapCanvas) => Promise<{ error?: string }>;
   saveStyle: (projectId: string, canvas: StyleGuideCanvas) => Promise<{ error?: string }>;
+  saveWireframe: (projectId: string, doc: MultiPagePuck) => Promise<{ error?: string }>;
+  saveDesign: (projectId: string, doc: MultiPagePuck) => Promise<{ error?: string }>;
   approveStage: (projectId: string, stage: string) => Promise<{ error?: string }>;
 }) {
   const [tab, setTab] = useState<Tab>("sitemap");
@@ -92,6 +102,48 @@ export function DesignEditor({
   const [selectedPageId, setSelectedPageId] = useState<string>(initialSitemap.pages[0]?.id ?? "");
   const [dirty, setDirty] = useState(false);
   const [saving, startSave] = useTransition();
+
+  // Per-page Puck data for the Wireframe (low-fi) and Design (styled) stages,
+  // seeded from the Sitemap and any saved WIREFRAME_CANVAS / DESIGN_CANVAS.
+  const [wireframeDoc, setWireframeDoc] = useState<MultiPagePuck>(() =>
+    ensurePages(initialWireframe, initialSitemap.pages, "wireframe"),
+  );
+  const [designDoc, setDesignDoc] = useState<MultiPagePuck>(() =>
+    ensurePages(initialDesign, initialSitemap.pages, "design"),
+  );
+
+  // Keep the Puck docs' page set aligned with the Sitemap (add new / drop
+  // removed pages) without rebuilding on mere section edits — only when the
+  // set of page ids actually changes, so Puck fields don't lose focus.
+  useEffect(() => {
+    const ids = pages.map((p) => p.id).join(",");
+    setWireframeDoc((d) => (d.pages.map((p) => p.id).join(",") === ids ? d : ensurePages(d, pages, "wireframe")));
+    setDesignDoc((d) => (d.pages.map((p) => p.id).join(",") === ids ? d : ensurePages(d, pages, "design")));
+  }, [pages]);
+
+  // Mirror a page's Puck content back into the Sitemap sections so MD/export
+  // stay in sync with the latest edited structure (order, names, sources).
+  const mirrorSitemap = (pageId: string, data: PuckData) => {
+    const secs: CanvasSection[] = data.content.map((item) => ({
+      id: String(item.props.id),
+      name: String(item.props.name ?? KIND_LABEL[(item.props.kind as keyof typeof KIND_LABEL)] ?? "Section"),
+      note: item.props.note ? String(item.props.note) : undefined,
+      source: (item.props.source as CanvasSource) ?? "user-added",
+      status: item.props.status as CanvasSection["status"],
+      variant: item.props.variant ? String(item.props.variant) : undefined,
+    }));
+    setPagesState((p) => p.map((x) => (x.id === pageId ? { ...x, sections: secs } : x)));
+    setDirty(true);
+  };
+
+  const onWireframeChange = (pageId: string, data: PuckData) => {
+    setWireframeDoc((d) => ({ ...d, pages: d.pages.map((p) => (p.id === pageId ? { ...p, data } : p)) }));
+    mirrorSitemap(pageId, data);
+  };
+  const onDesignChange = (pageId: string, data: PuckData) => {
+    setDesignDoc((d) => ({ ...d, pages: d.pages.map((p) => (p.id === pageId ? { ...p, data } : p)) }));
+    mirrorSitemap(pageId, data);
+  };
 
   // Simple undo/redo history over the editable state.
   const history = useRef<{ pages: CanvasPage[]; style: StyleGuideCanvas }[]>([]);
@@ -133,6 +185,8 @@ export function DesignEditor({
     startSave(async () => {
       await saveSitemap(projectId, { pages, approved: approvals.sitemap });
       await saveStyle(projectId, style);
+      await saveWireframe(projectId, wireframeDoc);
+      await saveDesign(projectId, designDoc);
       setDirty(false);
     });
 
@@ -140,6 +194,8 @@ export function DesignEditor({
     startSave(async () => {
       await saveSitemap(projectId, { pages, approved: stage === "sitemap" ? true : approvals.sitemap });
       await saveStyle(projectId, { ...style, approved: stage === "style" ? true : style.approved });
+      await saveWireframe(projectId, wireframeDoc);
+      await saveDesign(projectId, designDoc);
       await approveStage(projectId, stage);
       setApprovals((a) => ({ ...a, [stage]: true }));
       setDirty(false);
@@ -150,76 +206,34 @@ export function DesignEditor({
     setPages((p) => [...p, { id: uid("p"), name: `New page ${p.length + 1}`, source: "user-added", sections: [] }]);
   const removePage = (id: string) => setPages((p) => p.filter((x) => x.id !== id));
   const renamePage = (id: string, name: string) => setPages((p) => p.map((x) => (x.id === id ? { ...x, name } : x)));
-  const patchPageMeta = (id: string, patch: Partial<CanvasPage>) =>
-    setPages((p) => p.map((x) => (x.id === id ? { ...x, ...patch } : x)));
   const cyclePageSource = (id: string) =>
     setPages((p) => p.map((x) => (x.id === id ? { ...x, source: nextSource(x.source) } : x)));
-  const duplicatePage = (id: string) =>
-    setPages((p) => {
-      const src = p.find((x) => x.id === id);
-      if (!src) return p;
-      const copy: CanvasPage = {
-        ...src,
-        id: uid("p"),
-        name: `${src.name} copy`,
-        source: "user-added",
-        x: (src.x ?? 0) + 40,
-        y: (src.y ?? 0) + 40,
-        sections: src.sections.map((s) => ({ ...s, id: uid("s") })),
-      };
-      const i = p.findIndex((x) => x.id === id);
-      return [...p.slice(0, i + 1), copy, ...p.slice(i + 1)];
-    });
   const movePagePos = useCallback((id: string, x: number, y: number) => {
     setPagesState((p) => p.map((n) => (n.id === id ? { ...n, x, y } : n)));
     setDirty(true);
   }, []);
 
-  // ---- Section mutators (scoped to a page) ----
-  const patchPage = (pageId: string, fn: (pg: CanvasPage) => CanvasPage) =>
-    setPages((p) => p.map((x) => (x.id === pageId ? fn(x) : x)));
-  const addSection = (pageId: string, name: string) =>
-    patchPage(pageId, (pg) => ({ ...pg, sections: [...pg.sections, { id: uid("s"), name, source: "user-added" }] }));
-  const removeSection = (pageId: string, sid: string) =>
-    patchPage(pageId, (pg) => ({ ...pg, sections: pg.sections.filter((s) => s.id !== sid) }));
-  const patchSection = (pageId: string, sid: string, patch: Partial<CanvasSection>) =>
-    patchPage(pageId, (pg) => ({ ...pg, sections: pg.sections.map((s) => (s.id === sid ? { ...s, ...patch } : s)) }));
-  const reorderSections = (pageId: string, activeId: string, overId: string) =>
-    patchPage(pageId, (pg) => {
-      const from = pg.sections.findIndex((s) => s.id === activeId);
-      const to = pg.sections.findIndex((s) => s.id === overId);
-      if (from < 0 || to < 0 || from === to) return pg;
-      return { ...pg, sections: arrayMove(pg.sections, from, to) };
-    });
-  const moveSection = (pageId: string, sid: string, dir: -1 | 1) =>
-    patchPage(pageId, (pg) => {
-      const i = pg.sections.findIndex((s) => s.id === sid);
-      const j = i + dir;
-      if (i < 0 || j < 0 || j >= pg.sections.length) return pg;
-      return { ...pg, sections: arrayMove(pg.sections, i, j) };
-    });
   // Auto-create the wireframe for a page: seed AI-suggested sections (from the
-  // page type + selected features) for any that aren't already present.
+  // page type + selected features) for any that aren't already present. Writes
+  // to the Sitemap; the reconcile effect flows new pages into the Puck docs,
+  // and re-deriving wireframe/design from the updated Sitemap picks them up.
   const autoWireframe = (pageId: string) =>
-    patchPage(pageId, (pg) => {
-      const existing = new Set(pg.sections.map((s) => s.name.toLowerCase()));
-      const suggested = suggestSectionsForPage(pg.name, features)
-        .filter((name) => !existing.has(name.toLowerCase()))
-        .map((name) => ({ id: uid("s"), name, source: "AI-suggested" as const }));
-      return { ...pg, sections: [...pg.sections, ...suggested] };
-    });
-  const duplicateSection = (pageId: string, sid: string) =>
-    patchPage(pageId, (pg) => {
-      const i = pg.sections.findIndex((s) => s.id === sid);
-      if (i < 0) return pg;
-      const copy = { ...pg.sections[i], id: uid("s"), name: `${pg.sections[i].name} copy` };
-      return { ...pg, sections: [...pg.sections.slice(0, i + 1), copy, ...pg.sections.slice(i + 1)] };
-    });
+    setPages((p) =>
+      p.map((pg) => {
+        if (pg.id !== pageId) return pg;
+        const existing = new Set(pg.sections.map((s) => s.name.toLowerCase()));
+        const suggested = suggestSectionsForPage(pg.name, features)
+          .filter((name) => !existing.has(name.toLowerCase()))
+          .map((name) => ({ id: uid("s"), name, source: "AI-suggested" as const }));
+        return { ...pg, sections: [...pg.sections, ...suggested] };
+      }),
+    );
 
   const selectedPage = pages.find((p) => p.id === selectedPageId) ?? pages[0];
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] flex-col">
+    // Full-screen overlay so the app sidebar/topbar are hidden while editing.
+    <div className="fixed inset-0 z-50 flex h-screen flex-col bg-canvas">
       {/* Top bar */}
       <header className="flex items-center justify-between gap-3 border-b border-line bg-surface px-4 py-2">
         <div className="flex min-w-0 items-center gap-3">
@@ -256,7 +270,7 @@ export function DesignEditor({
       <div className="flex min-h-0 flex-1">
         {/* Left toolbar */}
         <aside className="flex w-12 shrink-0 flex-col items-center gap-1 border-r border-line bg-surface py-3">
-          <ToolBtn label="Add" onClick={tab === "wireframe" && selectedPage ? () => addSection(selectedPage.id, "New section") : addPage}>＋</ToolBtn>
+          <ToolBtn label="Add page" onClick={addPage}>＋</ToolBtn>
           <ToolBtn label="Undo" onClick={undo} disabled={history.current.length === 0}>↶</ToolBtn>
           <ToolBtn label="Redo" onClick={redo} disabled={future.current.length === 0}>↷</ToolBtn>
           <div className="mt-auto" />
@@ -281,27 +295,30 @@ export function DesignEditor({
           )}
 
           {tab === "wireframe" && (
-            <WireframeEditor
-              pages={pages}
-              selectedPage={selectedPage}
-              style={style}
-              onSelect={setSelectedPageId}
-              onAddPage={addPage}
-              onRenamePage={renamePage}
-              onRemovePage={removePage}
-              onDuplicatePage={duplicatePage}
-              onCyclePageSource={cyclePageSource}
-              onPatchPageMeta={patchPageMeta}
-              onAddSection={addSection}
-              onRemoveSection={removeSection}
-              onPatchSection={patchSection}
-              onMoveSection={moveSection}
-              onDuplicateSection={duplicateSection}
-              onAutoWireframe={autoWireframe}
-              approved={approvals.wireframe}
-              onApprove={() => approve("wireframe")}
-              busy={saving}
-            />
+            <div className="flex min-h-full flex-col">
+              <StageHeader
+                title="Wireframe"
+                subtitle="Low-fidelity, structure-only. Add approved sections from the left panel — they stack header → footer per page."
+                approved={approvals.wireframe}
+                onApprove={() => approve("wireframe")}
+                busy={saving}
+                extra={
+                  <Button size="sm" variant="secondary" onClick={() => autoWireframe(selectedPage?.id ?? "")} disabled={!selectedPage} title="Seed the selected page's sections from its type + features">
+                    ✦ Auto-generate
+                  </Button>
+                }
+              />
+              <PuckStage
+                mode="wireframe"
+                doc={wireframeDoc}
+                style={style}
+                selectedPageId={selectedPageId}
+                onSelectPage={setSelectedPageId}
+                onChangeData={onWireframeChange}
+                onAddPage={addPage}
+                topActions={<AddSectionsHint />}
+              />
+            </div>
           )}
 
           {tab === "style" && (
@@ -315,19 +332,24 @@ export function DesignEditor({
           )}
 
           {tab === "design" && (
-            <DesignTab
-              pages={pages}
-              selectedPage={selectedPage}
-              style={style}
-              onSelect={setSelectedPageId}
-              onPatchSection={patchSection}
-              onMoveSection={moveSection}
-              onDuplicateSection={duplicateSection}
-              onRemoveSection={removeSection}
-              approved={approvals.design}
-              onApprove={() => approve("design")}
-              busy={saving}
-            />
+            <div className="flex min-h-full flex-col">
+              <StageHeader
+                title="Design"
+                subtitle="Real styled sections from the approved wireframe + Style Guide tokens. Edit per page; sections stack header → footer."
+                approved={approvals.design}
+                onApprove={() => approve("design")}
+                busy={saving}
+              />
+              <PuckStage
+                mode="design"
+                doc={designDoc}
+                style={style}
+                selectedPageId={selectedPageId}
+                onSelectPage={setSelectedPageId}
+                onChangeData={onDesignChange}
+                onAddPage={addPage}
+              />
+            </div>
           )}
         </main>
       </div>
@@ -368,6 +390,29 @@ function ApproveBar({ approved, onApprove, busy, label }: { approved: boolean; o
   );
 }
 
+function StageHeader({
+  title, subtitle, approved, onApprove, busy, extra,
+}: {
+  title: string;
+  subtitle: string;
+  approved: boolean;
+  onApprove: () => void;
+  busy: boolean;
+  extra?: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-surface/70 px-4 py-2 backdrop-blur">
+      <div className="min-w-0">
+        <span className="text-[14px] font-semibold text-ink">{title}</span>
+        <p className="text-[11.5px] text-muted">{subtitle}</p>
+      </div>
+      <div className="flex items-center gap-2">
+        {extra}
+        <ApproveBar approved={approved} onApprove={onApprove} busy={busy} label={title.toLowerCase()} />
+      </div>
+    </div>
+  );
+}
 
 // ------------------------------------------------ Sitemap (React Flow canvas)
 function SitemapEditor({
@@ -404,391 +449,6 @@ function SitemapEditor({
         onOpen={onOpenWireframe}
         onMove={onMovePos}
       />
-    </div>
-  );
-}
-
-// ----------------------------------------- Wireframe (real page canvas)
-
-function WireframeEditor({
-  pages, selectedPage, style, onSelect, onAddPage, onRenamePage, onRemovePage, onDuplicatePage, onCyclePageSource, onPatchPageMeta,
-  onAddSection, onRemoveSection, onPatchSection, onMoveSection, onDuplicateSection, onAutoWireframe, approved, onApprove, busy,
-}: {
-  pages: CanvasPage[];
-  selectedPage?: CanvasPage;
-  style: StyleGuideCanvas;
-  onSelect: (id: string) => void;
-  onAddPage: () => void;
-  onRenamePage: (id: string, name: string) => void;
-  onRemovePage: (id: string) => void;
-  onDuplicatePage: (id: string) => void;
-  onCyclePageSource: (id: string) => void;
-  onPatchPageMeta: (id: string, patch: Partial<CanvasPage>) => void;
-  onAddSection: (pageId: string, name: string) => void;
-  onRemoveSection: (pageId: string, sid: string) => void;
-  onPatchSection: (pageId: string, sid: string, patch: Partial<CanvasSection>) => void;
-  onMoveSection: (pageId: string, sid: string, dir: -1 | 1) => void;
-  onDuplicateSection: (pageId: string, sid: string) => void;
-  onAutoWireframe: (pageId: string) => void;
-  approved: boolean;
-  onApprove: () => void;
-  busy: boolean;
-}) {
-  const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
-  const [addOpen, setAddOpen] = useState(false);
-  const schemes = style.colors;
-
-  if (!selectedPage) return <div className="p-6 text-[13px] text-muted">Add a page in the Sitemap first.</div>;
-  const pageId = selectedPage.id;
-  const sections = selectedPage.sections;
-  const selected = sections.find((s) => s.id === selectedSectionId) ?? null;
-
-  // Auto-select the newly added section (it is appended to the list).
-  const prevLen = useRef(sections.length);
-  useEffect(() => {
-    if (sections.length > prevLen.current) setSelectedSectionId(sections[sections.length - 1]?.id ?? null);
-    prevLen.current = sections.length;
-  }, [sections]);
-
-  const addSectionFromLibrary = (name: string, keepOpen: boolean) => {
-    onAddSection(pageId, name);
-    if (!keepOpen) setAddOpen(false);
-  };
-
-  return (
-    <div className="flex min-h-full">
-      {/* ---------- Left sidebar ---------- */}
-      <aside className="flex w-60 shrink-0 flex-col border-r border-line bg-surface">
-        <div className="flex items-center justify-between border-b border-line px-3 py-2">
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-faint">Pages</span>
-          <button type="button" onClick={onAddPage} title="Add page" className="rounded-md px-1.5 text-[13px] text-accent hover:bg-accent-soft">＋</button>
-        </div>
-        <div className="grid gap-1 overflow-y-auto p-2">
-          {pages.map((p) => {
-            const active = p.id === pageId;
-            return (
-              <div key={p.id} className={`flex items-center gap-1 rounded-lg border px-1.5 py-1.5 ${active ? "border-accent bg-accent-soft/40" : "border-transparent hover:bg-panel"}`}>
-                <button type="button" onClick={() => { onSelect(p.id); setSelectedSectionId(null); }} className="flex min-w-0 flex-1 items-center justify-between gap-2 text-left">
-                  <span className="min-w-0">
-                    <span className={`block truncate text-[13px] font-medium ${active ? "text-accent" : "text-ink"}`}>{p.name}</span>
-                    <span className="text-[11px] text-faint">{p.sections.length} section{p.sections.length === 1 ? "" : "s"}</span>
-                  </span>
-                  <span className={`rounded-full px-1.5 py-0.5 text-[9.5px] font-medium ${p.sections.length ? "bg-success-soft text-success" : "bg-panel text-muted"}`}>
-                    {p.sections.length ? "ready" : "empty"}
-                  </span>
-                </button>
-                <PageMenu
-                  page={p}
-                  otherPages={pages.filter((x) => x.id !== p.id)}
-                  onRename={(name) => onRenamePage(p.id, name)}
-                  onDuplicate={() => onDuplicatePage(p.id)}
-                  onDelete={() => onRemovePage(p.id)}
-                  onCycleSource={() => onCyclePageSource(p.id)}
-                  onPatchMeta={(patch) => onPatchPageMeta(p.id, patch)}
-                />
-              </div>
-            );
-          })}
-        </div>
-        <div className="mt-auto border-t border-line p-3">
-          <Button size="sm" onClick={() => setAddOpen(true)} className="w-full">＋ Add section</Button>
-        </div>
-      </aside>
-
-      {/* ---------- Center: full-project canvas (all pages) ---------- */}
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-surface/70 px-4 py-2 backdrop-blur">
-          <div className="flex items-center gap-2">
-            <span className="text-[14px] font-semibold text-ink">Wireframe — all pages</span>
-            <span className="text-[11.5px] text-muted">Selected: {selectedPage.name}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button size="sm" variant="secondary" onClick={() => onAutoWireframe(pageId)} title="Seed the selected page's sections from its type + features">
-              ✦ Auto-generate
-            </Button>
-            <ApproveBar approved={approved} onApprove={onApprove} busy={busy} label="wireframe" />
-          </div>
-        </div>
-
-        <ProjectCanvas
-          pages={pages}
-          mode="wireframe"
-          style={style}
-          schemes={schemes}
-          selectedPageId={pageId}
-          selectedSectionId={selectedSectionId}
-          onSelectPage={(id) => { onSelect(id); setSelectedSectionId(null); }}
-          onSelectSection={(pid, sid) => { onSelect(pid); setSelectedSectionId(sid); }}
-          onMoveSection={onMoveSection}
-          onDuplicateSection={onDuplicateSection}
-          onRemoveSection={(pid, sid) => { onRemoveSection(pid, sid); setSelectedSectionId(null); }}
-        />
-      </div>
-
-      {/* ---------- Add Section drawer ---------- */}
-      <AddSectionDrawer open={addOpen} onClose={() => setAddOpen(false)} onAdd={addSectionFromLibrary} />
-
-      {/* ---------- Section Settings drawer ---------- */}
-      <Drawer
-        open={Boolean(selected)}
-        onClose={() => setSelectedSectionId(null)}
-        title="Section settings"
-        subtitle={selected ? `Type: ${sectionKind(selected.name)}` : undefined}
-        width={340}
-      >
-        {selected && (
-          <SectionSettingsContent
-            section={selected}
-            schemes={schemes}
-            onPatch={(patch) => onPatchSection(pageId, selected.id, patch)}
-            onDuplicate={() => { onDuplicateSection(pageId, selected.id); }}
-            onDelete={() => { onRemoveSection(pageId, selected.id); setSelectedSectionId(null); }}
-            onClose={() => setSelectedSectionId(null)}
-          />
-        )}
-      </Drawer>
-    </div>
-  );
-}
-
-function AddSectionDrawer({ open, onClose, onAdd }: { open: boolean; onClose: () => void; onAdd: (name: string, keepOpen: boolean) => void }) {
-  const [q, setQ] = useState("");
-  const [multi, setMulti] = useState(false);
-  const query = q.trim().toLowerCase();
-  const groups = SECTION_CATEGORIES.map((g) => ({
-    ...g,
-    items: g.items.filter((i) => !query || i.toLowerCase().includes(query)),
-  })).filter((g) => g.items.length);
-
-  return (
-    <Drawer open={open} onClose={onClose} title="Add section" subtitle="Search the library and click to add" width={340}>
-      <div className="sticky top-0 z-10 border-b border-line bg-surface p-3">
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search sections…" autoFocus className="w-full rounded-lg border border-line px-3 py-1.5 text-[13px]" />
-        <label className="mt-2 flex items-center gap-2 text-[12px] text-muted">
-          <input type="checkbox" checked={multi} onChange={(e) => setMulti(e.target.checked)} className="accent-accent" />
-          Keep open to add multiple
-        </label>
-        {query && (
-          <button type="button" onClick={() => onAdd(q.trim(), multi)} className="mt-2 w-full rounded-lg border border-dashed border-accent px-3 py-1.5 text-[12.5px] font-medium text-accent hover:bg-accent-soft">
-            ＋ Add custom “{q.trim()}”
-          </button>
-        )}
-      </div>
-      <div className="p-3">
-        {groups.map((g) => (
-          <div key={g.category} className="mb-3">
-            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-faint">{g.category}</p>
-            <div className="grid gap-1.5">
-              {g.items.map((name) => (
-                <button
-                  key={name}
-                  type="button"
-                  onClick={() => onAdd(name, multi)}
-                  className="flex items-center justify-between rounded-lg border border-line px-3 py-2 text-left text-[13px] text-ink hover:border-accent hover:bg-accent-soft/40"
-                >
-                  <span>{name}</span>
-                  <span className="text-faint">＋</span>
-                </button>
-              ))}
-            </div>
-          </div>
-        ))}
-        {groups.length === 0 && <p className="px-1 text-[13px] text-faint">No matches. Use “Add custom”.</p>}
-      </div>
-    </Drawer>
-  );
-}
-
-function PageMenu({
-  page, otherPages, onRename, onDuplicate, onDelete, onCycleSource, onPatchMeta,
-}: {
-  page: CanvasPage;
-  otherPages: CanvasPage[];
-  onRename: (name: string) => void;
-  onDuplicate: () => void;
-  onDelete: () => void;
-  onCycleSource: () => void;
-  onPatchMeta: (patch: Partial<CanvasPage>) => void;
-}) {
-  return (
-    <Popover align="right" width={230} trigger={() => <span className="rounded px-1 text-faint hover:text-ink">⋯</span>}>
-      {(close) => (
-        <div className="grid gap-1 text-[13px]">
-          <label className="px-1 text-[10px] font-semibold uppercase tracking-wide text-faint">Rename</label>
-          <input value={page.name} onChange={(e) => onRename(e.target.value)} className="mx-1 rounded-md border border-line px-2 py-1 text-[12.5px]" />
-          <label className="mt-1 px-1 text-[10px] font-semibold uppercase tracking-wide text-faint">Parent page</label>
-          <select value={page.parentId ?? ""} onChange={(e) => onPatchMeta({ parentId: e.target.value || undefined })} className="mx-1 rounded-md border border-line bg-surface px-2 py-1 text-[12.5px]">
-            <option value="">None (top level)</option>
-            {otherPages.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-          </select>
-          <label className="mt-1 px-1 text-[10px] font-semibold uppercase tracking-wide text-faint">Status</label>
-          <div className="mx-1 flex gap-1">
-            {(["draft", "approved", "rejected"] as const).map((st) => (
-              <button key={st} type="button" onClick={() => onPatchMeta({ status: st })} className={`flex-1 rounded-md px-1.5 py-1 text-[10.5px] font-medium capitalize ${(page.status ?? "draft") === st ? SECTION_STATUS_STYLE[st] : "bg-panel text-muted"}`}>{st}</button>
-            ))}
-          </div>
-          <div className="my-1 h-px bg-line" />
-          <MenuItem onClick={() => { onCycleSource(); }}>Change source ({page.source})</MenuItem>
-          <MenuItem onClick={() => { onDuplicate(); close(); }}>Duplicate page</MenuItem>
-          <MenuItem onClick={() => { onDelete(); close(); }} danger>Delete page</MenuItem>
-        </div>
-      )}
-    </Popover>
-  );
-}
-
-function MenuItem({ children, onClick, danger }: { children: React.ReactNode; onClick: () => void; danger?: boolean }) {
-  return (
-    <button type="button" onClick={onClick} className={`rounded-md px-2 py-1.5 text-left text-[12.5px] hover:bg-panel ${danger ? "text-danger" : "text-body"}`}>
-      {children}
-    </button>
-  );
-}
-
-const SECTION_STATUS_STYLE: Record<string, string> = {
-  approved: "bg-success-soft text-success",
-  rejected: "bg-danger-soft text-danger",
-  draft: "bg-panel text-muted",
-};
-
-function SectionSettingsContent({
-  section, schemes, onPatch, onDuplicate, onDelete, onClose,
-}: {
-  section: CanvasSection;
-  schemes: CanvasColor[];
-  onPatch: (patch: Partial<CanvasSection>) => void;
-  onDuplicate: () => void;
-  onDelete: () => void;
-  onClose: () => void;
-}) {
-  const status = section.status ?? "draft";
-  const activeScheme = schemes.find((c) => c.name === section.scheme);
-  return (
-    <div className="flex h-full flex-col">
-      <div className="grid gap-3 overflow-y-auto p-4 text-[13px]">
-        <Field label="Name">
-          <input value={section.name} onChange={(e) => onPatch({ name: e.target.value })} className="w-full rounded-lg border border-line px-2.5 py-1.5" />
-        </Field>
-        <Field label="Section type (inferred)">
-          <div className="rounded-lg bg-panel px-2.5 py-1.5 text-[12.5px] capitalize text-body">{sectionKind(section.name)}</div>
-        </Field>
-        <Field label="Description / copy direction">
-          <textarea value={section.note ?? ""} onChange={(e) => onPatch({ note: e.target.value })} rows={3} className="w-full rounded-lg border border-line px-2.5 py-1.5" placeholder="What this section should communicate…" />
-        </Field>
-        <Field label="Source">
-          <div className="flex items-center gap-2">
-            <SourceTag source={section.source} onClick={() => onPatch({ source: nextSource(section.source) })} />
-            <span className="text-[11px] text-faint">click to change</span>
-          </div>
-        </Field>
-        <Field label="Status">
-          <div className="flex gap-1">
-            {(["draft", "approved", "rejected"] as const).map((st) => (
-              <button key={st} type="button" onClick={() => onPatch({ status: st })} className={`flex-1 rounded-md px-2 py-1 text-[11px] font-medium capitalize ${status === st ? SECTION_STATUS_STYLE[st] : "bg-panel text-muted"}`}>{st}</button>
-            ))}
-          </div>
-        </Field>
-
-        {/* Layout variant popover with thumbnails */}
-        <Field label="Layout variant">
-          <Popover width={220} trigger={() => (
-            <span className="flex w-full items-center justify-between rounded-lg border border-line px-2.5 py-1.5 text-[12.5px] capitalize">
-              {section.variant ?? "default"} <span className="text-faint">▾</span>
-            </span>
-          )}>
-            {(close) => (
-              <div className="grid grid-cols-2 gap-1.5">
-                {LAYOUT_VARIANTS.map((v) => (
-                  <button key={v} type="button" onClick={() => { onPatch({ variant: v === "default" ? undefined : v }); close(); }}
-                    className={`rounded-lg border p-2 text-left ${((section.variant ?? "default") === v) ? "border-accent bg-accent-soft/40" : "border-line hover:border-line-strong"}`}>
-                    <LayoutThumb variant={v} />
-                    <span className="mt-1 block text-[11px] capitalize text-body">{v}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </Popover>
-        </Field>
-
-        {/* Style scheme popover from the Style Guide colors */}
-        <Field label="Style scheme">
-          <Popover width={220} trigger={() => (
-            <span className="flex w-full items-center justify-between rounded-lg border border-line px-2.5 py-1.5 text-[12.5px]">
-              <span className="flex items-center gap-2">
-                {activeScheme ? <span className="h-3.5 w-3.5 rounded-full border border-line" style={{ background: activeScheme.value }} /> : null}
-                {section.scheme ?? "brand default"}
-              </span>
-              <span className="text-faint">▾</span>
-            </span>
-          )}>
-            {(close) => (
-              <div className="grid gap-1">
-                <button type="button" onClick={() => { onPatch({ scheme: undefined }); close(); }} className="rounded-md px-2 py-1.5 text-left text-[12.5px] hover:bg-panel">Brand default</button>
-                {schemes.map((c) => (
-                  <button key={c.name} type="button" onClick={() => { onPatch({ scheme: c.name }); close(); }} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12.5px] hover:bg-panel">
-                    <span className="h-4 w-4 rounded-full border border-line" style={{ background: c.value }} />
-                    <span className="truncate">{c.name}</span>
-                  </button>
-                ))}
-                {schemes.length === 0 && <p className="px-2 py-1 text-[11.5px] text-faint">Add colors in the Style Guide.</p>}
-              </div>
-            )}
-          </Popover>
-        </Field>
-
-        <Field label="Asset placement">
-          <select value={section.asset ?? ""} onChange={(e) => onPatch({ asset: e.target.value || undefined })} className="w-full rounded-lg border border-line bg-surface px-2.5 py-1.5 capitalize">
-            {ASSET_PLACEMENTS.map((a) => <option key={a} value={a === "none" ? "" : a}>{a}</option>)}
-          </select>
-        </Field>
-
-        <label className="flex items-center gap-2">
-          <input type="checkbox" checked={Boolean(section.global)} onChange={(e) => onPatch({ global: e.target.checked })} className="accent-accent" />
-          <span className="text-[12.5px] text-body">Global section (reused on every page)</span>
-        </label>
-      </div>
-
-      <div className="mt-auto grid gap-2 border-t border-line p-4">
-        <div className="grid grid-cols-2 gap-2">
-          <Button size="sm" variant="secondary" disabled title="Coming soon">✦ Generate copy</Button>
-          <Button size="sm" variant="secondary" disabled title="Coming soon">↻ Regenerate</Button>
-        </div>
-        <div className="flex items-center justify-between">
-          <button type="button" onClick={onDuplicate} className="text-[12px] font-medium text-body hover:text-accent">Duplicate</button>
-          <button type="button" onClick={onDelete} className="text-[12px] font-medium text-danger hover:underline">Delete</button>
-        </div>
-        <Button size="sm" onClick={onClose}>Done</Button>
-      </div>
-    </div>
-  );
-}
-
-function LayoutThumb({ variant }: { variant: string }) {
-  // Tiny schematic of the layout.
-  return (
-    <div className="flex h-10 w-full flex-col gap-1 rounded bg-panel p-1.5">
-      {variant === "split" ? (
-        <div className="flex h-full gap-1"><div className="w-1/2 rounded bg-line" /><div className="w-1/2 rounded bg-line/60" /></div>
-      ) : variant === "grid" ? (
-        <div className="grid h-full grid-cols-3 gap-1">{[0, 1, 2].map((i) => <div key={i} className="rounded bg-line" />)}</div>
-      ) : variant === "centered" ? (
-        <div className="mx-auto flex h-full w-2/3 flex-col justify-center gap-1"><div className="h-1.5 rounded bg-line" /><div className="h-1.5 rounded bg-line/60" /></div>
-      ) : variant === "minimal" ? (
-        <div className="flex h-full items-center"><div className="h-1.5 w-1/2 rounded bg-line" /></div>
-      ) : variant === "full-width" ? (
-        <div className="h-full rounded bg-line" />
-      ) : (
-        <><div className="h-1.5 w-2/3 rounded bg-line" /><div className="h-1.5 w-full rounded bg-line/60" /><div className="mt-auto h-2 w-1/4 rounded bg-line" /></>
-      )}
-    </div>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-faint">{label}</label>
-      {children}
     </div>
   );
 }
@@ -876,71 +536,6 @@ function TokenRow({ label, value, onChange }: { label: string; value: number; on
     <div className="mt-2 flex items-center justify-between gap-2">
       <span className="text-[12px] text-muted">{label}</span>
       <input type="number" value={value} onChange={(e) => onChange(Number(e.target.value) || 0)} className="w-20 rounded border border-line px-2 py-0.5 text-[12px]" />
-    </div>
-  );
-}
-
-// ------------------------------------------- Design (real styled page canvas)
-function DesignTab({
-  pages, selectedPage, style, onSelect, onPatchSection, onMoveSection, onDuplicateSection, onRemoveSection, approved, onApprove, busy,
-}: {
-  pages: CanvasPage[];
-  selectedPage?: CanvasPage;
-  style: StyleGuideCanvas;
-  onSelect: (id: string) => void;
-  onPatchSection: (pageId: string, sid: string, patch: Partial<CanvasSection>) => void;
-  onMoveSection: (pageId: string, sid: string, dir: -1 | 1) => void;
-  onDuplicateSection: (pageId: string, sid: string) => void;
-  onRemoveSection: (pageId: string, sid: string) => void;
-  approved: boolean;
-  onApprove: () => void;
-  busy: boolean;
-}) {
-  const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
-  // The selected section can live on any page (all pages render together).
-  const selPage = pages.find((p) => p.sections.some((s) => s.id === selectedSectionId)) ?? selectedPage;
-  const selected = selPage?.sections.find((s) => s.id === selectedSectionId) ?? null;
-
-  return (
-    <div className="flex min-h-full">
-      <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-surface/70 px-4 py-2 backdrop-blur">
-          <div>
-            <span className="text-[14px] font-semibold text-ink">Design — all pages</span>
-            <p className="text-[11.5px] text-muted">Real styled sections from the approved wireframe + Style Guide tokens.</p>
-          </div>
-          <ApproveBar approved={approved} onApprove={onApprove} busy={busy} label="design" />
-        </div>
-
-        <ProjectCanvas
-          pages={pages}
-          mode="design"
-          style={style}
-          schemes={style.colors}
-          selectedPageId={selectedPage?.id}
-          selectedSectionId={selectedSectionId}
-          onSelectPage={(id) => { onSelect(id); setSelectedSectionId(null); }}
-          onSelectSection={(pid, sid) => { onSelect(pid); setSelectedSectionId(sid); }}
-          onMoveSection={onMoveSection}
-          onDuplicateSection={onDuplicateSection}
-          onRemoveSection={(pid, sid) => { onRemoveSection(pid, sid); setSelectedSectionId(null); }}
-          onApproveSection={(pid, sid, status) => onPatchSection(pid, sid, { status })}
-        />
-      </div>
-
-      {/* Right: section settings drawer */}
-      <Drawer open={Boolean(selected)} onClose={() => setSelectedSectionId(null)} title="Section settings" subtitle={selected ? `Type: ${sectionKind(selected.name)}` : undefined} width={340}>
-        {selected && selPage && (
-          <SectionSettingsContent
-            section={selected}
-            schemes={style.colors}
-            onPatch={(patch) => onPatchSection(selPage.id, selected.id, patch)}
-            onDuplicate={() => onDuplicateSection(selPage.id, selected.id)}
-            onDelete={() => { onRemoveSection(selPage.id, selected.id); setSelectedSectionId(null); }}
-            onClose={() => setSelectedSectionId(null)}
-          />
-        )}
-      </Drawer>
     </div>
   );
 }

@@ -11,6 +11,11 @@ import {
   type SitemapCanvas,
   type StyleGuideCanvas,
 } from "@/lib/canvas";
+import {
+  WIREFRAME_CANVAS_FILE,
+  DESIGN_CANVAS_FILE,
+  type MultiPagePuck,
+} from "@/lib/puck-canvas";
 
 /** Persist a canvas document as a versioned GeneratedFile JSON record. */
 async function saveCanvasFile(projectId: string, name: string, data: unknown) {
@@ -49,6 +54,28 @@ export async function saveStyleGuideCanvasAction(
   await saveCanvasFile(projectId, STYLE_GUIDE_CANVAS_FILE, { ...canvas, updatedAt: new Date().toISOString() });
   revalidatePath(`/projects/${projectId}/editor`);
   revalidatePath(`/projects/${projectId}`);
+  return {};
+}
+
+export async function saveWireframeCanvasAction(
+  projectId: string,
+  doc: MultiPagePuck,
+): Promise<{ error?: string }> {
+  const user = await requireUser();
+  if (!user.agencyId || !(await ownsProject(projectId, user.agencyId))) return { error: "Not found" };
+  await saveCanvasFile(projectId, WIREFRAME_CANVAS_FILE, { ...doc, updatedAt: new Date().toISOString() });
+  revalidatePath(`/projects/${projectId}/editor`);
+  return {};
+}
+
+export async function saveDesignCanvasAction(
+  projectId: string,
+  doc: MultiPagePuck,
+): Promise<{ error?: string }> {
+  const user = await requireUser();
+  if (!user.agencyId || !(await ownsProject(projectId, user.agencyId))) return { error: "Not found" };
+  await saveCanvasFile(projectId, DESIGN_CANVAS_FILE, { ...doc, updatedAt: new Date().toISOString() });
+  revalidatePath(`/projects/${projectId}/editor`);
   return {};
 }
 
