@@ -53,6 +53,13 @@ const ICONS: Record<string, ReactNode> = {
       <path d="M4 5h16l-6.2 7.2V19l-3.6-2v-4.8L4 5Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
     </svg>
   ),
+  library: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <rect x="4" y="4" width="4" height="16" rx="1" stroke="currentColor" strokeWidth="1.7" />
+      <rect x="10" y="4" width="4" height="16" rx="1" stroke="currentColor" strokeWidth="1.7" />
+      <path d="m16.5 5.2 3.4.9a1 1 0 0 1 .7 1.2l-3 12" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  ),
   settings: (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.7" />
@@ -67,7 +74,7 @@ const ICONS: Record<string, ReactNode> = {
   ),
 };
 
-type NavItem = { label: string; href?: string; icon: string; soon?: boolean };
+type NavItem = { label: string; href?: string; icon: string; soon?: boolean; dynamic?: "references" };
 const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
   {
     title: "Workspace",
@@ -75,6 +82,7 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
       { label: "Dashboard", href: "/dashboard", icon: "home" },
       { label: "Clients", href: "/clients", icon: "clients" },
       { label: "Projects", href: "/projects", icon: "projects" },
+      { label: "Library", icon: "library", dynamic: "references" },
     ],
   },
   {
@@ -136,6 +144,9 @@ export function DashboardShell({
     localStorage.setItem("pos-sidebar", next ? "collapsed" : "open");
   };
   const crumbs = CRUMBS.find(([re]) => re.test(pathname))?.[1] ?? ["Workspace"];
+  // Section Reference Library is project-scoped; resolve it to the open project.
+  const projectId = pathname.match(/^\/projects\/([^/]+)/)?.[1] ?? null;
+  const projectIdActive = projectId && projectId !== "new" ? projectId : null;
   const initials = (user.name ?? user.email)
     .split(/[\s@.]+/)
     .slice(0, 2)
@@ -155,6 +166,27 @@ export function DashboardShell({
           )}
           <div className="grid gap-0.5">
             {group.items.map((item) => {
+              // Project-scoped Library link — points at the open project's
+              // Section Reference Library, disabled when no project is open.
+              if (item.dynamic === "references") {
+                if (!projectIdActive) {
+                  return (
+                    <span key={item.label} className={navItemCls(false, true, isCollapsed)} aria-disabled="true" title="Open a project to use its Section Reference Library">
+                      {ICONS[item.icon]}
+                      {item.label}
+                    </span>
+                  );
+                }
+                const href = `/projects/${projectIdActive}/references`;
+                const active = pathname === href;
+                return (
+                  <Link key={item.label} href={href} aria-current={active ? "page" : undefined} className={navItemCls(active, false, isCollapsed)}>
+                    {!isCollapsed && active && <span aria-hidden="true" className="absolute -left-3 h-4 w-[3px] rounded-full bg-accent" />}
+                    {ICONS[item.icon]}
+                    {item.label}
+                  </Link>
+                );
+              }
               if (item.soon) {
                 return (
                   <span key={item.label} className={navItemCls(false, true, isCollapsed)} aria-disabled="true" title={`${item.label} — coming soon`}>
