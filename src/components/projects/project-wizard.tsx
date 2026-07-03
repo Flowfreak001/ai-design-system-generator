@@ -35,8 +35,52 @@ const LAST = STEPS.length;
 
 const inputCls =
   "w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm text-ink " +
-  "placeholder:text-faint transition-colors duration-200 " +
-  "focus:border-accent/50 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent";
+  "placeholder:text-faint transition-colors duration-200 outline-none " +
+  "focus:border-accent focus-visible:border-accent";
+
+// Native <select> with a custom chevron so the arrow-to-text gap is consistent
+// across every dropdown (native arrows ignore padding-right).
+function NativeSelect({
+  id,
+  name,
+  value,
+  defaultValue,
+  onChange,
+  invalid,
+  children,
+}: {
+  id?: string;
+  name: string;
+  value?: string;
+  defaultValue?: string;
+  onChange?: (v: string) => void;
+  invalid?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="relative">
+      <select
+        id={id}
+        name={name}
+        value={value}
+        defaultValue={defaultValue}
+        onChange={onChange ? (e) => onChange(e.target.value) : undefined}
+        aria-invalid={invalid || undefined}
+        className={`${inputCls} cursor-pointer appearance-none pr-10 ${invalid ? "border-danger" : ""}`}
+      >
+        {children}
+      </select>
+      <svg
+        className="pointer-events-none absolute right-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-faint"
+        viewBox="0 0 24 24"
+        fill="none"
+        aria-hidden="true"
+      >
+        <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </div>
+  );
+}
 
 function Field({
   label,
@@ -462,14 +506,7 @@ export function ProjectWizard({
               <label htmlFor="industry" className="mb-1.5 block text-sm font-medium">
                 Industry <span className="text-accent">*</span>
               </label>
-              <select
-                id="industry"
-                name="industry"
-                value={industry}
-                onChange={(e) => setIndustry(e.target.value)}
-                aria-invalid={missing.includes("industry") || undefined}
-                className={`${inputCls} cursor-pointer pr-10 ${missing.includes("industry") ? "border-danger" : ""}`}
-              >
+              <NativeSelect id="industry" name="industry" value={industry} onChange={setIndustry} invalid={missing.includes("industry")}>
                 <option value="" disabled>
                   Select an industry…
                 </option>
@@ -478,7 +515,7 @@ export function ProjectWizard({
                     {i}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
               {missing.includes("industry") && <p className="mt-1 text-xs text-danger">This field is required.</p>}
               <p className="mt-1 text-xs text-faint">Used to suggest the right features for your site.</p>
             </div>
@@ -490,12 +527,12 @@ export function ProjectWizard({
                   <label htmlFor="businessId" className="mb-1.5 block text-sm font-medium">
                     Link to client <span className="text-faint text-xs font-normal">optional</span>
                   </label>
-                  <select id="businessId" name="businessId" defaultValue={defaultClientId ?? ""} className={`${inputCls} cursor-pointer`}>
+                  <NativeSelect id="businessId" name="businessId" defaultValue={defaultClientId ?? ""}>
                     <option value="">No client link</option>
                     {clients.map((c) => (
                       <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
-                  </select>
+                  </NativeSelect>
                 </div>
               </div>
             ) : (
