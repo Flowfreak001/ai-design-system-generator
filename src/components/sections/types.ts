@@ -104,6 +104,11 @@ export interface SectionProps {
   hidden?: string[];
   /** When set, primary text slots render inline-editable on the canvas. */
   onEditText?: (field: "title" | "description", value: string) => void;
+  /** Chosen icon key for the icon slot; onEditIcon shuffles/sets it on canvas. */
+  iconKey?: string;
+  onEditIcon?: (iconKey: string) => void;
+  /** onEditImage sets/clears the image slot (data URL) from the canvas. */
+  onEditImage?: (dataUrl: string) => void;
 }
 
 export type SectionComponent = ComponentType<SectionProps>;

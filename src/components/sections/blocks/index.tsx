@@ -10,7 +10,7 @@
 
 import type { SectionProps, SectionTheme } from "../types";
 import { resolveTheme, h, b, btnRadius } from "../section-theme";
-import { HiddenParts, useHidden, EditText_Ctx, EditText } from "./parts";
+import { HiddenParts, useHidden, EditText_Ctx, EditText, IconCtx, ImageCtx, useIcon, useImage, BlockIcon, nextIconKey, downscaleImage } from "./parts";
 
 // ---- modern theme helpers (all derived from brand tokens) ----
 const tint = (t: SectionTheme, pct = 12) => `color-mix(in srgb, ${t.accentColor} ${pct}%, ${t.backgroundColor})`;
@@ -36,18 +36,41 @@ const Head: React.FC<{ t: SectionTheme; title?: string; sub?: string; center?: b
   ) : null;
 // Accent icon chip (rounded square).
 const Chip: React.FC<{ t: SectionTheme; children?: React.ReactNode; solid?: boolean }> = ({ t, children, solid }) => {
+  const { icon, onEdit } = useIcon();
   if (useHidden("icon")) return null;
-  return <span className="grid h-11 w-11 place-items-center rounded-2xl text-[15px] font-semibold" style={solid ? { background: t.accentColor, color: "#fff" } : { background: tint(t, 16), color: t.accentColor, border: `1px solid ${tint(t, 30)}` }}>{children ?? "◆"}</span>;
+  const inner = children ?? <BlockIcon k={icon} />;
+  const style = solid ? { background: t.accentColor, color: "#fff" } : { background: tint(t, 16), color: t.accentColor, border: `1px solid ${tint(t, 30)}` };
+  const box = <span className="grid h-11 w-11 place-items-center rounded-2xl text-[15px] font-semibold transition-transform group-hover:scale-105" style={style}>{inner}</span>;
+  if (!onEdit || children) return box;
+  return (
+    <button type="button" title="Shuffle icon" className="group relative inline-block" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); onEdit(nextIconKey(icon)); }}>
+      {box}
+      <span className="pointer-events-none absolute -right-1.5 -top-1.5 hidden h-4 w-4 place-items-center rounded-full text-[9px] text-white group-hover:grid" style={{ background: t.accentColor }}>⇄</span>
+    </button>
+  );
 };
 const Pill: React.FC<{ t: SectionTheme; children: React.ReactNode; onDark?: boolean }> = ({ t, children, onDark }) => (
   <span className="inline-flex items-center rounded-full px-3.5 py-1.5 text-[12.5px] font-medium" style={onDark ? { background: "rgba(255,255,255,0.1)", color: "#fff" } : { background: t.surfaceColor, color: t.textColor, border: `1px solid ${t.borderColor}` }}>{children}</span>
 );
 // Grey media placeholder with a soft tint + optional label.
-const Ph: React.FC<{ t: SectionTheme; className?: string; label?: string; rounded?: string }> = ({ t, className = "", label, rounded = "rounded-2xl" }) => (
-  <div className={`grid place-items-center overflow-hidden ${rounded} ${className}`} style={{ background: `linear-gradient(135deg, ${t.surfaceColor}, ${tint(t, 6)})`, border: `1px dashed ${t.borderColor}` }}>
-    <span className="text-[11px] font-medium uppercase tracking-wider" style={{ color: t.mutedTextColor, opacity: 0.6 }}>{label ?? "image"}</span>
-  </div>
-);
+const Ph: React.FC<{ t: SectionTheme; className?: string; label?: string; rounded?: string }> = ({ t, className = "", label, rounded = "rounded-2xl" }) => {
+  const { url, onEdit } = useImage();
+  const cls = `group relative grid place-items-center overflow-hidden ${rounded} ${className}`;
+  const style = url ? {} : { background: `linear-gradient(135deg, ${t.surfaceColor}, ${tint(t, 6)})`, border: `1px dashed ${t.borderColor}` };
+  const content = url
+    ? <img src={url} alt="" className="h-full w-full object-cover" />
+    : <span className="text-[11px] font-medium uppercase tracking-wider" style={{ color: t.mutedTextColor, opacity: 0.6 }}>{label ?? "image"}</span>;
+  if (!onEdit) return <div className={cls} style={style}>{content}</div>;
+  return (
+    <div className={`${cls} cursor-pointer`} style={style}
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={(e) => { e.stopPropagation(); (e.currentTarget.querySelector("input") as HTMLInputElement | null)?.click(); }}>
+      {content}
+      <input type="file" accept="image/*" className="hidden" onChange={async (e) => { const f = e.target.files?.[0]; if (f) onEdit(await downscaleImage(f)); }} />
+      <span className="pointer-events-none absolute inset-0 hidden place-items-center bg-black/35 text-[11px] font-semibold text-white group-hover:grid">{url ? "Replace image" : "Upload image"}</span>
+    </div>
+  );
+};
 const Btn: React.FC<{ t: SectionTheme; label: string; kind?: "fill" | "ghost" }> = ({ t, label, kind = "fill" }) => {
   if (useHidden("button")) return null;
   return <span className="inline-flex items-center gap-1.5 px-5 py-2.5 text-[13.5px] font-semibold" style={kind === "fill" ? { background: grad(t), color: "#fff", borderRadius: btnRadius(t) } : { color: t.accentColor, border: `1px solid ${tint(t, 40)}`, borderRadius: btnRadius(t) }}>{label}{kind === "fill" ? " →" : ""}</span>;
@@ -56,7 +79,13 @@ const Elev = (t: SectionTheme) => ({ background: t.backgroundColor, borderRadius
 
 type BlockFC = React.FC<SectionProps>;
 const make = (fn: (t: SectionTheme, p: SectionProps) => React.ReactNode): BlockFC => (p) => (
-  <EditText_Ctx.Provider value={p.onEditText ?? null}><HiddenParts.Provider value={new Set(p.hidden)}>{fn(resolveTheme(p.theme), p)}</HiddenParts.Provider></EditText_Ctx.Provider>
+  <EditText_Ctx.Provider value={p.onEditText ?? null}>
+    <IconCtx.Provider value={{ icon: p.iconKey, onEdit: p.onEditIcon }}>
+      <ImageCtx.Provider value={{ url: p.imageUrl, onEdit: p.onEditImage }}>
+        <HiddenParts.Provider value={new Set(p.hidden)}>{fn(resolveTheme(p.theme), p)}</HiddenParts.Provider>
+      </ImageCtx.Provider>
+    </IconCtx.Provider>
+  </EditText_Ctx.Provider>
 );
 
 // ── BASIC ──────────────────────────────────────────────────────────────────

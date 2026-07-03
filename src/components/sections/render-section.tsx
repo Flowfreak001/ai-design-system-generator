@@ -29,7 +29,11 @@ export function renderSection(section: SectionProps) {
 export function renderSectionByKind(
   kind: string,
   variantId: string | undefined,
-  props: { name?: string; note?: string; theme?: SectionTheme; mobile?: boolean; assetSide?: "left" | "right"; hidden?: string[]; onEditText?: (field: "title" | "description", value: string) => void },
+  props: {
+    name?: string; note?: string; theme?: SectionTheme; mobile?: boolean; assetSide?: "left" | "right"; hidden?: string[];
+    onEditText?: (field: "title" | "description", value: string) => void;
+    iconKey?: string; imageUrl?: string; onEditIcon?: (k: string) => void; onEditImage?: (v: string) => void;
+  },
 ) {
   const type = sectionTypeForKind(kind);
   const meta = resolveVariantMeta(type, variantId);
@@ -44,6 +48,10 @@ export function renderSectionByKind(
       assetSide={props.assetSide}
       hidden={props.hidden}
       onEditText={props.onEditText}
+      iconKey={props.iconKey}
+      imageUrl={props.imageUrl}
+      onEditIcon={props.onEditIcon}
+      onEditImage={props.onEditImage}
     />
   );
 }

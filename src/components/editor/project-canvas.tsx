@@ -37,7 +37,7 @@ export function ProjectCanvas({
   pages, mode, style, schemes,
   selectedPageId, selectedSectionId,
   onSelectPage, onSelectSection,
-  onMoveSection, onDuplicateSection, onRemoveSection, onApproveSection, onEditText,
+  onMoveSection, onDuplicateSection, onRemoveSection, onApproveSection, onEditText, onEditIcon, onEditImage,
 }: {
   pages: CanvasPage[];
   mode: "wireframe" | "design";
@@ -53,6 +53,9 @@ export function ProjectCanvas({
   onApproveSection?: (pageId: string, sid: string, status: "approved" | "rejected") => void;
   /** Inline canvas text edit → writes back to the section (title/description). */
   onEditText?: (pageId: string, sid: string, field: "title" | "description", value: string) => void;
+  /** Canvas icon shuffle + image upload → write back to the section. */
+  onEditIcon?: (pageId: string, sid: string, iconKey: string) => void;
+  onEditImage?: (pageId: string, sid: string, dataUrl: string) => void;
 }) {
   const [device, setDevice] = useState<Device>("desktop");
   const [zoom, setZoom] = useState(0.55);
@@ -123,6 +126,8 @@ export function ProjectCanvas({
               onRemoveSection={onRemoveSection}
               onApproveSection={onApproveSection}
               onEditText={onEditText}
+              onEditIcon={onEditIcon}
+              onEditImage={onEditImage}
             />
           ))}
         </div>
@@ -159,7 +164,7 @@ export function ProjectCanvas({
 
 function PageFrame({
   page, frameW, mode, baseTheme, schemes, device, isHome, selectedPage, selectedSectionId,
-  onSelectPage, onSelectSection, onMoveSection, onDuplicateSection, onRemoveSection, onApproveSection, onEditText,
+  onSelectPage, onSelectSection, onMoveSection, onDuplicateSection, onRemoveSection, onApproveSection, onEditText, onEditIcon, onEditImage,
 }: {
   page: CanvasPage;
   frameW: number;
@@ -177,6 +182,8 @@ function PageFrame({
   onRemoveSection: (pageId: string, sid: string) => void;
   onApproveSection?: (pageId: string, sid: string, status: "approved" | "rejected") => void;
   onEditText?: (pageId: string, sid: string, field: "title" | "description", value: string) => void;
+  onEditIcon?: (pageId: string, sid: string, iconKey: string) => void;
+  onEditImage?: (pageId: string, sid: string, dataUrl: string) => void;
 }) {
   const mobile = device === "mobile";
   return (
@@ -245,6 +252,10 @@ function PageFrame({
                     assetSide: s.asset === "left" ? "left" : "right",
                     hidden: s.hidden,
                     onEditText: onEditText ? (field, value) => onEditText(page.id, s.id, field, value) : undefined,
+                    iconKey: s.icon,
+                    imageUrl: s.image,
+                    onEditIcon: onEditIcon ? (k) => onEditIcon(page.id, s.id, k) : undefined,
+                    onEditImage: onEditImage ? (v) => onEditImage(page.id, s.id, v) : undefined,
                   })}
                 </div>
               );

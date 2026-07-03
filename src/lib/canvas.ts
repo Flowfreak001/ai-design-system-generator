@@ -29,6 +29,10 @@ export type CanvasSection = {
   asset?: string;
   /** Canvas-editable parts hidden on this section (e.g. "icon", "eyebrow", "button"). */
   hidden?: string[];
+  /** Chosen icon key for the section's icon slot (canvas icon picker/shuffle). */
+  icon?: string;
+  /** Uploaded image (data URL) for the section's image slot. Grey placeholder if unset. */
+  image?: string;
 };
 
 /** Sitemap category tabs for the Visual Sitemap board. */
