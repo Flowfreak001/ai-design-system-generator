@@ -337,6 +337,28 @@ function pageStructureScanner(): Omit<PageStructure, "url" | "ok" | "pageType"> 
   };
 }
 
+/** Launch (or connect to) a Chromium the probe can drive.
+ *  - PLAYWRIGHT_WS_ENDPOINT / BROWSER_WS_ENDPOINT → connect to a remote browser
+ *    (e.g. browserless) — the most reliable option on PaaS like Railway.
+ *  - otherwise launch a local headless Chromium with container-safe flags
+ *    (--no-sandbox is required because the container runs as root).
+ *  Throws if unavailable; callers catch and fall back to static heuristics. */
+async function launchChromium(): Promise<import("playwright").Browser> {
+  const { chromium } = await import("playwright");
+  const ws = process.env.PLAYWRIGHT_WS_ENDPOINT || process.env.BROWSER_WS_ENDPOINT;
+  try {
+    if (ws) return await chromium.connect(ws);
+    return await chromium.launch({
+      headless: true,
+      args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu"],
+    });
+  } catch (err) {
+    // Surface the reason in server logs so Railway deploys are debuggable.
+    console.warn("[probe] browser unavailable — falling back to static analysis:", err instanceof Error ? err.message : err);
+    throw err;
+  }
+}
+
 /** Scan multiple pages for their real section/component structure. Reuses one
  *  browser; bounded per-page timeouts. Returns one PageStructure per URL. */
 export async function scanPages(urls: string[], onProgress?: ProbeProgress): Promise<PageStructure[]> {
@@ -344,8 +366,7 @@ export async function scanPages(urls: string[], onProgress?: ProbeProgress): Pro
   if (!urls.length) return out;
   let browser: import("playwright").Browser | null = null;
   try {
-    const { chromium } = await import("playwright");
-    browser = await chromium.launch({ headless: true });
+    browser = await launchChromium();
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
     await page.addInitScript(() => {
       (globalThis as unknown as Record<string, unknown>).__name = (f: unknown) => f;
@@ -386,8 +407,7 @@ export async function runRenderedProbe(url: string, onProgress?: ProbeProgress):
   };
   let browser: import("playwright").Browser | null = null;
   try {
-    const { chromium } = await import("playwright");
-    browser = await chromium.launch({ headless: true });
+    browser = await launchChromium();
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
     // tsx/esbuild injects __name() helpers into serialized evaluate functions;
     // define a no-op in the page so they don't throw in the browser context.
