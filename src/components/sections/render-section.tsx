@@ -33,6 +33,7 @@ export function renderSectionByKind(
     name?: string; note?: string; theme?: SectionTheme; mobile?: boolean; assetSide?: "left" | "right"; hidden?: string[];
     onEditText?: (field: "title" | "description", value: string) => void;
     iconKey?: string; imageUrl?: string; onEditIcon?: (k: string) => void; onEditImage?: (v: string) => void;
+    contentItems?: import("./types").SectionContentItem[]; onEditItems?: (items: import("./types").SectionContentItem[]) => void;
   },
 ) {
   const type = sectionTypeForKind(kind);
@@ -52,6 +53,8 @@ export function renderSectionByKind(
       imageUrl={props.imageUrl}
       onEditIcon={props.onEditIcon}
       onEditImage={props.onEditImage}
+      contentItems={props.contentItems}
+      onEditItems={props.onEditItems}
     />
   );
 }

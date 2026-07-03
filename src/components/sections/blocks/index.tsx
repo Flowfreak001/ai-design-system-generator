@@ -10,7 +10,8 @@
 
 import type { SectionProps, SectionTheme } from "../types";
 import { resolveTheme, h, b, btnRadius } from "../section-theme";
-import { HiddenParts, useHidden, EditText_Ctx, EditText, IconCtx, ImageCtx, useIcon, useImage, BlockIcon, nextIconKey, downscaleImage } from "./parts";
+import { HiddenParts, useHidden, EditText_Ctx, EditText, IconCtx, ImageCtx, ItemsCtx, useIcon, useImage, useItems, Editable, BlockIcon, nextIconKey, downscaleImage } from "./parts";
+import type { SectionContentItem } from "../types";
 
 // ---- modern theme helpers (all derived from brand tokens) ----
 const tint = (t: SectionTheme, pct = 12) => `color-mix(in srgb, ${t.accentColor} ${pct}%, ${t.backgroundColor})`;
@@ -78,15 +79,47 @@ const Btn: React.FC<{ t: SectionTheme; label: string; kind?: "fill" | "ghost" }>
 const Elev = (t: SectionTheme) => ({ background: t.backgroundColor, borderRadius: "20px", border: `1px solid ${t.borderColor}`, boxShadow: "0 1px 2px rgba(16,16,20,0.04), 0 12px 32px -12px rgba(16,16,20,0.12)" });
 
 type BlockFC = React.FC<SectionProps>;
-const make = (fn: (t: SectionTheme, p: SectionProps) => React.ReactNode): BlockFC => (p) => (
-  <EditText_Ctx.Provider value={p.onEditText ?? null}>
-    <IconCtx.Provider value={{ icon: p.iconKey, onEdit: p.onEditIcon }}>
-      <ImageCtx.Provider value={{ url: p.imageUrl, onEdit: p.onEditImage }}>
-        <HiddenParts.Provider value={new Set(p.hidden)}>{fn(resolveTheme(p.theme), p)}</HiddenParts.Provider>
-      </ImageCtx.Provider>
-    </IconCtx.Provider>
-  </EditText_Ctx.Provider>
+// NB: `fn` is rendered inside a child <Body> so any hooks it calls (useItems,
+// useHidden…) run *inside* the providers below — not in make's own scope.
+const make = (fn: (t: SectionTheme, p: SectionProps) => React.ReactNode): BlockFC => {
+  const Body: React.FC<{ p: SectionProps }> = ({ p }) => <>{fn(resolveTheme(p.theme), p)}</>;
+  return (p) => (
+    <EditText_Ctx.Provider value={p.onEditText ?? null}>
+      <IconCtx.Provider value={{ icon: p.iconKey, onEdit: p.onEditIcon }}>
+        <ImageCtx.Provider value={{ url: p.imageUrl, onEdit: p.onEditImage }}>
+          <ItemsCtx.Provider value={{ items: p.contentItems, commit: p.onEditItems }}>
+            <HiddenParts.Provider value={new Set(p.hidden)}><Body p={p} /></HiddenParts.Provider>
+          </ItemsCtx.Provider>
+        </ImageCtx.Provider>
+      </IconCtx.Provider>
+    </EditText_Ctx.Provider>
+  );
+};
+
+// Repeated-items helper: renders section.content.items (or a default), each
+// individually editable (title/text/icon) with add + delete when editing.
+function useRepeater(defaults: SectionContentItem[]) {
+  const { items, commit } = useItems();
+  const data = items && items.length ? items : defaults;
+  const editable = Boolean(commit);
+  const setItem = (i: number, patch: Partial<SectionContentItem>) => commit?.(data.map((x, j) => (j === i ? { ...x, ...patch } : x)));
+  const add = () => commit?.([...data, { title: "New item", text: "Describe this item." }]);
+  const remove = (i: number) => commit?.(data.filter((_, j) => j !== i));
+  return { data, editable, setItem, add, remove };
+}
+const DeleteDot: React.FC<{ t: SectionTheme; onClick: () => void }> = ({ t, onClick }) => (
+  <button type="button" title="Delete" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); onClick(); }}
+    className="absolute -right-2 -top-2 hidden h-5 w-5 place-items-center rounded-full text-[12px] text-white shadow group-hover/item:grid" style={{ background: t.mutedTextColor }}>×</button>
 );
+const AddTile: React.FC<{ t: SectionTheme; onClick: () => void; label: string }> = ({ t, onClick, label }) => (
+  <button type="button" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); onClick(); }}
+    className="grid min-h-[96px] place-items-center rounded-[20px] border-2 border-dashed text-[13px] font-medium transition-colors hover:border-solid" style={{ borderColor: tint(t, 40), color: t.accentColor }}>+ {label}</button>
+);
+const ItemChip: React.FC<{ t: SectionTheme; icon?: string; editable: boolean; onShuffle: () => void }> = ({ t, icon, editable, onShuffle }) => {
+  const box = <span className="grid h-11 w-11 place-items-center rounded-2xl transition-transform group-hover/chip:scale-105" style={{ background: tint(t, 16), color: t.accentColor, border: `1px solid ${tint(t, 30)}` }}><BlockIcon k={icon} /></span>;
+  if (!editable) return box;
+  return <button type="button" title="Shuffle icon" className="group/chip inline-block" onPointerDown={(e) => e.stopPropagation()} onClick={(e) => { e.stopPropagation(); onShuffle(); }}>{box}</button>;
+};
 
 // ── BASIC ──────────────────────────────────────────────────────────────────
 export const ImageBox = make((t, p) => {
@@ -104,11 +137,28 @@ export const ButtonGroup = make((t, p) => (
 export const CardBlock = make((t, p) => (
   <Band t={t} tone="surface"><div className="mx-auto max-w-sm p-6" style={Elev(t)}><Chip t={t} /><h3 className="mt-4 text-[19px] font-semibold" style={h(t)}>{p.title ?? "Card title"}</h3><p className="mt-2 text-[14px] leading-relaxed" style={b(t)}>{p.description ?? "A refined card with an accent icon, tight heading and a clear action."}</p><div className="mt-5"><Btn t={t} label="Explore" kind="ghost" /></div></div></Band>
 ));
-export const CardGrid = make((t, p) => (
-  <Band t={t}><Head t={t} eyebrow="What you get" title={p.title ?? "Everything, in one place"} sub={p.description} center />
-    <div className="mx-auto grid max-w-5xl gap-5 sm:grid-cols-3">{["Fast setup", "Scales with you", "Secure by default"].map((title, i) => (
-      <div key={i} className="p-6" style={Elev(t)}><Chip t={t} /><h4 className="mt-4 text-[17px] font-semibold" style={h(t)}>{title}</h4><p className="mt-1.5 text-[13.5px] leading-relaxed" style={b(t)}>A crisp supporting line that explains the value clearly.</p></div>))}</div></Band>
-));
+const CARD_GRID_DEFAULT: SectionContentItem[] = [
+  { title: "Fast setup", text: "Get up and running in minutes, not weeks." },
+  { title: "Scales with you", text: "From first customer to enterprise scale." },
+  { title: "Secure by default", text: "Best-practice security built into every layer." },
+];
+export const CardGrid = make((t, p) => {
+  const { data, editable, setItem, add, remove } = useRepeater(CARD_GRID_DEFAULT);
+  return (
+    <Band t={t}><Head t={t} eyebrow="What you get" title={p.title ?? "Everything, in one place"} sub={p.description} center />
+      <div className="mx-auto grid max-w-5xl gap-5 sm:grid-cols-3">
+        {data.map((it, i) => (
+          <div key={i} className="group/item relative p-6" style={{ ...Elev(t) }}>
+            {editable && <DeleteDot t={t} onClick={() => remove(i)} />}
+            <div className="mb-4"><ItemChip t={t} icon={it.icon} editable={editable} onShuffle={() => setItem(i, { icon: nextIconKey(it.icon) })} /></div>
+            <Editable as="h4" editable={editable} onCommit={(v) => setItem(i, { title: v })} className="text-[17px] font-semibold" style={h(t)}>{it.title ?? `Card ${i + 1}`}</Editable>
+            <Editable as="p" editable={editable} onCommit={(v) => setItem(i, { text: v })} className="mt-1.5 text-[13.5px] leading-relaxed" style={b(t)}>{it.text ?? "A crisp supporting line that explains the value clearly."}</Editable>
+          </div>
+        ))}
+        {editable && <AddTile t={t} onClick={add} label="Add card" />}
+      </div></Band>
+  );
+});
 export const FeatureCard = make((t, p) => (
   <Band t={t} tone="surface"><div className="mx-auto max-w-sm overflow-hidden p-6" style={Elev(t)}><div className="mb-4"><Chip t={t} solid /></div><h3 className="text-[19px] font-semibold" style={h(t)}>{p.title ?? "Feature name"}</h3><p className="mt-2 text-[14px] leading-relaxed" style={b(t)}>{p.description ?? "The outcome this feature unlocks, written as a single confident line."}</p><div className="mt-4 flex flex-wrap gap-2"><Pill t={t}>Fast</Pill><Pill t={t}>Reliable</Pill></div></div></Band>
 ));

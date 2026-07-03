@@ -8,7 +8,7 @@
 
 import type { SectionProps, SectionTheme } from "../sections/types";
 import { resolveTheme, h, b, btnRadius } from "../sections/section-theme";
-import { HiddenParts, useHidden, EditText_Ctx, EditText, IconCtx, ImageCtx, useIcon, useImage, BlockIcon, nextIconKey, downscaleImage } from "../sections/blocks/parts";
+import { HiddenParts, useHidden, EditText_Ctx, EditText, IconCtx, ImageCtx, ItemsCtx, useIcon, useImage, BlockIcon, nextIconKey, downscaleImage } from "../sections/blocks/parts";
 
 const tint = (t: SectionTheme, p = 12) => `color-mix(in srgb, ${t.accentColor} ${p}%, ${t.backgroundColor})`;
 const grad = (t: SectionTheme) => `linear-gradient(135deg, ${t.accentColor}, color-mix(in srgb, ${t.accentColor} 55%, #0b0b12))`;
@@ -63,15 +63,21 @@ const Btn: React.FC<{ t: SectionTheme; label: string; kind?: "fill" | "ghost" }>
 };
 
 type BlockFC = React.FC<SectionProps>;
-const make = (fn: (t: SectionTheme, p: SectionProps) => React.ReactNode): BlockFC => (p) => (
-  <EditText_Ctx.Provider value={p.onEditText ?? null}>
-    <IconCtx.Provider value={{ icon: p.iconKey, onEdit: p.onEditIcon }}>
-      <ImageCtx.Provider value={{ url: p.imageUrl, onEdit: p.onEditImage }}>
-        <HiddenParts.Provider value={new Set(p.hidden)}>{fn(resolveTheme(p.theme), p)}</HiddenParts.Provider>
-      </ImageCtx.Provider>
-    </IconCtx.Provider>
-  </EditText_Ctx.Provider>
-);
+// `fn` runs inside a child <Body> so its hooks resolve the providers below.
+const make = (fn: (t: SectionTheme, p: SectionProps) => React.ReactNode): BlockFC => {
+  const Body: React.FC<{ p: SectionProps }> = ({ p }) => <>{fn(resolveTheme(p.theme), p)}</>;
+  return (p) => (
+    <EditText_Ctx.Provider value={p.onEditText ?? null}>
+      <IconCtx.Provider value={{ icon: p.iconKey, onEdit: p.onEditIcon }}>
+        <ImageCtx.Provider value={{ url: p.imageUrl, onEdit: p.onEditImage }}>
+          <ItemsCtx.Provider value={{ items: p.contentItems, commit: p.onEditItems }}>
+            <HiddenParts.Provider value={new Set(p.hidden)}><Body p={p} /></HiddenParts.Provider>
+          </ItemsCtx.Provider>
+        </ImageCtx.Provider>
+      </IconCtx.Provider>
+    </EditText_Ctx.Provider>
+  );
+};
 
 // 1 — Bento Grid: asymmetric feature mosaic.
 export const BentoGrid = make((t, p) => (

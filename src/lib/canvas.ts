@@ -33,6 +33,8 @@ export type CanvasSection = {
   icon?: string;
   /** Uploaded image (data URL) for the section's image slot. Grey placeholder if unset. */
   image?: string;
+  /** Per-section editable content (repeated items — cards/steps/list rows). */
+  content?: { items?: import("@/components/sections/types").SectionContentItem[] };
 };
 
 /** Sitemap category tabs for the Visual Sitemap board. */

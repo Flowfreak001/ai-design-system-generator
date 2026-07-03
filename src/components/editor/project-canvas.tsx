@@ -9,7 +9,7 @@
 import { useEffect, useRef, useState } from "react";
 import { renderSectionByKind } from "@/components/sections/render-section";
 import { createSectionTheme, WIREFRAME_SECTION_THEME } from "@/components/sections/section-theme";
-import type { SectionTheme } from "@/components/sections/types";
+import type { SectionTheme, SectionContentItem } from "@/components/sections/types";
 import { sectionKind } from "@/lib/sections";
 import type { CanvasPage, CanvasColor, CanvasSection, StyleGuideCanvas } from "@/lib/canvas";
 
@@ -37,7 +37,7 @@ export function ProjectCanvas({
   pages, mode, style, schemes,
   selectedPageId, selectedSectionId,
   onSelectPage, onSelectSection,
-  onMoveSection, onDuplicateSection, onRemoveSection, onApproveSection, onEditText, onEditIcon, onEditImage,
+  onMoveSection, onDuplicateSection, onRemoveSection, onApproveSection, onEditText, onEditIcon, onEditImage, onEditItems,
 }: {
   pages: CanvasPage[];
   mode: "wireframe" | "design";
@@ -56,6 +56,7 @@ export function ProjectCanvas({
   /** Canvas icon shuffle + image upload → write back to the section. */
   onEditIcon?: (pageId: string, sid: string, iconKey: string) => void;
   onEditImage?: (pageId: string, sid: string, dataUrl: string) => void;
+  onEditItems?: (pageId: string, sid: string, items: SectionContentItem[]) => void;
 }) {
   const [device, setDevice] = useState<Device>("desktop");
   const [zoom, setZoom] = useState(0.55);
@@ -128,6 +129,7 @@ export function ProjectCanvas({
               onEditText={onEditText}
               onEditIcon={onEditIcon}
               onEditImage={onEditImage}
+              onEditItems={onEditItems}
             />
           ))}
         </div>
@@ -164,7 +166,7 @@ export function ProjectCanvas({
 
 function PageFrame({
   page, frameW, mode, baseTheme, schemes, device, isHome, selectedPage, selectedSectionId,
-  onSelectPage, onSelectSection, onMoveSection, onDuplicateSection, onRemoveSection, onApproveSection, onEditText, onEditIcon, onEditImage,
+  onSelectPage, onSelectSection, onMoveSection, onDuplicateSection, onRemoveSection, onApproveSection, onEditText, onEditIcon, onEditImage, onEditItems,
 }: {
   page: CanvasPage;
   frameW: number;
@@ -184,6 +186,7 @@ function PageFrame({
   onEditText?: (pageId: string, sid: string, field: "title" | "description", value: string) => void;
   onEditIcon?: (pageId: string, sid: string, iconKey: string) => void;
   onEditImage?: (pageId: string, sid: string, dataUrl: string) => void;
+  onEditItems?: (pageId: string, sid: string, items: SectionContentItem[]) => void;
 }) {
   const mobile = device === "mobile";
   return (
@@ -256,6 +259,8 @@ function PageFrame({
                     imageUrl: s.image,
                     onEditIcon: onEditIcon ? (k) => onEditIcon(page.id, s.id, k) : undefined,
                     onEditImage: onEditImage ? (v) => onEditImage(page.id, s.id, v) : undefined,
+                    contentItems: s.content?.items,
+                    onEditItems: onEditItems ? (items) => onEditItems(page.id, s.id, items) : undefined,
                   })}
                 </div>
               );

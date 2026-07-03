@@ -875,6 +875,7 @@ function WireframeEditor({
           onEditText={(pid, sid, field, value) => onPatchSection(pid, sid, field === "title" ? { name: value } : { note: value })}
           onEditIcon={(pid, sid, icon) => onPatchSection(pid, sid, { icon })}
           onEditImage={(pid, sid, image) => onPatchSection(pid, sid, { image })}
+          onEditItems={(pid, sid, items) => onPatchSection(pid, sid, { content: { items } })}
         />
       </div>
 
@@ -1611,6 +1612,7 @@ function DesignTab({
           onEditText={(pid, sid, field, value) => onPatchSection(pid, sid, field === "title" ? { name: value } : { note: value })}
           onEditIcon={(pid, sid, icon) => onPatchSection(pid, sid, { icon })}
           onEditImage={(pid, sid, image) => onPatchSection(pid, sid, { image })}
+          onEditItems={(pid, sid, items) => onPatchSection(pid, sid, { content: { items } })}
         />
       </div>
 

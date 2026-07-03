@@ -109,6 +109,17 @@ export interface SectionProps {
   onEditIcon?: (iconKey: string) => void;
   /** onEditImage sets/clears the image slot (data URL) from the canvas. */
   onEditImage?: (dataUrl: string) => void;
+  /** Per-section editable repeated items + a single commit for add/edit/remove. */
+  contentItems?: SectionContentItem[];
+  onEditItems?: (items: SectionContentItem[]) => void;
+}
+
+/** An individually-editable repeated item (card/step/list row) within a section. */
+export interface SectionContentItem {
+  title?: string;
+  text?: string;
+  icon?: string;
+  image?: string;
 }
 
 export type SectionComponent = ComponentType<SectionProps>;

@@ -7,6 +7,7 @@
 
 import { createContext, useContext } from "react";
 import type { CSSProperties, ReactNode } from "react";
+import type { SectionContentItem } from "../types";
 
 export const HiddenParts = createContext<Set<string>>(new Set());
 export const useHidden = (part: string): boolean => useContext(HiddenParts).has(part);
@@ -71,6 +72,25 @@ export const nextIconKey = (cur?: string): string => {
   const i = cur ? BLOCK_ICON_KEYS.indexOf(cur) : 0;
   return BLOCK_ICON_KEYS[(i + 1) % BLOCK_ICON_KEYS.length];
 };
+
+// ── Per-section repeated items (cards/steps) — individually editable ─────────
+export const ItemsCtx = createContext<{ items?: SectionContentItem[]; commit?: (items: SectionContentItem[]) => void }>({});
+export const useItems = () => useContext(ItemsCtx);
+
+/** Generic inline-editable text with a direct commit (used for item slots). */
+export function Editable({ as = "span", className, style, editable, onCommit, children }: {
+  as?: "h2" | "h3" | "h4" | "p" | "span"; className?: string; style?: CSSProperties; editable?: boolean; onCommit: (v: string) => void; children: ReactNode;
+}) {
+  const Tag = as as "span";
+  if (!editable) return <Tag className={className} style={style}>{children}</Tag>;
+  return (
+    <Tag className={`${className ?? ""} outline-none rounded-[4px] cursor-text hover:ring-1 hover:ring-[var(--color-accent,#6366f1)]/40 focus:ring-2 focus:ring-[var(--color-accent,#6366f1)]`}
+      style={style} contentEditable suppressContentEditableWarning spellCheck={false}
+      onPointerDown={(e) => e.stopPropagation()} onClick={(e) => e.stopPropagation()}
+      onBlur={(e) => onCommit((e.currentTarget.textContent ?? "").trim())}
+      onKeyDown={(e) => { if (e.key === "Enter" && as !== "p") { e.preventDefault(); (e.currentTarget as HTMLElement).blur(); } }}>{children}</Tag>
+  );
+}
 
 export const IconCtx = createContext<{ icon?: string; onEdit?: (k: string) => void }>({});
 export const ImageCtx = createContext<{ url?: string; onEdit?: (v: string) => void }>({});
