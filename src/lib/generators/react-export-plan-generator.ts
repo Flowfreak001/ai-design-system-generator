@@ -1,6 +1,6 @@
 import { type GeneratorContext, type MdArtifact, paletteOf, fontsOf, Assumptions } from "./context";
-import { componentNameForSection, sectionKind } from "@/lib/sections";
-import { resolveVariant } from "@/lib/section-variants";
+import { sectionKind } from "@/lib/sections";
+import { sectionTypeForKind, resolveVariantMeta } from "@/components/sections/catalog";
 
 // REACT_EXPORT_PLAN.json — a machine-readable handoff plan for a React build.
 // It follows the LATEST approved editor state (SITEMAP_CANVAS pages + sections),
@@ -23,14 +23,18 @@ export function generateReactExportPlanMd(ctx: GeneratorContext): MdArtifact {
         status: p.status ?? "draft",
         sections: p.sections.map((s) => {
           const kind = sectionKind(s.name);
-          const variant = resolveVariant(kind, s.variant);
+          const sectionType = sectionTypeForKind(kind);
+          const variant = resolveVariantMeta(sectionType, s.variant);
           return {
             name: s.name,
             kind,
+            sectionType,
             // The specific styled variant chosen in the Design canvas (from our
-            // section library); fall back to the base component if none set.
-            component: variant?.component ?? componentNameForSection(s.name),
+            // section variation library) + where to import it from.
+            component: variant?.componentName ?? "GenericSection",
+            importPath: variant?.importPath ?? null,
             designVariant: variant ? { id: variant.id, label: variant.label } : null,
+            exportNotes: variant?.exportNotes ?? null,
             source: s.source,
             status: s.status ?? "draft",
             global: Boolean(s.global),

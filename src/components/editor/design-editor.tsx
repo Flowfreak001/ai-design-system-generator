@@ -12,7 +12,7 @@ import { sectionKind } from "./wireframe-block";
 import { Drawer, Popover } from "./overlays";
 import { ProjectCanvas } from "./project-canvas";
 import { SECTION_CATEGORIES, suggestSectionsForPage } from "@/lib/sections";
-import { variantMetaForKind } from "@/lib/section-variants";
+import { getSectionVariants, sectionTypeForKind } from "@/components/sections/registry";
 import { arrayMove } from "@dnd-kit/sortable";
 import { SitemapFlow } from "./sitemap-flow";
 import type {
@@ -694,13 +694,6 @@ const SECTION_STATUS_STYLE: Record<string, string> = {
   draft: "bg-panel text-muted",
 };
 
-// Which variants (per kind) are image/aside splits that support left/right swap.
-const ASSET_SPLIT_VARIANTS: Partial<Record<string, string[]>> = {
-  hero: ["split", "image-right", "booking", "local"],
-  services: ["split-list"],
-  faq: ["with-cta"],
-};
-
 function VariantThumb({ id }: { id: string }) {
   const two = /split|image|booking|local|with-cta/.test(id);
   const grid = /grid|cards/.test(id);
@@ -754,10 +747,10 @@ function SectionSettingsContent({
   const kind = sectionKind(section.name);
   const status = section.status ?? "draft";
   const activeScheme = schemes.find((c) => c.name === section.scheme);
-  const variants = variantMetaForKind(kind);
+  const variants = getSectionVariants(sectionTypeForKind(kind));
   const activeId = section.variant ?? variants[0]?.id;
   const activeVariant = variants.find((v) => v.id === activeId) ?? variants[0];
-  const supportsAsset = (ASSET_SPLIT_VARIANTS[kind] ?? []).includes(activeId ?? "");
+  const supportsAsset = Boolean(activeVariant?.supportsAssetSwap);
   const assetSide: "left" | "right" = section.asset === "left" ? "left" : "right";
   const generate = () => onPatch({ note: suggestCopy(kind, section.name) });
 

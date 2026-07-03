@@ -7,19 +7,11 @@
 // always render.
 
 import { useEffect, useRef, useState } from "react";
-import { renderSectionVariant } from "@/components/sections/variants";
-import { themeFromStyle, type SectionTheme } from "@/components/sections/theme";
+import { renderSectionByKind } from "@/components/sections/render-section";
+import { createSectionTheme, WIREFRAME_SECTION_THEME } from "@/components/sections/section-theme";
+import type { SectionTheme } from "@/components/sections/types";
 import { sectionKind } from "@/lib/sections";
 import type { CanvasPage, CanvasColor, CanvasSection, StyleGuideCanvas } from "@/lib/canvas";
-
-// Low-fidelity monochrome theme: the Wireframe stage renders the SAME variant
-// components as Design, but greyed out — so the wireframe reflects the chosen
-// layout / variant / asset side without brand colours or high fidelity.
-const WIREFRAME_THEME: SectionTheme = {
-  primary: "#c4c4c4", accent: "#cfcfcf", ink: "#9b9b9b", muted: "#bcbcbc",
-  bg: "#ffffff", surface: "#ededed", radius: 8,
-  headingFont: "Inter, system-ui, sans-serif", bodyFont: "Inter, system-ui, sans-serif",
-};
 
 const FRAME_W = { desktop: 820, tablet: 640, mobile: 380 } as const;
 type Device = keyof typeof FRAME_W;
@@ -64,7 +56,7 @@ export function ProjectCanvas({
   const [zoom, setZoom] = useState(0.55);
   const scrollRef = useRef<HTMLDivElement>(null);
   const frameW = FRAME_W[device];
-  const baseTheme = themeFromStyle(style);
+  const baseTheme = createSectionTheme(style);
 
   const fit = () => {
     const c = scrollRef.current;
@@ -220,7 +212,7 @@ function PageFrame({
           <div className="flex flex-col divide-y divide-line">
             {page.sections.map((s, i) => {
               const scheme = schemes.find((c) => c.name === s.scheme)?.value;
-              const theme: SectionTheme = scheme ? { ...baseTheme, accent: scheme } : baseTheme;
+              const theme: SectionTheme = scheme ? { ...baseTheme, accentColor: scheme } : baseTheme;
               const selected = s.id === selectedSectionId;
               return (
                 <div
@@ -241,10 +233,10 @@ function PageFrame({
                       <button type="button" onClick={(e) => { e.stopPropagation(); onRemoveSection(page.id, s.id); }} title="Delete" className="grid h-8 w-8 place-items-center rounded-lg text-[16px] text-body hover:bg-danger-soft hover:text-danger">✕</button>
                     </span>
                   </div>
-                  {renderSectionVariant(sectionKind(s.name), s.variant, {
+                  {renderSectionByKind(sectionKind(s.name), s.variant, {
                     name: s.name,
                     note: s.note,
-                    theme: mode === "wireframe" ? WIREFRAME_THEME : theme,
+                    theme: mode === "wireframe" ? WIREFRAME_SECTION_THEME : theme,
                     mobile,
                     assetSide: s.asset === "left" ? "left" : "right",
                   })}
