@@ -7,6 +7,7 @@ import { toGenerationInput } from "@/lib/projects";
 import { BRAND_GENERATORS, DESIGN_GENERATORS, type GeneratorContext } from "@/lib/generators";
 import type { AnimationAnalysis } from "@/lib/analysis/animation-extractor";
 import type { AiScreenshotAnalysis } from "@/lib/ai/types";
+import type { SitemapCanvas } from "@/lib/canvas";
 import type {
   WebsiteAnalysis,
   VisualAnalysis,
@@ -39,6 +40,7 @@ async function loadContext(projectId: string): Promise<{ ctx: GeneratorContext; 
           "DESIGN_TOKENS.json",
           "ANIMATION_ANALYSIS.json",
           "AI_SCREENSHOT_ANALYSIS.json",
+          "SITEMAP_CANVAS.json",
         ],
       },
     },
@@ -53,6 +55,7 @@ async function loadContext(projectId: string): Promise<{ ctx: GeneratorContext; 
     tokens: safeParse<TokensAnalysis>(byName.get("DESIGN_TOKENS.json")),
     animation: safeParse<AnimationAnalysis>(byName.get("ANIMATION_ANALYSIS.json")),
     ai: safeParse<AiScreenshotAnalysis>(byName.get("AI_SCREENSHOT_ANALYSIS.json")),
+    canvas: safeParse<SitemapCanvas>(byName.get("SITEMAP_CANVAS.json")),
   };
   return { ctx, analysisCount: jsonFiles.length };
 }

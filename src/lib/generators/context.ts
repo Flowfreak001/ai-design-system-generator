@@ -10,6 +10,7 @@ import type {
   TokensAnalysis,
 } from "@/lib/analysis/site-analyzer";
 import type { AiScreenshotAnalysis } from "@/lib/ai/types";
+import type { SitemapCanvas } from "@/lib/canvas";
 
 export type GeneratorContext = {
   input: GenerationInput;
@@ -19,6 +20,9 @@ export type GeneratorContext = {
   animation: AnimationAnalysis | null;
   /** OpenAI Vision screenshot analysis, when it has been run. */
   ai: AiScreenshotAnalysis | null;
+  /** The user's edited Design Editor sitemap/wireframe — the source of truth
+   *  for page + section structure when present. */
+  canvas: SitemapCanvas | null;
 };
 
 export type MdArtifact = { name: string; content: string };
@@ -116,7 +120,21 @@ export function fontsOf(ctx: GeneratorContext, a: Assumptions): string[] {
   return ["Inter"];
 }
 
+/** Pages to build — the edited Design Editor sitemap wins, then the brief. */
+export function pagesOf(ctx: GeneratorContext): string[] {
+  const canvasPages = ctx.canvas?.pages?.map((p) => p.name).filter(Boolean);
+  if (canvasPages?.length) return canvasPages;
+  return ctx.input.brief.keyItems.length ? ctx.input.brief.keyItems : ["Home"];
+}
+
 export function sectionsOf(ctx: GeneratorContext, a: Assumptions): string[] {
+  // 1) The user's edited wireframe (homepage section stack) is authoritative.
+  const home =
+    ctx.canvas?.pages?.find((p) => /^home$/i.test(p.name)) ?? ctx.canvas?.pages?.[0];
+  if (home?.sections?.length) {
+    a.add("Section flow follows the approved Design Editor wireframe.");
+    return home.sections.map((s) => s.name);
+  }
   if (ctx.website?.sectionsDetected?.length) return ctx.website.sectionsDetected;
   if (ctx.input.brief.keyItems.length) {
     a.add("Section plan derived from the brief's key items (site structure was not analyzable).");

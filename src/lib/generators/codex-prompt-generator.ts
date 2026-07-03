@@ -7,6 +7,7 @@ import {
   paletteOf,
   fontsOf,
   sectionsOf,
+  pagesOf,
   analysisConfidenceNote,
 } from "./context";
 
@@ -22,7 +23,7 @@ export function generateCodexPromptMd(ctx: GeneratorContext): MdArtifact {
   const palette = paletteOf(ctx, a);
   const fonts = fontsOf(ctx, a);
   const sections = sectionsOf(ctx, a);
-  const pages = brief.keyItems.length ? brief.keyItems : ["Home"];
+  const pages = pagesOf(ctx);
 
   const content = `# PROMPT — Codex / GPT build prompt for ${name}
 

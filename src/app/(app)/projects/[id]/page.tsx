@@ -590,7 +590,15 @@ export default async function ProjectWorkspacePage({
           </div>
           <p className="mt-1 text-sm text-muted">{project.clientName || "—"}</p>
         </div>
-        <DeleteProjectButton projectName={project.name} action={remove} />
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/projects/${id}/editor`}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-accent px-3.5 py-2 text-[13px] font-medium text-white transition-colors hover:bg-accent-hover"
+          >
+            ✦ Open Design Editor
+          </Link>
+          <DeleteProjectButton projectName={project.name} action={remove} />
+        </div>
       </FadeUp>
 
       <WorkspaceTabs

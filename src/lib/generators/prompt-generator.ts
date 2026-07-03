@@ -8,6 +8,7 @@ import {
   paletteOf,
   fontsOf,
   sectionsOf,
+  pagesOf,
   analysisConfidenceNote,
 } from "./context";
 
@@ -19,7 +20,7 @@ export function generatePromptMd(ctx: GeneratorContext): MdArtifact {
   const palette = paletteOf(ctx, a);
   const fonts = fontsOf(ctx, a);
   const sections = sectionsOf(ctx, a);
-  const pages = brief.keyItems.length ? brief.keyItems : ["Home"];
+  const pages = pagesOf(ctx);
   const animRules = ctx.animation?.recommendedAnimationRules ?? [
     "Fade-up sections, hero entrance stagger, subtle hover lifts; honor prefers-reduced-motion.",
   ];
