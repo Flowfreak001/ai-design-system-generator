@@ -82,7 +82,7 @@ export function ReferenceLibraryClient({ projectId, projectName, initialPatterns
   const generate = (p: SectionPattern) => setGenSpec(JSON.stringify(generateSectionFromReferencePattern(p, { businessName: projectName }), null, 2));
 
   return (
-    <div className="mx-auto max-w-6xl p-6">
+    <div className="px-5 py-8 sm:px-8">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-[18px] font-semibold text-ink">Section Reference Library</h1>
