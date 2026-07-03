@@ -80,13 +80,24 @@ export function generateComponentPreviewHtml(data: PreviewData): string {
   const inputCap = inp
     ? `${inputCss.borderWidth} ${inputCss.borderColor} border / radius ${inputCss.radius} / ${inputCss.padY}×${inputCss.padX}px${inp.heightPx ? ` / h${inp.heightPx}px` : ""} · measured from a live input`
     : "derived from theme — no input measurable on the reference page";
+  // Use the measured placeholder only where it fits the field. A generic "Your
+  // name" placeholder must not land on an email field.
   const livePlaceholder = inp?.placeholder;
+  const emailPlaceholder = livePlaceholder && /@|e-?mail/i.test(livePlaceholder) ? livePlaceholder : "you@company.com";
 
   const card = comp.card;
+  // Container radius: measured card radius when sane, else a modest default —
+  // NEVER the button radius (pill buttons at 9999px would turn cards/wells into
+  // giant ovals). Buttons keep their own measured radius via --radius.
+  const radiusPx = (r?: string) => { const mm = /^([\d.]+)px/.exec(r ?? ""); return mm ? parseFloat(mm[1]) : null; };
+  const cardRadius = (() => {
+    const p = radiusPx(card?.radius);
+    return p !== null && p <= 28 ? card!.radius! : "12px";
+  })();
   const cardCss = {
     background: card?.background ?? bg,
     border: card?.borderColor ? `${card.borderWidth ?? "1px"} solid ${card.borderColor}` : `1px solid ${line}`,
-    radius: card?.radius ?? radius,
+    radius: cardRadius,
     shadow: card?.shadow ?? "none",
     padding: card?.paddingPx ?? 18,
   };
@@ -169,7 +180,7 @@ ${fontLink ? `<link rel="preconnect" href="https://fonts.googleapis.com" /><link
   * { box-sizing:border-box; margin:0; }
   body { font-family:'${esc(bodyFont)}', ui-sans-serif, system-ui, sans-serif; background:var(--bg); color:var(--ink); padding:32px 24px; }
   .grid { max-width:880px; margin:0 auto; display:grid; gap:20px; }
-  .block { background:${esc(cardFill)}; border:1px solid var(--line); border-radius:var(--radius); padding:20px; }
+  .block { background:${esc(cardFill)}; border:1px solid var(--line); border-radius:${esc(cardRadius)}; padding:20px; }
   .label { font:600 10px/1 ui-monospace,monospace; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin-bottom:12px; }
   .cap { margin-top:12px; font:400 11px/1.6 ui-monospace,monospace; color:var(--muted); }
   .row { display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
@@ -215,13 +226,13 @@ ${fontLink ? `<link rel="preconnect" href="https://fonts.googleapis.com" /><link
   ${block("Forms — sign in / sign up", inputCap, `
     <div class="forms">
       <div class="form-card"><h4>Sign in to ${esc(name)}</h4>
-        ${field("Email", "email", livePlaceholder ?? "you@company.com")}
+        ${field("Email", "email", emailPlaceholder)}
         ${field("Password", "password", "••••••••")}
         <button class="btn primary">Sign in</button>
         <p class="alt">No account? ${esc(ctaLabel)}</p>
       </div>
       <div class="form-card"><h4>${esc(ctaLabel)}</h4>
-        ${field("Work email", "email", livePlaceholder ?? "you@company.com")}
+        ${field("Work email", "email", emailPlaceholder)}
         ${field("Password", "password", "8+ characters", "short", "Password must be at least 8 characters.")}
         <button class="btn primary">${esc(ctaLabel)}</button>
         <p class="alt">By continuing you agree to the ${esc(name)} terms.</p>
