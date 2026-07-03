@@ -5,7 +5,7 @@
 // in React state and submit via hidden inputs. Goal + feature selection is
 // smart: suggested features are derived from the chosen industry + website type.
 
-import { useActionState, useEffect, useMemo, useRef, useState } from "react";
+import { startTransition, useActionState, useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { createProjectAction, type FormState } from "@/app/(app)/projects/actions";
 import { Button } from "@/components/ui/button";
@@ -421,7 +421,8 @@ export function ProjectWizard({
     if (!formRef.current) return;
     const fd = new FormData(formRef.current);
     if (process.env.NODE_ENV !== "production") console.debug("[wizard] dispatching createProject");
-    formAction(fd); // useActionState dispatch → createProjectAction (redirects on success)
+    // Must run inside a transition so useActionState's pending updates correctly.
+    startTransition(() => formAction(fd)); // → createProjectAction (redirects on success)
   };
 
   // The form itself never submits/creates: no `action` prop, and any native
