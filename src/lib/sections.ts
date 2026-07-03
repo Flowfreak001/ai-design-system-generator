@@ -6,10 +6,23 @@ export type SectionKind =
   | "navbar" | "hero" | "features" | "services" | "socialproof" | "workflow"
   | "showcase" | "scrollmedia" | "usecases" | "comparison" | "integrations" | "form" | "booking"
   | "pricing" | "faq" | "testimonials" | "gallery" | "cta" | "footer"
-  | "directory" | "dashboard" | "generic";
+  | "directory" | "dashboard" | "block" | "generic";
+
+// Reusable block names (mid-tier library) → rendered by the "block" SectionType.
+// The chosen block variant is carried on the CanvasSection separately, so we
+// only need to recognise the name here. Kept exact so it wins over heuristics.
+export const BLOCK_INSERT_NAMES = new Set<string>([
+  "Image Box", "Icon Box", "Button Group", "Card", "Card Grid", "Feature Card",
+  "Service Card", "Alert Box", "Quote / Blockquote", "Progress Bar", "Counter",
+  "Social Icons", "List / Icon List", "Process Step", "Timeline Item",
+  "Team Member Card", "Blog Card", "Case Study Card", "FAQ Item",
+  "Contact Info Block", "Location Card", "Image Placeholder", "Video Block",
+  "Product Mockup Placeholder", "Device Mockup Placeholder",
+]);
 
 /** Infer the layout kind from a free-text section name. */
 export function sectionKind(name: string): SectionKind {
+  if (BLOCK_INSERT_NAMES.has(name)) return "block";
   const n = name.toLowerCase();
   if (/nav|header|menu/.test(n)) return "navbar";
   if (/hero|banner/.test(n)) return "hero";
@@ -61,6 +74,7 @@ export function componentNameForKind(kind: SectionKind): string {
     footer: "SimpleFooter",
     directory: "ListingGrid",
     dashboard: "DashboardPreviewSection",
+    block: "BlockSection",
     generic: "FeatureGrid",
   };
   return map[kind];

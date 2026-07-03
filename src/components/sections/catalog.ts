@@ -159,6 +159,40 @@ export const SECTION_CATALOG: Partial<Record<SectionType, SectionCatalogEntry>> 
   },
   directory: { label: "Directory", variants: [V("grid", "Listing Grid", "ListingGrid", "directory/ListingGrid", ["directory", "ecommerce"])] },
   dashboard: { label: "Dashboard", variants: [V("preview", "Dashboard Preview", "DashboardPreviewSection", "dashboard/DashboardPreviewSection", ["saas", "platform", "dashboard"])] },
+  // Reusable BLOCKS (mid-tier of the element library) — each is a real,
+  // theme-aware band that composes a section's primitives (heading/text/image/
+  // button). See components/sections/blocks/index.tsx.
+  block: {
+    label: "Block",
+    variants: [
+      V("image-box", "Image Box", "ImageBox", "blocks", ["general"], { supportsAssetSwap: true }),
+      V("icon-box", "Icon Box", "IconBox", "blocks", ["general", "saas"]),
+      V("button-group", "Button Group", "ButtonGroup", "blocks", ["general"]),
+      V("card", "Card", "CardBlock", "blocks", ["general"]),
+      V("card-grid", "Card Grid", "CardGrid", "blocks", ["general", "agency"]),
+      V("feature-card", "Feature Card", "FeatureCard", "blocks", ["saas", "agency"]),
+      V("service-card", "Service Card", "ServiceCard", "blocks", ["local-service", "professional-service"]),
+      V("alert", "Alert Box", "AlertBox", "blocks", ["general"]),
+      V("quote", "Quote", "Quote", "blocks", ["agency", "general"]),
+      V("progress", "Progress Bar", "ProgressBar", "blocks", ["general"]),
+      V("counter", "Counter", "Counter", "blocks", ["saas", "agency"]),
+      V("social-icons", "Social Icons", "SocialIcons", "blocks", ["general"]),
+      V("icon-list", "Icon List", "IconList", "blocks", ["general"]),
+      V("process-step", "Process Step", "ProcessStep", "blocks", ["saas", "professional-service"]),
+      V("timeline", "Timeline", "TimelineItem", "blocks", ["agency", "professional-service"]),
+      V("team-card", "Team Member Card", "TeamCard", "blocks", ["agency", "professional-service"]),
+      V("blog-card", "Blog Card", "BlogCard", "blocks", ["blog", "agency"]),
+      V("case-study-card", "Case Study Card", "CaseStudyCard", "blocks", ["agency", "software"]),
+      V("faq-item", "FAQ Item", "FaqItem", "blocks", ["general"]),
+      V("contact-info", "Contact Info Block", "ContactInfo", "blocks", ["local-service", "professional-service"]),
+      V("location-card", "Location Card", "LocationCard", "blocks", ["local-service", "booking"]),
+      V("image-placeholder", "Image Placeholder", "ImagePlaceholder", "blocks", ["general"], { supportsAssetSwap: true }),
+      V("video-block", "Video Block", "VideoBlock", "blocks", ["general"], { supportsAssetSwap: true }),
+      V("product-mockup", "Product Mockup", "ProductMockup", "blocks", ["saas", "software"]),
+      V("dashboard-mockup", "Dashboard Mockup", "DashboardMockup", "blocks", ["saas", "platform"]),
+      V("device-mockup", "Device Mockup", "DeviceMockup", "blocks", ["saas", "ecommerce"]),
+    ],
+  },
   // TODO Phase 2: portfolio, blog, testimonials carousel, pricing comparison,
   //   gallery masonry, directory search/filter, stats dashboard, etc.
 };
@@ -172,7 +206,7 @@ export function sectionTypeForKind(kind: string): SectionType {
     scrollmedia: "scroll-media",
     form: "contact-form", booking: "booking-form", pricing: "pricing", faq: "faq",
     testimonials: "testimonials", gallery: "gallery", cta: "cta", footer: "footer",
-    directory: "directory", dashboard: "dashboard", generic: "features",
+    directory: "directory", dashboard: "dashboard", block: "block", generic: "features",
   };
   return map[kind] ?? "features";
 }

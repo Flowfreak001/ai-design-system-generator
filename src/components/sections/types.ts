@@ -28,7 +28,8 @@ export type SectionType =
   | "portfolio"
   | "blog"
   | "directory"
-  | "dashboard";
+  | "dashboard"
+  | "block";
 
 export type ButtonStyle = "rounded" | "pill" | "sharp" | "soft";
 

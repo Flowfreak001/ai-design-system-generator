@@ -54,6 +54,12 @@ import ScrollExpandMedia from "./scroll-media/ScrollExpandMedia";
 import { UseCaseCards, IndustryGrid } from "./use-cases";
 import { ComparisonTable, WhyChooseUsGrid } from "./comparison";
 import { IntegrationLogoCloud } from "./integrations";
+import {
+  ImageBox, IconBox, ButtonGroup, CardBlock, CardGrid, FeatureCard, ServiceCard, AlertBox,
+  Quote, ProgressBar, Counter, SocialIcons, IconList, ProcessStep, TimelineItem, TeamCard,
+  BlogCard, CaseStudyCard, FaqItem, ContactInfo, LocationCard, ImagePlaceholder, VideoBlock,
+  ProductMockup, DashboardMockup, DeviceMockup,
+} from "./blocks";
 
 /** SectionType → variant id → component. Keys mirror catalog.ts ids. */
 const COMPONENTS: Partial<Record<SectionType, Record<string, SectionComponent>>> = {
@@ -79,6 +85,16 @@ const COMPONENTS: Partial<Record<SectionType, Record<string, SectionComponent>>>
   gallery: { marquee: GalleryMarquee, grid: GalleryGrid },
   directory: { grid: ListingGrid },
   dashboard: { preview: DashboardPreviewSection },
+  block: {
+    "image-box": ImageBox, "icon-box": IconBox, "button-group": ButtonGroup, card: CardBlock,
+    "card-grid": CardGrid, "feature-card": FeatureCard, "service-card": ServiceCard, alert: AlertBox,
+    quote: Quote, progress: ProgressBar, counter: Counter, "social-icons": SocialIcons,
+    "icon-list": IconList, "process-step": ProcessStep, timeline: TimelineItem, "team-card": TeamCard,
+    "blog-card": BlogCard, "case-study-card": CaseStudyCard, "faq-item": FaqItem,
+    "contact-info": ContactInfo, "location-card": LocationCard, "image-placeholder": ImagePlaceholder,
+    "video-block": VideoBlock, "product-mockup": ProductMockup, "dashboard-mockup": DashboardMockup,
+    "device-mockup": DeviceMockup,
+  },
 };
 
 /** Full variants (metadata + component) for a section type. */

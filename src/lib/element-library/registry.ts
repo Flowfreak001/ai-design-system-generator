@@ -183,6 +183,30 @@ const SECTIONS: ElementItem[] = [
   S("sec-util-announce", "Announcement Bar", "Utility", "Utility", { icon: "badge", insertName: "Announcement Bar" }),
 ];
 
+// Block display name → the "block" section variant that renders it. Flipping
+// these to `ready` lets the block insert as a real theme-aware band.
+const BLOCK_VARIANT: Record<string, string> = {
+  "Image Box": "image-box", "Icon Box": "icon-box", "Button Group": "button-group",
+  "Card": "card", "Card Grid": "card-grid", "Feature Card": "feature-card",
+  "Service Card": "service-card", "Alert Box": "alert", "Quote / Blockquote": "quote",
+  "Progress Bar": "progress", "Counter": "counter", "Social Icons": "social-icons",
+  "List / Icon List": "icon-list", "Process Step": "process-step", "Timeline Item": "timeline",
+  "Team Member Card": "team-card", "Blog Card": "blog-card", "Case Study Card": "case-study-card",
+  "FAQ Item": "faq-item", "Contact Info Block": "contact-info", "Location Card": "location-card",
+  "Image Placeholder": "image-placeholder", "Video Block": "video-block",
+  "Product Mockup Placeholder": "product-mockup", "Device Mockup Placeholder": "device-mockup",
+};
+for (const item of BLOCKS) {
+  const variant = BLOCK_VARIANT[item.name];
+  if (variant && item.status !== "ready") {
+    item.status = "ready";
+    item.sectionType = "block";
+    item.variant = variant;
+    item.insertName = item.name;
+    item.componentName = "BlockSection";
+  }
+}
+
 export const ELEMENT_LIBRARY: ElementItem[] = [...SECTIONS, ...BLOCKS, ...ATOMIC];
 
 export const getElementsByKind = (kind: ElementKind): ElementItem[] => ELEMENT_LIBRARY.filter((e) => e.kind === kind);
