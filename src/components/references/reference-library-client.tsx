@@ -7,6 +7,7 @@
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { PageContainer } from "@/components/layout/page-container";
 import { analyzeReferenceAction, saveReferencePatternAction, deleteReferencePatternAction } from "@/app/(app)/projects/[id]/references/actions";
 import { generateSectionFromReferencePattern, filterPatterns } from "@/lib/references/pattern";
 import { STYLE_TAGS, type ReferenceSectionType, type SectionPattern } from "@/lib/references/types";
@@ -82,7 +83,7 @@ export function ReferenceLibraryClient({ projectId, projectName, initialPatterns
   const generate = (p: SectionPattern) => setGenSpec(JSON.stringify(generateSectionFromReferencePattern(p, { businessName: projectName }), null, 2));
 
   return (
-    <div className="px-5 py-8 sm:px-8">
+    <PageContainer>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-[18px] font-semibold text-ink">Section Reference Library</h1>
@@ -212,7 +213,7 @@ export function ReferenceLibraryClient({ projectId, projectName, initialPatterns
           </div>
         </div>
       )}
-    </div>
+    </PageContainer>
   );
 }
 

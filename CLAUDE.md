@@ -106,6 +106,11 @@ WorkflowRun/Approval are schema-ready but not yet surfaced in UI.
 - `params`/`searchParams` are **Promises** — await them.
 - Prisma access stays in `lib/*`, not components.
 - `.env`, `.pg-data`, `src/generated`, `dev-with-path.sh` are git-ignored.
+- **Every app page uses the same shell rhythm.** Wrap page content in
+  `<PageContainer>` (`components/layout/page-container.tsx` — standard
+  `px-5 py-8 sm:px-8`, full content width) and lead with `<PageHeader>`. Do NOT
+  hardcode per-page padding or `max-w-*` centering. Exceptions: full-bleed
+  surfaces (the design editor, `/preview/*`) intentionally own the viewport.
 
 ### Design system (UI)
 

@@ -8,6 +8,7 @@ import { listProjects } from "@/lib/projects";
 import { requireUser } from "@/lib/auth";
 import { LinkButton } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/page-header";
+import { PageContainer } from "@/components/layout/page-container";
 import { FadeUp } from "@/components/ui/motion";
 import { SECTION_REFERENCE_LIBRARY_FILE } from "@/lib/references/types";
 
@@ -23,7 +24,7 @@ export default async function LibraryPage() {
   });
 
   return (
-    <div className="px-5 py-8 sm:px-8">
+    <PageContainer>
       <PageHeader
         title="Section Reference Library"
         description="Upload section references and extract reusable design patterns — originals only, never copies. Pick a project to open its library."
@@ -65,6 +66,6 @@ export default async function LibraryPage() {
           ))}
         </FadeUp>
       )}
-    </div>
+    </PageContainer>
   );
 }
