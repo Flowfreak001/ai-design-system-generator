@@ -5,6 +5,7 @@
 // navigation. Escape closes; a faint backdrop keeps the canvas visible behind.
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion } from "framer-motion";
 
 export function Drawer({
@@ -65,7 +66,9 @@ export function Drawer({
   );
 }
 
-/** Anchored popover. `trigger` opens it; children get a `close` callback. */
+/** Anchored popover. `trigger` opens it; children get a `close` callback.
+ *  The menu is portaled to <body> with fixed positioning so it always renders
+ *  above the canvas (parent stacking contexts like backdrop-blur can't trap it). */
 export function Popover({
   trigger,
   children,
@@ -78,41 +81,61 @@ export function Popover({
   width?: number;
 }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLSpanElement>(null);
+  const [coords, setCoords] = useState({ top: 0, left: 0 });
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!open) return;
+    const place = () => {
+      const r = btnRef.current?.getBoundingClientRect();
+      if (!r) return;
+      const left = align === "right" ? r.right - width : r.left;
+      setCoords({ top: r.bottom + 6, left: Math.max(8, Math.min(left, window.innerWidth - width - 8)) });
+    };
+    place();
     const onDown = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      const t = e.target as Node;
+      if (btnRef.current?.contains(t) || menuRef.current?.contains(t)) return;
+      setOpen(false);
     };
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
     document.addEventListener("mousedown", onDown);
     window.addEventListener("keydown", onKey);
+    window.addEventListener("resize", place);
+    window.addEventListener("scroll", place, true);
     return () => {
       document.removeEventListener("mousedown", onDown);
       window.removeEventListener("keydown", onKey);
+      window.removeEventListener("resize", place);
+      window.removeEventListener("scroll", place, true);
     };
-  }, [open]);
+  }, [open, align, width]);
 
   return (
-    <span ref={ref} className="relative inline-flex">
-      <button type="button" onClick={() => setOpen((o) => !o)} className="inline-flex">
+    <>
+      <button ref={btnRef} type="button" onClick={() => setOpen((o) => !o)} className="inline-flex">
         {trigger(open)}
       </button>
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, y: -4, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -4, scale: 0.98 }}
-            transition={{ duration: 0.14 }}
-            style={{ width }}
-            className={`absolute top-full z-50 mt-1 rounded-xl border border-line bg-surface p-1.5 shadow-xl ${align === "right" ? "right-0" : "left-0"}`}
-          >
-            {children(() => setOpen(false))}
-          </motion.div>
+      {typeof document !== "undefined" &&
+        createPortal(
+          <AnimatePresence>
+            {open && (
+              <motion.div
+                ref={menuRef}
+                initial={{ opacity: 0, y: -4, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -4, scale: 0.98 }}
+                transition={{ duration: 0.14 }}
+                style={{ position: "fixed", top: coords.top, left: coords.left, width }}
+                className="z-[200] rounded-xl border border-line bg-surface p-1.5 shadow-xl"
+              >
+                {children(() => setOpen(false))}
+              </motion.div>
+            )}
+          </AnimatePresence>,
+          document.body,
         )}
-      </AnimatePresence>
-    </span>
+    </>
   );
 }

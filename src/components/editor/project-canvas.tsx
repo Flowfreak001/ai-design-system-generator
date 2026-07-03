@@ -15,6 +15,16 @@ import type { CanvasPage, CanvasColor, CanvasSection, StyleGuideCanvas } from "@
 
 const FRAME_W = { desktop: 820, tablet: 640, mobile: 380 } as const;
 type Device = keyof typeof FRAME_W;
+const DEVICE_LABEL: Record<Device, string> = { desktop: "Desktop", tablet: "Tablet / iPad", mobile: "Mobile" };
+
+function DeviceIcon({ device }: { device: Device }) {
+  const common = { width: 15, height: 15, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.8, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+  if (device === "desktop")
+    return (<svg {...common}><rect x="3" y="4" width="18" height="12" rx="1.5" /><path d="M2 20h20" /></svg>);
+  if (device === "tablet")
+    return (<svg {...common}><rect x="5" y="3" width="14" height="18" rx="2" /><path d="M11 18h2" /></svg>);
+  return (<svg {...common}><rect x="7" y="3" width="10" height="18" rx="2" /><path d="M11 18h2" /></svg>);
+}
 
 const SOURCE_STYLE: Record<string, string> = {
   extracted: "bg-success-soft text-success", detected: "bg-success-soft text-success",
@@ -89,9 +99,19 @@ export function ProjectCanvas({
       {/* Bottom controls: device + zoom */}
       <div className="pointer-events-none absolute inset-x-0 bottom-3 flex items-center justify-center">
         <div className="pointer-events-auto flex items-center gap-2 rounded-xl border border-line bg-surface/95 p-1 shadow-lg backdrop-blur">
-          <div className="flex items-center gap-1 rounded-lg bg-panel p-0.5">
+          <div className="flex items-center gap-0.5 rounded-lg bg-panel p-0.5">
             {(Object.keys(FRAME_W) as Device[]).map((d) => (
-              <button key={d} type="button" onClick={() => setDevice(d)} className={`rounded px-2 py-0.5 text-[11px] capitalize ${device === d ? "bg-surface text-ink shadow-sm" : "text-muted"}`}>{d}</button>
+              <button
+                key={d}
+                type="button"
+                onClick={() => setDevice(d)}
+                title={DEVICE_LABEL[d]}
+                aria-label={DEVICE_LABEL[d]}
+                aria-pressed={device === d}
+                className={`grid h-7 w-8 place-items-center rounded-md transition-colors ${device === d ? "bg-surface text-ink shadow-sm" : "text-muted hover:text-body"}`}
+              >
+                <DeviceIcon device={d} />
+              </button>
             ))}
           </div>
           <span className="h-4 w-px bg-line" />
