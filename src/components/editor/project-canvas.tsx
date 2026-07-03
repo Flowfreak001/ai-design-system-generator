@@ -6,7 +6,7 @@
 // document flow. The selected page/section is for editing only — all pages
 // always render.
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SectionWireframe } from "./wireframe-block";
 import { renderSectionVariant } from "@/components/sections/variants";
 import { themeFromStyle, type SectionTheme } from "@/components/sections/theme";
@@ -64,7 +64,36 @@ export function ProjectCanvas({
     const natural = pages.length * frameW + Math.max(0, pages.length - 1) * 40 + 80;
     setZoom(Math.max(0.12, Math.min(1, (c.clientWidth - 24) / natural)));
   };
-  const zoomBy = (d: number) => setZoom((z) => Math.max(0.12, Math.min(1.5, +(z + d).toFixed(2))));
+  const zoomBy = (d: number) => setZoom((z) => Math.max(0.12, Math.min(2, +(z + d).toFixed(2))));
+
+  // Scroll-to-zoom like the sitemap: ctrl/cmd + wheel (and trackpad pinch, which
+  // browsers report as ctrlKey) zooms toward the cursor. Plain wheel scrolls.
+  useEffect(() => {
+    const c = scrollRef.current;
+    if (!c) return;
+    const onWheel = (e: WheelEvent) => {
+      if (!(e.ctrlKey || e.metaKey)) return; // let native scroll/pan happen
+      e.preventDefault();
+      const rect = c.getBoundingClientRect();
+      const offX = e.clientX - rect.left;
+      const offY = e.clientY - rect.top;
+      const px = c.scrollLeft + offX; // pointer position in current zoomed px
+      const py = c.scrollTop + offY;
+      setZoom((z) => {
+        const factor = e.deltaY < 0 ? 1.12 : 1 / 1.12;
+        const nz = Math.max(0.12, Math.min(2, +(z * factor).toFixed(3)));
+        const ratio = nz / z;
+        // Keep the point under the cursor fixed after the zoom change.
+        requestAnimationFrame(() => {
+          c.scrollLeft = px * ratio - offX;
+          c.scrollTop = py * ratio - offY;
+        });
+        return nz;
+      });
+    };
+    c.addEventListener("wheel", onWheel, { passive: false });
+    return () => c.removeEventListener("wheel", onWheel);
+  }, []);
 
   return (
     <div className="relative flex h-full min-h-0 flex-col bg-panel/40">
