@@ -451,13 +451,14 @@ export function ProjectWizard({
       <input type="hidden" name="logoDataUrl" value={logo} />
       <input type="hidden" name="screenshots" value={shots.length ? JSON.stringify(shots) : ""} />
 
-      {/* Stepper — connectors fill with the accent color as steps complete. */}
-      <ol className="flex items-center gap-1" aria-label="Progress steps">
+      {/* Stepper — fixed-width connectors keep the gap between tabs uniform;
+          they fill with the accent color as steps complete. */}
+      <ol className="flex flex-wrap items-center gap-y-2" aria-label="Progress steps">
         {STEPS.map((s, i) => {
           const done = step > s.id;
           const active = step === s.id;
           return (
-            <li key={s.id} className="flex flex-1 items-center gap-1">
+            <li key={s.id} className="flex items-center">
               <button
                 type="button"
                 onClick={() => goTo(s.id)}
@@ -474,7 +475,7 @@ export function ProjectWizard({
               </button>
               {i < STEPS.length - 1 && (
                 <span
-                  className={`h-px flex-1 transition-colors duration-300 ${done ? "bg-accent" : "bg-line"}`}
+                  className={`mx-2 h-px w-6 shrink-0 transition-colors duration-300 ${done ? "bg-accent" : "bg-line"}`}
                   aria-hidden="true"
                 />
               )}
