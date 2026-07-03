@@ -17,8 +17,12 @@
     "worker": "tsx src/worker.ts"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.8.0",
+    "@xyflow/react": "^12.11.1",
     "bcryptjs": "^3.0.3",
     "bullmq": "^5.79.2",
     "class-variance-authority": "^0.7.1",

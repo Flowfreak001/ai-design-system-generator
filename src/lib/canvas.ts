@@ -25,6 +25,9 @@ export type CanvasPage = {
   name: string;
   source: CanvasSource;
   sections: CanvasSection[];
+  /** React Flow node position (persisted so the layout survives reloads). */
+  x?: number;
+  y?: number;
 };
 
 export type SitemapCanvas = {

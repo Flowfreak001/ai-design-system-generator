@@ -7,8 +7,18 @@
 
 import { useCallback, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy, arrayMove, useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { SitemapFlow } from "./sitemap-flow";
 import type {
   SitemapCanvas,
   StyleGuideCanvas,
@@ -148,10 +158,12 @@ export function DesignEditor({
     setPages((p) => [...p, { id: uid("p"), name: `New page ${p.length + 1}`, source: "user-added", sections: [] }]);
   const removePage = (id: string) => setPages((p) => p.filter((x) => x.id !== id));
   const renamePage = (id: string, name: string) => setPages((p) => p.map((x) => (x.id === id ? { ...x, name } : x)));
-  const movePage = (id: string, dir: -1 | 1) =>
-    setPages((p) => move(p, p.findIndex((x) => x.id === id), dir));
   const cyclePageSource = (id: string) =>
     setPages((p) => p.map((x) => (x.id === id ? { ...x, source: nextSource(x.source) } : x)));
+  const movePagePos = useCallback((id: string, x: number, y: number) => {
+    setPagesState((p) => p.map((n) => (n.id === id ? { ...n, x, y } : n)));
+    setDirty(true);
+  }, []);
 
   // ---- Section mutators (scoped to a page) ----
   const patchPage = (pageId: string, fn: (pg: CanvasPage) => CanvasPage) =>
@@ -162,8 +174,13 @@ export function DesignEditor({
     patchPage(pageId, (pg) => ({ ...pg, sections: pg.sections.filter((s) => s.id !== sid) }));
   const patchSection = (pageId: string, sid: string, patch: Partial<CanvasSection>) =>
     patchPage(pageId, (pg) => ({ ...pg, sections: pg.sections.map((s) => (s.id === sid ? { ...s, ...patch } : s)) }));
-  const moveSection = (pageId: string, sid: string, dir: -1 | 1) =>
-    patchPage(pageId, (pg) => ({ ...pg, sections: move(pg.sections, pg.sections.findIndex((s) => s.id === sid), dir) }));
+  const reorderSections = (pageId: string, activeId: string, overId: string) =>
+    patchPage(pageId, (pg) => {
+      const from = pg.sections.findIndex((s) => s.id === activeId);
+      const to = pg.sections.findIndex((s) => s.id === overId);
+      if (from < 0 || to < 0 || from === to) return pg;
+      return { ...pg, sections: arrayMove(pg.sections, from, to) };
+    });
 
   const selectedPage = pages.find((p) => p.id === selectedPageId) ?? pages[0];
   const deviceW = device === "mobile" ? 390 : device === "tablet" ? 768 : 1200;
@@ -221,8 +238,8 @@ export function DesignEditor({
               onAddPage={addPage}
               onRemovePage={removePage}
               onRename={renamePage}
-              onMove={movePage}
               onCycleSource={cyclePageSource}
+              onMovePos={movePagePos}
               onOpenWireframe={(id) => { setSelectedPageId(id); setTab("wireframe"); }}
               approved={approvals.sitemap}
               onApprove={() => approve("sitemap")}
@@ -238,7 +255,7 @@ export function DesignEditor({
               onAddSection={addSection}
               onRemoveSection={removeSection}
               onPatchSection={patchSection}
-              onMoveSection={moveSection}
+              onReorder={reorderSections}
               approved={approvals.wireframe}
               onApprove={() => approve("wireframe")}
               busy={saving}
@@ -261,6 +278,7 @@ export function DesignEditor({
               selectedPage={selectedPage}
               onSelect={setSelectedPageId}
               onPatchSection={patchSection}
+              onReorder={reorderSections}
               device={device}
               setDevice={setDevice}
               deviceW={deviceW}
@@ -278,13 +296,6 @@ export function DesignEditor({
 
 const TAB_LABEL: Record<Tab, string> = { sitemap: "Sitemap", wireframe: "Wireframe", style: "Style Guide", design: "Design" };
 
-function move<T>(arr: T[], i: number, dir: -1 | 1): T[] {
-  const j = i + dir;
-  if (i < 0 || j < 0 || j >= arr.length) return arr;
-  const next = [...arr];
-  [next[i], next[j]] = [next[j], next[i]];
-  return next;
-}
 function nextSource(s: CanvasSource): CanvasSource {
   const i = SOURCE_CYCLE.indexOf(s);
   return SOURCE_CYCLE[(i + 1) % SOURCE_CYCLE.length];
@@ -316,94 +327,68 @@ function ApproveBar({ approved, onApprove, busy, label }: { approved: boolean; o
   );
 }
 
-// ---------------------------------------------------------------- Sitemap
+/** A draggable (dnd-kit) row with a grab handle; children are the row content. */
+function SortableSectionRow({ id, children }: { id: string; children: React.ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.6 : 1 };
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-start gap-2 rounded-lg border border-line bg-surface p-3">
+      <button
+        type="button"
+        {...attributes}
+        {...listeners}
+        title="Drag to reorder"
+        className="mt-0.5 cursor-grab touch-none text-faint hover:text-ink active:cursor-grabbing"
+      >
+        ⠿
+      </button>
+      <div className="min-w-0 flex-1">{children}</div>
+    </div>
+  );
+}
+
+// ------------------------------------------------ Sitemap (React Flow canvas)
 function SitemapEditor({
-  pages, onAddPage, onRemovePage, onRename, onMove, onCycleSource, onOpenWireframe, approved, onApprove, busy,
+  pages, onAddPage, onRemovePage, onRename, onCycleSource, onMovePos, onOpenWireframe, approved, onApprove, busy,
 }: {
   pages: CanvasPage[];
   onAddPage: () => void;
   onRemovePage: (id: string) => void;
   onRename: (id: string, name: string) => void;
-  onMove: (id: string, dir: -1 | 1) => void;
   onCycleSource: (id: string) => void;
+  onMovePos: (id: string, x: number, y: number) => void;
   onOpenWireframe: (id: string) => void;
   approved: boolean;
   onApprove: () => void;
   busy: boolean;
 }) {
-  const home = pages.find((p) => /^home$/i.test(p.name)) ?? pages[0];
-  const children = pages.filter((p) => p.id !== home?.id);
   return (
     <div className="p-6">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-[15px] font-semibold text-ink">Sitemap</h2>
-          <p className="text-[12.5px] text-muted">Every page you selected + discovered pages. Rename, reorder, add, or remove — then approve.</p>
+          <p className="text-[12.5px] text-muted">Pan / zoom the graph. Drag pages to arrange, rename inline, change source, add or remove — then approve.</p>
         </div>
         <div className="flex items-center gap-2">
           <Button size="sm" variant="secondary" onClick={onAddPage}>＋ Add page</Button>
           <ApproveBar approved={approved} onApprove={onApprove} busy={busy} label="sitemap" />
         </div>
       </div>
-
-      <div className="mx-auto flex w-fit min-w-full flex-col items-center rounded-xl border border-line bg-surface p-6">
-        <div className="w-full max-w-3xl rounded-md bg-line/60 px-3 py-1.5 text-center text-[12px] font-medium text-body">▦ Project</div>
-        <span className="my-2 block h-5 w-px bg-line-strong/70" />
-        {home && (
-          <PageCard page={home} onRename={onRename} onMove={onMove} onRemove={onRemovePage} onCycleSource={onCycleSource} onOpen={onOpenWireframe} isHome />
-        )}
-        {children.length > 0 && (
-          <>
-            <span className="my-2 block h-5 w-px bg-line-strong/70" />
-            <div className="flex flex-wrap items-start justify-center gap-3">
-              {children.map((p) => (
-                <PageCard key={p.id} page={p} onRename={onRename} onMove={onMove} onRemove={onRemovePage} onCycleSource={onCycleSource} onOpen={onOpenWireframe} />
-              ))}
-            </div>
-          </>
-        )}
-      </div>
+      <SitemapFlow
+        pages={pages}
+        onRename={onRename}
+        onCycleSource={onCycleSource}
+        onRemove={onRemovePage}
+        onOpen={onOpenWireframe}
+        onMove={onMovePos}
+      />
     </div>
-  );
-}
-
-function PageCard({
-  page, onRename, onMove, onRemove, onCycleSource, onOpen, isHome,
-}: {
-  page: CanvasPage;
-  onRename: (id: string, name: string) => void;
-  onMove: (id: string, dir: -1 | 1) => void;
-  onRemove: (id: string) => void;
-  onCycleSource: (id: string) => void;
-  onOpen: (id: string) => void;
-  isHome?: boolean;
-}) {
-  return (
-    <motion.div initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} className={`rounded-lg border border-line bg-surface shadow-sm ${isHome ? "w-64" : "w-44"}`}>
-      <div className="flex items-center gap-1.5 rounded-t-lg bg-panel px-2 py-1.5">
-        <span className="text-[12px]">{isHome ? "🏠" : "📄"}</span>
-        <input
-          value={page.name}
-          onChange={(e) => onRename(page.id, e.target.value)}
-          className="min-w-0 flex-1 bg-transparent text-[12px] font-semibold text-ink outline-none"
-        />
-        <button type="button" onClick={() => onMove(page.id, -1)} title="Move up" className="text-faint hover:text-ink">↑</button>
-        <button type="button" onClick={() => onMove(page.id, 1)} title="Move down" className="text-faint hover:text-ink">↓</button>
-        {!isHome && <button type="button" onClick={() => onRemove(page.id)} title="Remove" className="text-faint hover:text-danger">✕</button>}
-      </div>
-      <div className="flex items-center justify-between gap-2 p-2">
-        <SourceTag source={page.source} onClick={() => onCycleSource(page.id)} />
-        <button type="button" onClick={() => onOpen(page.id)} className="text-[11px] font-medium text-accent hover:underline">
-          {page.sections.length} section{page.sections.length === 1 ? "" : "s"} →
-        </button>
-      </div>
-    </motion.div>
   );
 }
 
 // -------------------------------------------------------------- Wireframe
 function WireframeEditor({
-  pages, selectedPage, onSelect, onAddSection, onRemoveSection, onPatchSection, onMoveSection, approved, onApprove, busy,
+  pages, selectedPage, onSelect, onAddSection, onRemoveSection, onPatchSection, onReorder, approved, onApprove, busy,
 }: {
   pages: CanvasPage[];
   selectedPage?: CanvasPage;
@@ -411,13 +396,18 @@ function WireframeEditor({
   onAddSection: (pageId: string, name: string) => void;
   onRemoveSection: (pageId: string, sid: string) => void;
   onPatchSection: (pageId: string, sid: string, patch: Partial<CanvasSection>) => void;
-  onMoveSection: (pageId: string, sid: string, dir: -1 | 1) => void;
+  onReorder: (pageId: string, activeId: string, overId: string) => void;
   approved: boolean;
   onApprove: () => void;
   busy: boolean;
 }) {
   const [custom, setCustom] = useState("");
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
   if (!selectedPage) return <div className="p-6 text-[13px] text-muted">Add a page in the Sitemap first.</div>;
+  const pageId = selectedPage.id;
+  const onDragEnd = (e: DragEndEvent) => {
+    if (e.over && e.active.id !== e.over.id) onReorder(pageId, String(e.active.id), String(e.over.id));
+  };
   return (
     <div className="flex min-h-full">
       {/* Left panel: page list + add-section */}
@@ -458,30 +448,35 @@ function WireframeEditor({
           </div>
           <ApproveBar approved={approved} onApprove={onApprove} busy={busy} label="wireframe" />
         </div>
-        <div className="mx-auto grid max-w-lg gap-2">
-          {selectedPage.sections.length === 0 && (
+        <div className="mx-auto max-w-lg">
+          {selectedPage.sections.length === 0 ? (
             <p className="rounded-lg border border-dashed border-line px-4 py-8 text-center text-[13px] text-faint">
               No sections yet — add from the panel. Nothing is forced; only what you add or the crawl detected.
             </p>
+          ) : (
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+              <SortableContext items={selectedPage.sections.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+                <div className="grid gap-2">
+                  {selectedPage.sections.map((s) => (
+                    <SortableSectionRow key={s.id} id={s.id}>
+                      <div className="flex items-center gap-2">
+                        <input value={s.name} onChange={(e) => onPatchSection(pageId, s.id, { name: e.target.value })} className="min-w-0 flex-1 bg-transparent text-[13px] font-medium text-ink outline-none" />
+                        <SourceTag source={s.source} onClick={() => onPatchSection(pageId, s.id, { source: nextSource(s.source) })} />
+                        <button type="button" onClick={() => onPatchSection(pageId, s.id, { global: !s.global })} title="Toggle global" className={`rounded px-1.5 text-[10px] font-medium ${s.global ? "bg-info-soft text-info" : "bg-panel text-faint"}`}>global</button>
+                        <button type="button" onClick={() => onRemoveSection(pageId, s.id)} className="text-faint hover:text-danger">✕</button>
+                      </div>
+                      <input
+                        value={s.note ?? ""}
+                        onChange={(e) => onPatchSection(pageId, s.id, { note: e.target.value })}
+                        placeholder="Section note / copy direction…"
+                        className="mt-1.5 w-full bg-transparent text-[12px] text-muted outline-none placeholder:text-faint"
+                      />
+                    </SortableSectionRow>
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
           )}
-          {selectedPage.sections.map((s) => (
-            <div key={s.id} className="rounded-lg border border-line bg-surface p-3">
-              <div className="flex items-center gap-2">
-                <input value={s.name} onChange={(e) => onPatchSection(selectedPage.id, s.id, { name: e.target.value })} className="min-w-0 flex-1 bg-transparent text-[13px] font-medium text-ink outline-none" />
-                <SourceTag source={s.source} onClick={() => onPatchSection(selectedPage.id, s.id, { source: nextSource(s.source) })} />
-                <button type="button" onClick={() => onPatchSection(selectedPage.id, s.id, { global: !s.global })} title="Toggle global" className={`rounded px-1.5 text-[10px] font-medium ${s.global ? "bg-info-soft text-info" : "bg-panel text-faint"}`}>global</button>
-                <button type="button" onClick={() => onMoveSection(selectedPage.id, s.id, -1)} className="text-faint hover:text-ink">↑</button>
-                <button type="button" onClick={() => onMoveSection(selectedPage.id, s.id, 1)} className="text-faint hover:text-ink">↓</button>
-                <button type="button" onClick={() => onRemoveSection(selectedPage.id, s.id)} className="text-faint hover:text-danger">✕</button>
-              </div>
-              <input
-                value={s.note ?? ""}
-                onChange={(e) => onPatchSection(selectedPage.id, s.id, { note: e.target.value })}
-                placeholder="Section note / copy direction…"
-                className="mt-1.5 w-full bg-transparent text-[12px] text-muted outline-none placeholder:text-faint"
-              />
-            </div>
-          ))}
         </div>
       </div>
     </div>
@@ -577,12 +572,13 @@ function TokenRow({ label, value, onChange }: { label: string; value: number; on
 
 // ---------------------------------------------------------------- Design
 function DesignTab({
-  pages, selectedPage, onSelect, onPatchSection, device, setDevice, deviceW, previewHtml, approved, onApprove, busy,
+  pages, selectedPage, onSelect, onPatchSection, onReorder, device, setDevice, deviceW, previewHtml, approved, onApprove, busy,
 }: {
   pages: CanvasPage[];
   selectedPage?: CanvasPage;
   onSelect: (id: string) => void;
   onPatchSection: (pageId: string, sid: string, patch: Partial<CanvasSection>) => void;
+  onReorder: (pageId: string, activeId: string, overId: string) => void;
   device: "desktop" | "tablet" | "mobile";
   setDevice: (d: "desktop" | "tablet" | "mobile") => void;
   deviceW: number;
@@ -591,6 +587,11 @@ function DesignTab({
   onApprove: () => void;
   busy: boolean;
 }) {
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+  const sections = selectedPage?.sections ?? [];
+  const onDragEnd = (e: DragEndEvent) => {
+    if (selectedPage && e.over && e.active.id !== e.over.id) onReorder(selectedPage.id, String(e.active.id), String(e.over.id));
+  };
   return (
     <div className="flex min-h-full">
       <div className="w-56 shrink-0 border-r border-line bg-surface p-3">
@@ -632,25 +633,32 @@ function DesignTab({
             )}
           </div>
 
-          {/* Section approve / notes */}
+          {/* Section reorder + notes (dnd-kit) */}
           <div className="grid content-start gap-2">
-            <p className="text-[12px] font-semibold text-ink">{selectedPage?.name} sections</p>
-            {(selectedPage?.sections ?? []).map((s) => (
-              <div key={s.id} className="rounded-lg border border-line bg-surface p-2.5">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="truncate text-[12.5px] font-medium text-ink">{s.name}</span>
-                  <SourceTag source={s.source} />
-                </div>
-                <input
-                  value={s.note ?? ""}
-                  onChange={(e) => onPatchSection(selectedPage!.id, s.id, { note: e.target.value })}
-                  placeholder="Design note for this section…"
-                  className="mt-1 w-full bg-transparent text-[12px] text-muted outline-none placeholder:text-faint"
-                />
-              </div>
-            ))}
-            {(selectedPage?.sections.length ?? 0) === 0 && (
+            <p className="text-[12px] font-semibold text-ink">{selectedPage?.name} sections — drag to reorder</p>
+            {sections.length === 0 ? (
               <p className="text-[12px] text-faint">Add sections in the Wireframe tab to compose this page.</p>
+            ) : (
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+                <SortableContext items={sections.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+                  <div className="grid gap-2">
+                    {sections.map((s) => (
+                      <SortableSectionRow key={s.id} id={s.id}>
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="truncate text-[12.5px] font-medium text-ink">{s.name}</span>
+                          <SourceTag source={s.source} />
+                        </div>
+                        <input
+                          value={s.note ?? ""}
+                          onChange={(e) => onPatchSection(selectedPage!.id, s.id, { note: e.target.value })}
+                          placeholder="Design note for this section…"
+                          className="mt-1 w-full bg-transparent text-[12px] text-muted outline-none placeholder:text-faint"
+                        />
+                      </SortableSectionRow>
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
             )}
           </div>
         </div>
