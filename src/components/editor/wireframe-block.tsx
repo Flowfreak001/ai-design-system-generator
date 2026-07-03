@@ -5,26 +5,10 @@
 // page, not a list of cards. Nothing is forced — only sections present in the
 // canvas state render, but each renders with a layout that matches its type.
 
-export type SectionKind =
-  | "navbar" | "hero" | "features" | "services" | "form" | "pricing"
-  | "faq" | "testimonials" | "gallery" | "cta" | "footer" | "generic";
-
-/** Infer the layout kind from a free-text section name. */
-export function sectionKind(name: string): SectionKind {
-  const n = name.toLowerCase();
-  if (/nav|header|menu/.test(n)) return "navbar";
-  if (/hero|banner/.test(n)) return "hero";
-  if (/pricing|plans?/.test(n)) return "pricing";
-  if (/faq|question/.test(n)) return "faq";
-  if (/testimonial|review|quote/.test(n)) return "testimonials";
-  if (/gallery|portfolio|case|work/.test(n)) return "gallery";
-  if (/form|contact|booking|enquir|quote request|sign ?up|login|newsletter/.test(n)) return "form";
-  if (/feature/.test(n)) return "features";
-  if (/service|card|benefit|list/.test(n)) return "services";
-  if (/cta|call to action|get started|book now/.test(n)) return "cta";
-  if (/footer/.test(n)) return "footer";
-  return "generic";
-}
+// Section kind + inference live in the pure lib module so server generators can
+// share them; re-exported here for the wireframe renderer's convenience.
+export { sectionKind, type SectionKind } from "@/lib/sections";
+import { sectionKind } from "@/lib/sections";
 
 const bar = (w: string, h = "h-2.5", extra = "") => <div className={`${h} ${w} rounded bg-line ${extra}`} />;
 /** Grey placeholder box. Accepts an optional key for list rendering. */

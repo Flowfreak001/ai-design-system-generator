@@ -10,16 +10,10 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { SectionWireframe, sectionKind } from "./wireframe-block";
 import { Drawer, Popover } from "./overlays";
-import {
-  DndContext,
-  closestCenter,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  type DragEndEvent,
-} from "@dnd-kit/core";
-import { SortableContext, verticalListSortingStrategy, arrayMove, useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import { themeFromStyle } from "@/components/sections/theme";
+import { RenderSection } from "@/components/sections/registry";
+import { SECTION_CATEGORIES } from "@/lib/sections";
+import { arrayMove } from "@dnd-kit/sortable";
 import { SitemapFlow } from "./sitemap-flow";
 import type {
   SitemapCanvas,
@@ -68,19 +62,6 @@ function SourceTag({ source, onClick }: { source: CanvasSource; onClick?: () => 
 const uid = (p = "n") =>
   typeof crypto !== "undefined" && crypto.randomUUID ? `${p}-${crypto.randomUUID().slice(0, 8)}` : `${p}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 
-// Section library shown in the Add-Section drawer, grouped by category.
-const SECTION_LIBRARY: { category: string; items: string[] }[] = [
-  { category: "Global sections", items: ["Navbar", "Footer", "Announcement Bar"] },
-  { category: "Basic sections", items: ["Hero", "CTA", "Heading", "Text Block"] },
-  { category: "Content sections", items: ["Features", "Services", "About", "Gallery", "Portfolio", "Blog List", "Testimonials", "Reviews", "Stats", "Logos"] },
-  { category: "Forms", items: ["Contact Form", "Quote Form", "Newsletter", "Sign Up", "Login"] },
-  { category: "Booking", items: ["Booking Form", "Calendar Booking", "Availability", "Service Selector"] },
-  { category: "Ecommerce", items: ["Product Grid", "Product Detail", "Cart", "Checkout", "Pricing"] },
-  { category: "SaaS / dashboard", items: ["Feature Grid", "Pricing", "Integrations", "Dashboard Preview", "FAQ"] },
-  { category: "Directory / listing", items: ["Listings", "Search Filters", "Map / Location", "Category Grid"] },
-  { category: "Footer", items: ["Footer", "Newsletter Footer", "Contact Footer"] },
-];
-
 const LAYOUT_VARIANTS = ["default", "centered", "split", "grid", "minimal", "full-width"];
 const ASSET_PLACEMENTS = ["none", "left", "right", "background", "top"];
 
@@ -90,7 +71,6 @@ export function DesignEditor({
   initialSitemap,
   initialStyle,
   approvals: initialApprovals,
-  previewHtml,
   saveSitemap,
   saveStyle,
   approveStage,
@@ -100,7 +80,6 @@ export function DesignEditor({
   initialSitemap: SitemapCanvas;
   initialStyle: StyleGuideCanvas;
   approvals: Approvals;
-  previewHtml: string | null;
   saveSitemap: (projectId: string, canvas: SitemapCanvas) => Promise<{ error?: string }>;
   saveStyle: (projectId: string, canvas: StyleGuideCanvas) => Promise<{ error?: string }>;
   approveStage: (projectId: string, stage: string) => Promise<{ error?: string }>;
@@ -110,7 +89,6 @@ export function DesignEditor({
   const [style, setStyleState] = useState<StyleGuideCanvas>(initialStyle);
   const [approvals, setApprovals] = useState<Approvals>(initialApprovals);
   const [selectedPageId, setSelectedPageId] = useState<string>(initialSitemap.pages[0]?.id ?? "");
-  const [device, setDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
   const [dirty, setDirty] = useState(false);
   const [saving, startSave] = useTransition();
 
@@ -228,7 +206,6 @@ export function DesignEditor({
     });
 
   const selectedPage = pages.find((p) => p.id === selectedPageId) ?? pages[0];
-  const deviceW = device === "mobile" ? 390 : device === "tablet" ? 768 : 1200;
 
   return (
     <div className="flex h-[calc(100vh-3.5rem)] flex-col">
@@ -329,13 +306,12 @@ export function DesignEditor({
             <DesignTab
               pages={pages}
               selectedPage={selectedPage}
+              style={style}
               onSelect={setSelectedPageId}
               onPatchSection={patchSection}
-              onReorder={reorderSections}
-              device={device}
-              setDevice={setDevice}
-              deviceW={deviceW}
-              previewHtml={previewHtml}
+              onMoveSection={moveSection}
+              onDuplicateSection={duplicateSection}
+              onRemoveSection={removeSection}
               approved={approvals.design}
               onApprove={() => approve("design")}
               busy={saving}
@@ -380,25 +356,6 @@ function ApproveBar({ approved, onApprove, busy, label }: { approved: boolean; o
   );
 }
 
-/** A draggable (dnd-kit) row with a grab handle; children are the row content. */
-function SortableSectionRow({ id, children }: { id: string; children: React.ReactNode }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
-  const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.6 : 1 };
-  return (
-    <div ref={setNodeRef} style={style} className="flex items-start gap-2 rounded-lg border border-line bg-surface p-3">
-      <button
-        type="button"
-        {...attributes}
-        {...listeners}
-        title="Drag to reorder"
-        className="mt-0.5 cursor-grab touch-none text-faint hover:text-ink active:cursor-grabbing"
-      >
-        ⠿
-      </button>
-      <div className="min-w-0 flex-1">{children}</div>
-    </div>
-  );
-}
 
 // ------------------------------------------------ Sitemap (React Flow canvas)
 function SitemapEditor({
@@ -615,7 +572,7 @@ function AddSectionDrawer({ open, onClose, onAdd }: { open: boolean; onClose: ()
   const [q, setQ] = useState("");
   const [multi, setMulti] = useState(false);
   const query = q.trim().toLowerCase();
-  const groups = SECTION_LIBRARY.map((g) => ({
+  const groups = SECTION_CATEGORIES.map((g) => ({
     ...g,
     items: g.items.filter((i) => !query || i.toLowerCase().includes(query)),
   })).filter((g) => g.items.length);
@@ -977,99 +934,103 @@ function TokenRow({ label, value, onChange }: { label: string; value: number; on
   );
 }
 
-// ---------------------------------------------------------------- Design
+// ------------------------------------------- Design (real styled page canvas)
 function DesignTab({
-  pages, selectedPage, onSelect, onPatchSection, onReorder, device, setDevice, deviceW, previewHtml, approved, onApprove, busy,
+  pages, selectedPage, style, onSelect, onPatchSection, onMoveSection, onDuplicateSection, onRemoveSection, approved, onApprove, busy,
 }: {
   pages: CanvasPage[];
   selectedPage?: CanvasPage;
+  style: StyleGuideCanvas;
   onSelect: (id: string) => void;
   onPatchSection: (pageId: string, sid: string, patch: Partial<CanvasSection>) => void;
-  onReorder: (pageId: string, activeId: string, overId: string) => void;
-  device: "desktop" | "tablet" | "mobile";
-  setDevice: (d: "desktop" | "tablet" | "mobile") => void;
-  deviceW: number;
-  previewHtml: string | null;
+  onMoveSection: (pageId: string, sid: string, dir: -1 | 1) => void;
+  onDuplicateSection: (pageId: string, sid: string) => void;
+  onRemoveSection: (pageId: string, sid: string) => void;
   approved: boolean;
   onApprove: () => void;
   busy: boolean;
 }) {
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }));
+  const [device, setDevice] = useState<Device>("desktop");
+  const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
+  const theme = themeFromStyle(style);
+  const mobile = device === "mobile";
   const sections = selectedPage?.sections ?? [];
-  const onDragEnd = (e: DragEndEvent) => {
-    if (selectedPage && e.over && e.active.id !== e.over.id) onReorder(selectedPage.id, String(e.active.id), String(e.over.id));
-  };
+  const selected = sections.find((s) => s.id === selectedSectionId) ?? null;
+
   return (
     <div className="flex min-h-full">
-      <div className="w-56 shrink-0 border-r border-line bg-surface p-3">
+      {/* Pages rail */}
+      <aside className="w-52 shrink-0 border-r border-line bg-surface p-3">
         <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-faint">Pages</p>
         <div className="grid gap-1">
           {pages.map((p) => (
-            <button key={p.id} type="button" onClick={() => onSelect(p.id)} className={`truncate rounded-lg px-2.5 py-1.5 text-left text-[13px] ${p.id === selectedPage?.id ? "bg-accent-soft text-accent" : "text-body hover:bg-panel"}`}>
+            <button key={p.id} type="button" onClick={() => { onSelect(p.id); setSelectedSectionId(null); }} className={`truncate rounded-lg px-2.5 py-1.5 text-left text-[13px] ${p.id === selectedPage?.id ? "bg-accent-soft text-accent" : "text-body hover:bg-panel"}`}>
               {p.name}
             </button>
           ))}
         </div>
-      </div>
+      </aside>
 
-      <div className="min-w-0 flex-1 p-6">
-        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+      {/* Center: assembled styled page */}
+      <div className="flex min-w-0 flex-1 flex-col bg-panel/40">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-surface/70 px-4 py-2 backdrop-blur">
           <div>
-            <h2 className="text-[15px] font-semibold text-ink">Design — {selectedPage?.name}</h2>
-            <p className="text-[12.5px] text-muted">Composed from the approved brand, sitemap, wireframe, and style guide.</p>
+            <span className="text-[14px] font-semibold text-ink">Design — {selectedPage?.name}</span>
+            <p className="text-[11.5px] text-muted">Assembled from approved sections + the Style Guide tokens.</p>
           </div>
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1 rounded-lg bg-panel p-1">
-              {(["desktop", "tablet", "mobile"] as const).map((d) => (
-                <button key={d} type="button" onClick={() => setDevice(d)} className={`rounded px-2 py-0.5 text-[11px] ${device === d ? "bg-surface text-ink shadow-sm" : "text-muted"}`}>{d}</button>
+              {(Object.keys(DEVICE_W) as Device[]).map((d) => (
+                <button key={d} type="button" onClick={() => setDevice(d)} className={`rounded px-2 py-0.5 text-[11px] capitalize ${device === d ? "bg-surface text-ink shadow-sm" : "text-muted"}`}>{d}</button>
               ))}
             </div>
             <ApproveBar approved={approved} onApprove={onApprove} busy={busy} label="design" />
           </div>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-[1fr_320px]">
-          {/* Preview */}
-          <div className="overflow-hidden rounded-xl border border-line bg-surface">
-            {previewHtml ? (
-              <iframe title="preview" srcDoc={previewHtml} style={{ width: deviceW, maxWidth: "100%", height: 560 }} className="mx-auto block" />
-            ) : (
-              <div className="grid h-[560px] place-items-center px-6 text-center text-[13px] text-muted">
-                No preview yet. Generate the preview from the Design Canvas stage, then it renders here.
-              </div>
-            )}
-          </div>
-
-          {/* Section reorder + notes (dnd-kit) */}
-          <div className="grid content-start gap-2">
-            <p className="text-[12px] font-semibold text-ink">{selectedPage?.name} sections — drag to reorder</p>
+        <div className="flex-1 overflow-auto p-8">
+          <div className="mx-auto overflow-hidden rounded-xl border border-line bg-surface shadow-sm" style={{ width: DEVICE_W[device], maxWidth: "100%" }}>
             {sections.length === 0 ? (
-              <p className="text-[12px] text-faint">Add sections in the Wireframe tab to compose this page.</p>
+              <div className="px-6 py-24 text-center text-[13px] text-faint">Add sections in the Wireframe tab to compose this page.</div>
             ) : (
-              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-                <SortableContext items={sections.map((s) => s.id)} strategy={verticalListSortingStrategy}>
-                  <div className="grid gap-2">
-                    {sections.map((s) => (
-                      <SortableSectionRow key={s.id} id={s.id}>
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="truncate text-[12.5px] font-medium text-ink">{s.name}</span>
-                          <SourceTag source={s.source} />
-                        </div>
-                        <input
-                          value={s.note ?? ""}
-                          onChange={(e) => onPatchSection(selectedPage!.id, s.id, { note: e.target.value })}
-                          placeholder="Design note for this section…"
-                          className="mt-1 w-full bg-transparent text-[12px] text-muted outline-none placeholder:text-faint"
-                        />
-                      </SortableSectionRow>
-                    ))}
+              sections.map((s, i) => {
+                const isSel = s.id === selectedSectionId;
+                const rejected = s.status === "rejected";
+                return (
+                  <div key={s.id} className={`group relative ${isSel ? "ring-2 ring-inset ring-accent" : ""} ${rejected ? "opacity-40" : ""}`} onClick={() => setSelectedSectionId(s.id)}>
+                    <div className="pointer-events-none absolute left-0 right-0 top-0 z-10 flex items-center justify-between px-2 py-1 opacity-0 transition-opacity group-hover:opacity-100">
+                      <span className="pointer-events-auto flex items-center gap-1.5 rounded-md bg-ink/80 px-2 py-0.5 text-[10px] font-medium text-white">
+                        {s.name}<span className="rounded bg-white/20 px-1">{s.source}</span>{s.status && <span className="rounded bg-white/20 px-1">{s.status}</span>}
+                      </span>
+                      <span className="pointer-events-auto flex items-center gap-0.5 rounded-md bg-surface px-1 py-0.5 shadow-sm">
+                        <button type="button" onClick={(e) => { e.stopPropagation(); onMoveSection(selectedPage!.id, s.id, -1); }} disabled={i === 0} className="px-1 text-faint hover:text-ink disabled:opacity-30">↑</button>
+                        <button type="button" onClick={(e) => { e.stopPropagation(); onMoveSection(selectedPage!.id, s.id, 1); }} disabled={i === sections.length - 1} className="px-1 text-faint hover:text-ink disabled:opacity-30">↓</button>
+                        <button type="button" onClick={(e) => { e.stopPropagation(); onPatchSection(selectedPage!.id, s.id, { status: "approved" }); }} title="Approve" className="px-1 text-faint hover:text-success">✓</button>
+                        <button type="button" onClick={(e) => { e.stopPropagation(); onPatchSection(selectedPage!.id, s.id, { status: "rejected" }); }} title="Reject" className="px-1 text-faint hover:text-danger">✕</button>
+                      </span>
+                    </div>
+                    <RenderSection name={s.name} note={s.note} theme={theme} mobile={mobile} />
                   </div>
-                </SortableContext>
-              </DndContext>
+                );
+              })
             )}
           </div>
         </div>
       </div>
+
+      {/* Right: section settings drawer */}
+      <Drawer open={Boolean(selected)} onClose={() => setSelectedSectionId(null)} title="Section settings" subtitle={selected ? `Type: ${sectionKind(selected.name)}` : undefined} width={340}>
+        {selected && (
+          <SectionSettingsContent
+            section={selected}
+            schemes={style.colors}
+            onPatch={(patch) => onPatchSection(selectedPage!.id, selected.id, patch)}
+            onDuplicate={() => onDuplicateSection(selectedPage!.id, selected.id)}
+            onDelete={() => { onRemoveSection(selectedPage!.id, selected.id); setSelectedSectionId(null); }}
+            onClose={() => setSelectedSectionId(null)}
+          />
+        )}
+      </Drawer>
     </div>
   );
 }

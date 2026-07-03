@@ -47,8 +47,6 @@ export default async function EditorPage({ params }: { params: Promise<{ id: str
     parse<StyleGuideCanvas>(STYLE_GUIDE_CANVAS_FILE) ??
     deriveStyleGuideCanvas(tokens, { primaryColor: b.primaryColor, secondaryColor: b.secondaryColor });
 
-  const previewHtml = project.files.find((f) => f.name === "preview.html")?.content ?? null;
-
   return (
     <DesignEditor
       projectId={id}
@@ -61,7 +59,6 @@ export default async function EditorPage({ params }: { params: Promise<{ id: str
         style: Boolean(b.styleApproved),
         design: Boolean(b.designApproved),
       }}
-      previewHtml={previewHtml}
       saveSitemap={saveSitemapCanvasAction}
       saveStyle={saveStyleGuideCanvasAction}
       approveStage={approveEditorStageAction}
