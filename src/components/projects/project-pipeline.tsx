@@ -38,7 +38,7 @@ const SOURCE_STYLE: Record<string, string> = {
 
 function SourceChip({ source }: { source: string }) {
   return (
-    <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${SOURCE_STYLE[source] ?? "bg-panel text-muted"}`}>
+    <span className={`inline-block whitespace-nowrap rounded-full px-2 py-0.5 text-[10px] font-medium ${SOURCE_STYLE[source] ?? "bg-panel text-muted"}`}>
       {source}
     </span>
   );
@@ -588,16 +588,18 @@ function EvidenceBody({
       {/* 2. Evidence summary */}
       <div className="rounded-xl border border-line bg-panel/40 p-4">
         <p className="text-[12px] font-semibold text-ink">Evidence summary</p>
-        <dl className="mt-2 grid gap-1.5 text-[12.5px] sm:grid-cols-2">
+        <dl className="mt-2 grid gap-x-6 gap-y-1 text-[12.5px] sm:grid-cols-2">
+          {/* Compact numeric rows */}
           <EvRow k="Reference URLs" v={evidence.refUrls.length ? `${evidence.refUrls.length}` : "none"} />
           <EvRow k="Pages to analyze" v={`${selected.size}`} />
           <EvRow k="Uploaded screenshots" v={`${evidence.screenshots}`} src={evidence.screenshots ? "user-added" : undefined} />
           <EvRow k="Logo" v={evidence.logoPresent ? "provided" : "none"} src={evidence.logoPresent ? "user-added" : undefined} />
           <EvRow k="Image analysis" v={evidence.visionRan ? "OpenAI Vision run" : "not run"} src={evidence.visionRan ? "vision-detected" : undefined} />
-          <EvRow k="Detected colors" v={colors.length ? colors.slice(0, 4).join(" · ") : "—"} src={colors.length ? (style?.source ?? "extracted") : undefined} />
-          <EvRow k="Detected typography" v={fonts.length ? fonts.join(" · ") : "—"} src={fonts.length ? (style?.source ?? "extracted") : undefined} />
-          <EvRow k="Animation clue" v={evidence.animationClue ?? "—"} src={evidence.animationClue ? "extracted" : undefined} />
-          <EvRow k="Learn from reference" v={evidence.referenceLearn.length ? evidence.referenceLearn.join(", ") : "—"} src={evidence.referenceLearn.length ? "user-added" : undefined} />
+          {/* Text-heavy rows span the full width so values + source tags never wrap */}
+          <EvRow full k="Detected colors" v={colors.length ? colors.slice(0, 6).join(" · ") : "—"} src={colors.length ? (style?.source ?? "extracted") : undefined} />
+          <EvRow full k="Detected typography" v={fonts.length ? fonts.join(" · ") : "—"} src={fonts.length ? (style?.source ?? "extracted") : undefined} />
+          <EvRow full k="Animation clue" v={evidence.animationClue ?? "—"} src={evidence.animationClue ? "extracted" : undefined} />
+          <EvRow full k="Learn from reference" v={evidence.referenceLearn.length ? evidence.referenceLearn.join(", ") : "—"} src={evidence.referenceLearn.length ? "user-added" : undefined} />
         </dl>
         {evidence.assumptions.length > 0 && (
           <p className="mt-2 text-[12px] text-muted">
@@ -621,13 +623,17 @@ function EvidenceBody({
   );
 }
 
-function EvRow({ k, v, src }: { k: string; v: string; src?: string }) {
+function EvRow({ k, v, src, full }: { k: string; v: string; src?: string; full?: boolean }) {
   return (
-    <div className="flex items-center justify-between gap-2 border-b border-line/50 py-0.5">
-      <dt className="text-faint">{k}</dt>
-      <dd className="flex items-center gap-1.5 text-right font-medium text-ink">
+    <div className={`flex items-center justify-between gap-3 border-b border-line/50 py-1 ${full ? "sm:col-span-2" : ""}`}>
+      <dt className="shrink-0 text-faint">{k}</dt>
+      <dd className="flex min-w-0 items-center justify-end gap-1.5 text-right font-medium text-ink">
         <span className="truncate">{v}</span>
-        {src && <SourceChip source={src} />}
+        {src && (
+          <span className="shrink-0">
+            <SourceChip source={src} />
+          </span>
+        )}
       </dd>
     </div>
   );
