@@ -949,7 +949,7 @@ function AddSectionDrawer({ open, previewTheme, patterns = [], onClose, onAdd }:
         {/* From the project's Section Reference Library */}
         {refs.length > 0 && (
           <div className="mb-3">
-            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-accent">🖼 From your Reference Library</p>
+            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-accent">From your Reference Library</p>
             <div className="grid gap-2">
               {refs.map((p) => {
                 const type = (p.matchedComponent?.type ?? sectionTypeForKind(sectionKind(p.sectionType))) as SectionType;
