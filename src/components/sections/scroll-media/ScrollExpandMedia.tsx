@@ -81,7 +81,7 @@ export default function ScrollExpandMedia({ theme, eyebrow, title, subtitle }: S
   }, []);
 
   return (
-    <section ref={wrapRef} className="relative" style={{ background: t.backgroundColor, height: "200vh" }}>
+    <section ref={wrapRef} className="relative" style={{ background: t.backgroundColor, height: "170vh" }}>
       <div className="sticky top-0 flex h-screen items-center justify-center overflow-hidden">
         <span className="absolute left-6 top-6 z-20 text-[11px] font-medium tracking-[0.2em]" style={{ color: t.textColor }}>[ {eyebrow || "JOURNEY"} ]</span>
         <p className="pointer-events-none absolute inset-x-0 z-0 px-[8%] text-center font-semibold leading-[1.18]" style={{ fontFamily: t.headingFont, color: t.textColor, fontSize: "clamp(24px, 4.4vw, 60px)" }}>
