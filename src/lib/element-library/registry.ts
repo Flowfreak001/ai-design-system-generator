@@ -124,6 +124,17 @@ const BLOCKS: ElementItem[] = [
   el({ id: "blk-productmockup", name: "Product Mockup Placeholder", kind: "block", category: "Media", group: "Media", icon: "mockup", description: "A grey product mockup placeholder.", assetRoles: ["mockup"] }),
   el({ id: "blk-dashboardmockup", name: "Dashboard Mockup Placeholder", kind: "block", category: "Media", group: "Media", icon: "mockup", description: "A grey dashboard/app mockup placeholder.", insertName: "Dashboard Preview", sectionType: "dashboard", assetRoles: ["mockup"], status: "ready" }),
   el({ id: "blk-devicemockup", name: "Device Mockup Placeholder", kind: "block", category: "Media", group: "Media", icon: "mockup", description: "A grey device frame placeholder.", assetRoles: ["mockup"] }),
+  // ── Phase 1 batch (components/blocks) — modern, adapted from shadcn/Magic UI/21st.dev ──
+  el({ id: "blk-bento", name: "Bento Grid", kind: "block", category: "Layout", group: "Layout", icon: "grid", description: "Asymmetric bento mosaic that spotlights a primary feature.", layoutTags: ["grid-based", "asymmetric"] }),
+  el({ id: "blk-statband", name: "Stat Band", kind: "block", category: "Marketing", group: "Marketing", icon: "stats", description: "Full-width gradient KPI strip.", styleTags: ["bold"] }),
+  el({ id: "blk-featuresplit", name: "Feature Split", kind: "block", category: "Marketing", group: "Marketing", icon: "flex", description: "Image + benefit checklist, two columns.", assetRoles: ["image"], layoutTags: ["split-layout"] }),
+  el({ id: "blk-testispot", name: "Testimonial Spotlight", kind: "block", category: "Social Proof", group: "Marketing", icon: "quote", description: "A single large testimonial with rating + avatar.", goals: ["Build trust"] }),
+  el({ id: "blk-pricehl", name: "Pricing Highlight", kind: "block", category: "Marketing", group: "Marketing", icon: "pricing", description: "A single featured pricing plan.", goals: ["Buy product"] }),
+  el({ id: "blk-comparerow", name: "Comparison Row", kind: "block", category: "Marketing", group: "Marketing", icon: "compare", description: "Us-vs-them capability rows.", goals: ["Compare capabilities"] }),
+  el({ id: "blk-newsinline", name: "Newsletter Inline", kind: "block", category: "Forms", group: "Forms", icon: "form", description: "A compact dark newsletter signup band.", goals: ["Subscribe / signup"] }),
+  el({ id: "blk-metriccards", name: "Metric Cards", kind: "block", category: "Marketing", group: "Marketing", icon: "stats", description: "KPI result cards.", goals: ["Build trust"] }),
+  el({ id: "blk-logostrip", name: "Logo Strip", kind: "block", category: "Marketing", group: "Marketing", icon: "logos", description: "Understated partner/client logo strip.", goals: ["Build trust"] }),
+  el({ id: "blk-captags", name: "Capability Tags", kind: "block", category: "Content", group: "Content", icon: "list", description: "A dark pill cluster of skills/services.", styleTags: ["dark"] }),
 ];
 
 // ── 3. FULL SECTIONS ──────────────────────────────────────────────────────
@@ -195,7 +206,22 @@ const BLOCK_VARIANT: Record<string, string> = {
   "FAQ Item": "faq-item", "Contact Info Block": "contact-info", "Location Card": "location-card",
   "Image Placeholder": "image-placeholder", "Video Block": "video-block",
   "Product Mockup Placeholder": "product-mockup", "Device Mockup Placeholder": "device-mockup",
+  "Bento Grid": "bento-grid", "Stat Band": "stat-band", "Feature Split": "feature-split",
+  "Testimonial Spotlight": "testimonial-spotlight", "Pricing Highlight": "pricing-highlight",
+  "Comparison Row": "comparison-row", "Newsletter Inline": "newsletter-inline",
+  "Metric Cards": "metric-cards", "Logo Strip": "logo-strip", "Capability Tags": "capability-tags",
 };
+// Atomic primitives now have real components (components/atomic). They stay
+// insert-"coming-soon" (in-section nesting is Phase 2) but carry a componentName.
+const ATOM_COMPONENT: Record<string, string> = {
+  "atom-div": "Container", "atom-heading": "Heading", "atom-paragraph": "Paragraph",
+  "atom-button": "Button", "atom-badge": "Badge",
+};
+for (const item of ATOMIC) {
+  const cn = ATOM_COMPONENT[item.id];
+  if (cn) item.componentName = cn;
+}
+
 for (const item of BLOCKS) {
   const variant = BLOCK_VARIANT[item.name];
   if (variant && item.status !== "ready") {

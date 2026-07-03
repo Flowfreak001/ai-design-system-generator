@@ -18,6 +18,10 @@ export const BLOCK_INSERT_NAMES = new Set<string>([
   "Team Member Card", "Blog Card", "Case Study Card", "FAQ Item",
   "Contact Info Block", "Location Card", "Image Placeholder", "Video Block",
   "Product Mockup Placeholder", "Device Mockup Placeholder",
+  // Phase 1 batch (components/blocks)
+  "Bento Grid", "Stat Band", "Feature Split", "Testimonial Spotlight",
+  "Pricing Highlight", "Comparison Row", "Newsletter Inline", "Metric Cards",
+  "Logo Strip", "Capability Tags",
 ]);
 
 /** Infer the layout kind from a free-text section name. */

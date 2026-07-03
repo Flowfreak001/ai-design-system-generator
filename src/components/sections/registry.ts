@@ -60,6 +60,10 @@ import {
   BlogCard, CaseStudyCard, FaqItem, ContactInfo, LocationCard, ImagePlaceholder, VideoBlock,
   ProductMockup, DashboardMockup, DeviceMockup,
 } from "./blocks";
+import {
+  BentoGrid, StatBand, FeatureSplit, TestimonialSpotlight, PricingHighlight,
+  ComparisonRow, NewsletterInline, MetricCards, LogoStrip, CapabilityTags,
+} from "@/components/blocks";
 
 /** SectionType → variant id → component. Keys mirror catalog.ts ids. */
 const COMPONENTS: Partial<Record<SectionType, Record<string, SectionComponent>>> = {
@@ -94,6 +98,10 @@ const COMPONENTS: Partial<Record<SectionType, Record<string, SectionComponent>>>
     "contact-info": ContactInfo, "location-card": LocationCard, "image-placeholder": ImagePlaceholder,
     "video-block": VideoBlock, "product-mockup": ProductMockup, "dashboard-mockup": DashboardMockup,
     "device-mockup": DeviceMockup,
+    "bento-grid": BentoGrid, "stat-band": StatBand, "feature-split": FeatureSplit,
+    "testimonial-spotlight": TestimonialSpotlight, "pricing-highlight": PricingHighlight,
+    "comparison-row": ComparisonRow, "newsletter-inline": NewsletterInline,
+    "metric-cards": MetricCards, "logo-strip": LogoStrip, "capability-tags": CapabilityTags,
   },
 };
 
