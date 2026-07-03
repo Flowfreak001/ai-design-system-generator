@@ -316,21 +316,21 @@ function StageBody({
   }
 
   if (id === "sitemap") {
+    // Home's section stack comes from the detected homepage wireframe; other
+    // pages branch below it. All from real evidence — nothing hardcoded.
+    const homeSections =
+      wireframe.find((w) => /home/i.test(w.page))?.sections ??
+      wireframe[0]?.sections ??
+      [];
+    const childPages = sitemap.filter((p) => !/^home$/i.test(p.name));
     return (
       <div className="grid gap-4">
         <p className="text-[13px] text-body">Page structure from confirmed discovered pages + your selected page needs.</p>
-        <div className="flex flex-wrap gap-2">
-          {sitemap.length ? (
-            sitemap.map((p) => (
-              <span key={p.name} className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3 py-1.5 text-[13px] text-ink">
-                {p.name}
-                <SourceChip source={p.source} />
-              </span>
-            ))
-          ) : (
-            <p className="text-[13px] text-muted">Confirm discovered pages first.</p>
-          )}
-        </div>
+        {sitemap.length ? (
+          <SitemapCanvas homeSections={homeSections} childPages={childPages} />
+        ) : (
+          <p className="text-[13px] text-muted">Confirm discovered pages first.</p>
+        )}
         <p className="text-[11.5px] text-faint">Add / remove / reorder / rename lands in the canvas editor — approve to continue.</p>
         <div><Approve stage="sitemap" label="Approve sitemap" /></div>
         {error && <p className="text-xs text-danger">{error}</p>}
@@ -640,6 +640,76 @@ function EvidenceBody({
       {error && <p className="text-xs text-danger">{error}</p>}
     </div>
   );
+}
+
+// Visual sitemap node-tree: Project → Home (with its section stack) → child
+// pages branching below. Rendered from real confirmed pages + detected sections.
+function SitemapCanvas({
+  homeSections,
+  childPages,
+}: {
+  homeSections: { label: string; source: string }[];
+  childPages: CanvasPage[];
+}) {
+  return (
+    <div className="overflow-x-auto rounded-xl border border-line bg-panel/30 p-6">
+      <div className="mx-auto flex w-fit min-w-full flex-col items-center">
+        {/* Project root */}
+        <div className="w-full max-w-3xl rounded-md bg-line/60 px-3 py-1.5 text-center text-[12px] font-medium text-body">
+          ▦ Project
+        </div>
+        <Connector />
+
+        {/* Home page with its section stack */}
+        <div className="w-64 rounded-lg border border-line bg-surface shadow-sm">
+          <div className="rounded-t-lg bg-panel px-3 py-1.5 text-[12px] font-semibold text-ink">🏠 Home</div>
+          <div className="grid gap-1.5 p-2">
+            {homeSections.length ? (
+              homeSections.map((s, i) => (
+                <div key={`${s.label}-${i}`} className="rounded-md border border-line px-2.5 py-1.5">
+                  <div className="flex items-center justify-between gap-1.5">
+                    <span className="truncate text-[12px] font-medium text-ink">{s.label}</span>
+                    <SourceChip source={s.source} />
+                  </div>
+                </div>
+              ))
+            ) : (
+              <>
+                <div className="rounded-md border border-line px-2.5 py-1.5 text-[12px] text-muted">Navbar</div>
+                <div className="rounded-md border border-dashed border-line px-2.5 py-3 text-center text-[11.5px] text-faint">
+                  Sections appear after the reference crawl
+                </div>
+                <div className="rounded-md border border-line px-2.5 py-1.5 text-[12px] text-muted">Footer</div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Branch to child pages */}
+        {childPages.length > 0 && (
+          <>
+            <Connector />
+            <div className="flex flex-wrap items-start justify-center gap-4">
+              {childPages.map((p) => (
+                <div key={p.name} className="w-40">
+                  <div className="flex items-center justify-between gap-1.5 rounded-t-lg bg-panel px-3 py-1.5">
+                    <span className="truncate text-[12px] font-semibold text-ink">📄 {p.name}</span>
+                  </div>
+                  <div className="flex items-center justify-between gap-1.5 rounded-b-lg border border-t-0 border-line bg-surface px-3 py-4">
+                    <SourceChip source={p.source} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Connector() {
+  return <span className="my-2 block h-5 w-px bg-line-strong/70" aria-hidden="true" />;
 }
 
 function EvRow({ k, v, src }: { k: string; v: string; src?: string }) {
