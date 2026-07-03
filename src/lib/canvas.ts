@@ -29,11 +29,18 @@ export type CanvasSection = {
   asset?: string;
 };
 
+/** Sitemap category tabs for the Visual Sitemap board. */
+export type PageCategory = "main" | "store" | "members" | "auth" | "custom";
+
 export type CanvasPage = {
   id: string;
   name: string;
   source: CanvasSource;
   sections: CanvasSection[];
+  /** Which sitemap tab the page lives under (defaults to "main"). */
+  category?: PageCategory;
+  /** Coarse page type used for section recommendations (e.g. "home", "about"). */
+  pageType?: string;
   /** React Flow node position (persisted so the layout survives reloads). */
   x?: number;
   y?: number;

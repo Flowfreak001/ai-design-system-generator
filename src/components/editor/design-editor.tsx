@@ -14,7 +14,6 @@ import { ProjectCanvas } from "./project-canvas";
 import { SECTION_CATEGORIES, suggestSectionsForPage } from "@/lib/sections";
 import { getSectionVariants, sectionTypeForKind } from "@/components/sections/registry";
 import { arrayMove } from "@dnd-kit/sortable";
-import { SitemapFlow } from "./sitemap-flow";
 import type {
   SitemapCanvas,
   StyleGuideCanvas,
@@ -22,6 +21,8 @@ import type {
   CanvasSection,
   CanvasColor,
   CanvasSource,
+  PageCategory,
+  SectionStatus,
 } from "@/lib/canvas";
 
 type Approvals = { sitemap: boolean; wireframe: boolean; style: boolean; design: boolean };
@@ -215,6 +216,38 @@ export function DesignEditor({
       return { ...pg, sections: [...pg.sections.slice(0, i + 1), copy, ...pg.sections.slice(i + 1)] };
     });
 
+  // ---- Sitemap board helpers ----
+  const recommendedFor = (pg: CanvasPage): CanvasSection[] => {
+    const existing = new Set(pg.sections.map((s) => sectionKind(s.name)));
+    return suggestSectionsForPage(pg.name, features)
+      .filter((name) => !existing.has(sectionKind(name)))
+      .map((name) => ({ id: uid("s"), name, source: "AI-suggested" as const, status: "draft" as const }));
+  };
+  const addPageInCategory = (category: CanvasPage["category"], parentId?: string) =>
+    setPages((p) => [...p, { id: uid("p"), name: `New page ${p.length + 1}`, source: "user-added", category, parentId, sections: [] }]);
+  // Generate recommended sections for ONE page (adds only missing kinds).
+  const generatePage = (pageId: string) =>
+    patchPage(pageId, (pg) => ({ ...pg, sections: [...pg.sections, ...recommendedFor(pg)] }));
+  // Generate for every page that has no sections yet (never overwrites).
+  const generateAllPages = () =>
+    setPages((p) => p.map((pg) => (pg.sections.length ? pg : { ...pg, sections: recommendedFor(pg) })));
+  // Apply a section marked global (Header/Footer) to every other page missing it.
+  const applyGlobalToAll = (pageId: string, sid: string) =>
+    setPages((p) => {
+      const src = p.find((x) => x.id === pageId)?.sections.find((s) => s.id === sid);
+      if (!src) return p;
+      const kind = sectionKind(src.name);
+      return p.map((pg) => {
+        if (pg.id === pageId) return pg;
+        if (pg.sections.some((s) => sectionKind(s.name) === kind)) return pg;
+        const clone = { ...src, id: uid("s") };
+        const sections = kind === "navbar" ? [clone, ...pg.sections] : [...pg.sections, clone];
+        return { ...pg, sections };
+      });
+    });
+  const markPageApproved = (pageId: string) =>
+    patchPage(pageId, (pg) => ({ ...pg, status: "approved", sections: pg.sections.map((s) => ({ ...s, status: "approved" as const })) }));
+
   const selectedPage = pages.find((p) => p.id === selectedPageId) ?? pages[0];
 
   return (
@@ -268,11 +301,21 @@ export function DesignEditor({
           {tab === "sitemap" && (
             <SitemapEditor
               pages={pages}
-              onAddPage={addPage}
+              schemes={style.colors}
+              onAddPage={addPageInCategory}
               onRemovePage={removePage}
-              onRename={renamePage}
-              onCycleSource={cyclePageSource}
-              onMovePos={movePagePos}
+              onRenamePage={renamePage}
+              onDuplicatePage={duplicatePage}
+              onPatchPageMeta={patchPageMeta}
+              onAddSection={addSection}
+              onRemoveSection={removeSection}
+              onPatchSection={patchSection}
+              onMoveSection={moveSection}
+              onDuplicateSection={duplicateSection}
+              onGeneratePage={generatePage}
+              onGenerateAll={generateAllPages}
+              onApplyGlobal={applyGlobalToAll}
+              onMarkApproved={markPageApproved}
               onOpenWireframe={(id) => { setSelectedPageId(id); setTab("wireframe"); }}
               approved={approvals.sitemap}
               onApprove={() => approve("sitemap")}
@@ -369,42 +412,266 @@ function ApproveBar({ approved, onApprove, busy, label }: { approved: boolean; o
 }
 
 
-// ------------------------------------------------ Sitemap (React Flow canvas)
+// ------------------------------------------------ Sitemap (card/grid board)
+// A clean page/section planning board (not a design canvas): page cards in a
+// grid, each with ordered section rows, status badge, add-section + more menu.
+
+const SITEMAP_CATEGORIES: { id: PageCategory; label: string }[] = [
+  { id: "main", label: "Main Pages" },
+  { id: "store", label: "Store Pages" },
+  { id: "members", label: "Members Area" },
+  { id: "auth", label: "Signup & Login" },
+  { id: "custom", label: "Custom Pages" },
+];
+
+type PageStatus = "todo" | "in-progress" | "done" | "approved";
+const PAGE_STATUS_STYLE: Record<PageStatus, string> = {
+  todo: "bg-panel text-muted",
+  "in-progress": "bg-warning-soft text-warning",
+  done: "bg-success-soft text-success",
+  approved: "bg-accent-soft text-accent",
+};
+const PAGE_STATUS_LABEL: Record<PageStatus, string> = { todo: "To do", "in-progress": "In progress", done: "Done", approved: "Approved" };
+
+function pageStatusOf(p: CanvasPage, sitemapApproved: boolean): PageStatus {
+  if (sitemapApproved || p.status === "approved") return "approved";
+  if (p.sections.length === 0) return "todo";
+  if (p.sections.every((s) => s.status === "approved")) return "done";
+  return "in-progress";
+}
+
+const SECTION_ICON: Record<string, string> = {
+  navbar: "▭", hero: "◤", features: "▦", services: "▤", form: "✉", booking: "🗓",
+  pricing: "$", faq: "?", testimonials: "❝", gallery: "▣", cta: "➤", footer: "▭",
+  directory: "≣", dashboard: "▩", generic: "▢",
+};
+
 function SitemapEditor({
-  pages, onAddPage, onRemovePage, onRename, onCycleSource, onMovePos, onOpenWireframe, approved, onApprove, busy,
+  pages, schemes, onAddPage, onRemovePage, onRenamePage, onDuplicatePage, onPatchPageMeta,
+  onAddSection, onRemoveSection, onPatchSection, onMoveSection, onDuplicateSection,
+  onGeneratePage, onGenerateAll, onApplyGlobal, onMarkApproved, onOpenWireframe, approved, onApprove, busy,
 }: {
   pages: CanvasPage[];
-  onAddPage: () => void;
+  schemes: CanvasColor[];
+  onAddPage: (category: PageCategory, parentId?: string) => void;
   onRemovePage: (id: string) => void;
-  onRename: (id: string, name: string) => void;
-  onCycleSource: (id: string) => void;
-  onMovePos: (id: string, x: number, y: number) => void;
+  onRenamePage: (id: string, name: string) => void;
+  onDuplicatePage: (id: string) => void;
+  onPatchPageMeta: (id: string, patch: Partial<CanvasPage>) => void;
+  onAddSection: (pageId: string, name: string) => void;
+  onRemoveSection: (pageId: string, sid: string) => void;
+  onPatchSection: (pageId: string, sid: string, patch: Partial<CanvasSection>) => void;
+  onMoveSection: (pageId: string, sid: string, dir: -1 | 1) => void;
+  onDuplicateSection: (pageId: string, sid: string) => void;
+  onGeneratePage: (pageId: string) => void;
+  onGenerateAll: () => void;
+  onApplyGlobal: (pageId: string, sid: string) => void;
+  onMarkApproved: (pageId: string) => void;
   onOpenWireframe: (id: string) => void;
   approved: boolean;
   onApprove: () => void;
   busy: boolean;
 }) {
+  const [cat, setCat] = useState<PageCategory>("main");
+  const [addForPage, setAddForPage] = useState<string | null>(null);
+  const [editing, setEditing] = useState<{ pageId: string; sid: string } | null>(null);
+
+  const visible = pages.filter((p) => (p.category ?? "main") === cat);
+  const editSection = editing ? pages.find((p) => p.id === editing.pageId)?.sections.find((s) => s.id === editing.sid) ?? null : null;
+
   return (
     <div className="p-6">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-[15px] font-semibold text-ink">Sitemap</h2>
-          <p className="text-[12.5px] text-muted">Pan / zoom the graph. Drag pages to arrange, rename inline, change source, add or remove — then approve.</p>
+          <h2 className="text-[16px] font-semibold text-ink">Visual Sitemap</h2>
+          <p className="text-[12.5px] text-muted">Plan every page and its sections. Add, reorder, edit and approve — then generate the wireframe.</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button size="sm" variant="secondary" onClick={onAddPage}>＋ Add page</Button>
+          <Button size="sm" variant="secondary" onClick={onGenerateAll} title="Generate recommended sections for empty pages">✦ Generate sections for all pages</Button>
           <ApproveBar approved={approved} onApprove={onApprove} busy={busy} label="sitemap" />
         </div>
       </div>
-      <SitemapFlow
-        pages={pages}
-        onRename={onRename}
-        onCycleSource={onCycleSource}
-        onRemove={onRemovePage}
-        onOpen={onOpenWireframe}
-        onMove={onMovePos}
-      />
+
+      {/* Category tabs */}
+      <div className="mb-5 flex items-center gap-1 border-b border-line">
+        {SITEMAP_CATEGORIES.map((c) => {
+          const count = pages.filter((p) => (p.category ?? "main") === c.id).length;
+          const active = cat === c.id;
+          return (
+            <button key={c.id} type="button" onClick={() => setCat(c.id)}
+              className={`-mb-px flex items-center gap-1.5 border-b-2 px-3 py-2 text-[13px] font-medium ${active ? "border-accent text-accent" : "border-transparent text-muted hover:text-ink"}`}>
+              {c.label}
+              {count > 0 && <span className={`rounded-full px-1.5 text-[10px] ${active ? "bg-accent-soft text-accent" : "bg-panel text-faint"}`}>{count}</span>}
+            </button>
+          );
+        })}
+        <button type="button" onClick={() => onAddPage(cat)} className="ml-auto flex items-center gap-1 rounded-md px-2 py-1 text-[12.5px] font-medium text-accent hover:bg-accent-soft">＋ Add page</button>
+      </div>
+
+      {visible.length === 0 ? (
+        <div className="grid place-items-center rounded-2xl border border-dashed border-line py-16 text-center">
+          <p className="text-[13px] text-muted">No pages in this category yet.</p>
+          <button type="button" onClick={() => onAddPage(cat)} className="mt-3 rounded-lg border border-accent px-4 py-2 text-[13px] font-medium text-accent hover:bg-accent-soft">＋ Add a page</button>
+        </div>
+      ) : (
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {visible.map((p) => (
+            <SitemapPageCard
+              key={p.id}
+              page={p}
+              status={pageStatusOf(p, approved)}
+              onAddSection={() => setAddForPage(p.id)}
+              onEditSection={(sid) => setEditing({ pageId: p.id, sid })}
+              onMoveSection={(sid, dir) => onMoveSection(p.id, sid, dir)}
+              onRemoveSection={(sid) => onRemoveSection(p.id, sid)}
+              onGenerate={() => onGeneratePage(p.id)}
+              onDuplicate={() => onDuplicatePage(p.id)}
+              onDelete={() => onRemovePage(p.id)}
+              onRename={(name) => onRenamePage(p.id, name)}
+              onMarkApproved={() => onMarkApproved(p.id)}
+              onAddChild={() => onAddPage(p.category ?? "main", p.id)}
+              onOpenWireframe={() => onOpenWireframe(p.id)}
+              onSetStatus={(status) => onPatchPageMeta(p.id, { status })}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Add section drawer for the chosen page */}
+      <AddSectionDrawer open={Boolean(addForPage)} onClose={() => setAddForPage(null)} onAdd={(name, keepOpen) => { if (addForPage) onAddSection(addForPage, name); if (!keepOpen) setAddForPage(null); }} />
+
+      {/* Section edit drawer */}
+      <Drawer open={Boolean(editSection)} onClose={() => setEditing(null)} title="Section" subtitle={editSection ? `Type: ${sectionKind(editSection.name)}` : undefined} width={340}>
+        {editSection && editing && (
+          <SectionSettingsContent
+            section={editSection}
+            schemes={schemes}
+            onPatch={(patch) => onPatchSection(editing.pageId, editing.sid, patch)}
+            onDuplicate={() => onDuplicateSection(editing.pageId, editing.sid)}
+            onDelete={() => { onRemoveSection(editing.pageId, editing.sid); setEditing(null); }}
+            onClose={() => setEditing(null)}
+            onApplyGlobal={() => onApplyGlobal(editing.pageId, editing.sid)}
+          />
+        )}
+      </Drawer>
     </div>
+  );
+}
+
+function SitemapPageCard({
+  page, status, onAddSection, onEditSection, onMoveSection, onRemoveSection,
+  onGenerate, onDuplicate, onDelete, onRename, onMarkApproved, onAddChild, onOpenWireframe, onSetStatus,
+}: {
+  page: CanvasPage;
+  status: PageStatus;
+  onAddSection: () => void;
+  onEditSection: (sid: string) => void;
+  onMoveSection: (sid: string, dir: -1 | 1) => void;
+  onRemoveSection: (sid: string) => void;
+  onGenerate: () => void;
+  onDuplicate: () => void;
+  onDelete: () => void;
+  onRename: (name: string) => void;
+  onMarkApproved: () => void;
+  onAddChild: () => void;
+  onOpenWireframe: () => void;
+  onSetStatus: (status: SectionStatus) => void;
+}) {
+  const [renaming, setRenaming] = useState(false);
+  const isHome = /^home/i.test(page.name);
+  return (
+    <div className="flex flex-col rounded-2xl border border-line bg-surface shadow-sm">
+      {/* Card header */}
+      <div className="flex items-center gap-2 border-b border-line px-3 py-2.5">
+        <span className="text-[13px]">{isHome ? "🏠" : "📄"}</span>
+        {renaming ? (
+          <input
+            autoFocus defaultValue={page.name}
+            onBlur={(e) => { onRename(e.target.value.trim() || page.name); setRenaming(false); }}
+            onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); if (e.key === "Escape") setRenaming(false); }}
+            className="min-w-0 flex-1 rounded-md border border-accent px-1.5 py-0.5 text-[13.5px] font-semibold text-ink outline-none"
+          />
+        ) : (
+          <button type="button" onDoubleClick={() => setRenaming(true)} onClick={onOpenWireframe} title="Open in wireframe (double-click to rename)" className="min-w-0 flex-1 truncate text-left text-[13.5px] font-semibold text-ink">{page.name}</button>
+        )}
+        <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium ${PAGE_STATUS_STYLE[status]}`}>{PAGE_STATUS_LABEL[status]}</span>
+        <button type="button" onClick={onAddSection} title="Add section" className="grid h-6 w-6 shrink-0 place-items-center rounded-md text-[14px] text-accent hover:bg-accent-soft">＋</button>
+        <SitemapPageMenu
+          onGenerate={onGenerate} onAddChild={onAddChild} onDuplicate={onDuplicate}
+          onRename={() => setRenaming(true)} onDelete={onDelete} onMarkApproved={onMarkApproved}
+          onSetStatus={onSetStatus} status={page.status}
+        />
+      </div>
+
+      {/* Section rows */}
+      {page.sections.length === 0 ? (
+        <div className="px-3 py-6 text-center">
+          <p className="text-[12px] text-faint">No sections yet.</p>
+          <button type="button" onClick={onGenerate} className="mt-2 text-[12px] font-medium text-accent hover:underline">✦ Generate sections</button>
+        </div>
+      ) : (
+        <div className="grid gap-1 p-2">
+          {page.sections.map((s, i) => (
+            <SitemapSectionRow
+              key={s.id} section={s} first={i === 0} last={i === page.sections.length - 1}
+              onEdit={() => onEditSection(s.id)} onUp={() => onMoveSection(s.id, -1)} onDown={() => onMoveSection(s.id, 1)} onDelete={() => onRemoveSection(s.id)}
+            />
+          ))}
+        </div>
+      )}
+      <button type="button" onClick={onAddSection} className="mx-2 mb-2 rounded-lg border border-dashed border-line py-1.5 text-[12px] font-medium text-muted hover:border-accent hover:text-accent">＋ Add section</button>
+    </div>
+  );
+}
+
+function SitemapSectionRow({ section, first, last, onEdit, onUp, onDown, onDelete }: {
+  section: CanvasSection; first: boolean; last: boolean; onEdit: () => void; onUp: () => void; onDown: () => void; onDelete: () => void;
+}) {
+  const kind = sectionKind(section.name);
+  const framed = kind === "navbar" || kind === "footer"; // Header/Footer shown as framed rows
+  const dot = section.status === "approved" ? "bg-success" : section.status === "rejected" ? "bg-danger" : "bg-warning";
+  return (
+    <div className={`group flex items-center gap-2 rounded-lg border px-2.5 py-2 ${framed ? "border-success/40 bg-success-soft/30" : "border-transparent hover:border-line hover:bg-panel"}`}>
+      <span className="text-[11px] text-faint">{SECTION_ICON[kind] ?? "▢"}</span>
+      <button type="button" onClick={onEdit} className="min-w-0 flex-1 truncate text-left text-[12.5px] text-ink">
+        {section.name}
+        {section.global && <span className="ml-1.5 rounded bg-accent-soft px-1 py-0.5 text-[9px] font-medium text-accent">global</span>}
+      </button>
+      <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${dot}`} title={section.status ?? "draft"} />
+      <span className="flex shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100">
+        <button type="button" onClick={onUp} disabled={first} className="px-0.5 text-[12px] text-faint hover:text-ink disabled:opacity-25">↑</button>
+        <button type="button" onClick={onDown} disabled={last} className="px-0.5 text-[12px] text-faint hover:text-ink disabled:opacity-25">↓</button>
+        <button type="button" onClick={onDelete} className="px-0.5 text-[12px] text-faint hover:text-danger">✕</button>
+      </span>
+    </div>
+  );
+}
+
+function SitemapPageMenu({ onGenerate, onAddChild, onDuplicate, onRename, onDelete, onMarkApproved, onSetStatus, status }: {
+  onGenerate: () => void; onAddChild: () => void; onDuplicate: () => void; onRename: () => void; onDelete: () => void; onMarkApproved: () => void;
+  onSetStatus: (status: SectionStatus) => void; status?: SectionStatus;
+}) {
+  return (
+    <Popover align="right" width={210} trigger={() => <span className="grid h-6 w-6 shrink-0 place-items-center rounded-md text-faint hover:bg-panel hover:text-ink">⋯</span>}>
+      {(close) => (
+        <div className="grid gap-0.5 text-[12.5px]">
+          <MenuItem onClick={() => { onGenerate(); close(); }}>✦ Generate sections</MenuItem>
+          <MenuItem onClick={() => { onAddChild(); close(); }}>Add child page</MenuItem>
+          <MenuItem onClick={() => { onDuplicate(); close(); }}>Duplicate page</MenuItem>
+          <MenuItem onClick={() => { onRename(); close(); }}>Rename page</MenuItem>
+          <div className="my-1 h-px bg-line" />
+          <label className="px-2 text-[10px] font-semibold uppercase tracking-wide text-faint">Status</label>
+          <div className="mx-1 flex gap-1">
+            {(["draft", "approved", "rejected"] as const).map((st) => (
+              <button key={st} type="button" onClick={() => onSetStatus(st)} className={`flex-1 rounded-md px-1 py-1 text-[10px] font-medium capitalize ${(status ?? "draft") === st ? SECTION_STATUS_STYLE[st] : "bg-panel text-muted"}`}>{st}</button>
+            ))}
+          </div>
+          <MenuItem onClick={() => { onMarkApproved(); close(); }}>✓ Mark all approved</MenuItem>
+          <div className="my-1 h-px bg-line" />
+          <MenuItem onClick={() => { onDelete(); close(); }} danger>Delete page</MenuItem>
+        </div>
+      )}
+    </Popover>
   );
 }
 
@@ -735,7 +1002,7 @@ function suggestCopy(kind: string, name: string): string {
 }
 
 function SectionSettingsContent({
-  section, schemes, onPatch, onDuplicate, onDelete, onClose,
+  section, schemes, onPatch, onDuplicate, onDelete, onClose, onApplyGlobal,
 }: {
   section: CanvasSection;
   schemes: CanvasColor[];
@@ -743,6 +1010,7 @@ function SectionSettingsContent({
   onDuplicate: () => void;
   onDelete: () => void;
   onClose: () => void;
+  onApplyGlobal?: () => void;
 }) {
   const kind = sectionKind(section.name);
   const status = section.status ?? "draft";
@@ -765,6 +1033,11 @@ function SectionSettingsContent({
         >
           <span>✦</span> {section.global ? "Global section ✓" : "Make a global section"}
         </button>
+        {section.global && onApplyGlobal && (
+          <button type="button" onClick={onApplyGlobal} className="-mt-2 rounded-lg border border-dashed border-accent px-3 py-2 text-[12px] font-medium text-accent hover:bg-accent-soft">
+            Apply to all pages
+          </button>
+        )}
 
         <Field label="Name">
           <input value={section.name} onChange={(e) => onPatch({ name: e.target.value })} className="w-full rounded-lg bg-panel px-3 py-2.5 text-[14px] font-medium text-ink outline-none focus:ring-1 focus:ring-accent" />
