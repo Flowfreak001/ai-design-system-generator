@@ -263,9 +263,12 @@ export async function updateReferencesAction(
   const input = await prisma.projectInput.findFirst({ where: { projectId, category: "brief" } });
   if (!input) return { error: "Project brief not found." };
   const brief = (input.data ?? {}) as Record<string, unknown>;
+  // Keep the primary reference in sync with the edited list so the crawl always
+  // targets the current first reference — not a stale onboarding value.
+  const mainReferenceUrl = refs.data[0] ?? existing ?? null;
   await prisma.projectInput.update({
     where: { id: input.id },
-    data: { data: { ...brief, existingWebsiteUrl: existing ?? null, referenceUrls: refs.data, competitorUrls: comps.data } },
+    data: { data: { ...brief, existingWebsiteUrl: existing ?? null, referenceUrls: refs.data, competitorUrls: comps.data, mainReferenceUrl } },
   });
   revalidatePath(`/projects/${projectId}`);
   return {};
