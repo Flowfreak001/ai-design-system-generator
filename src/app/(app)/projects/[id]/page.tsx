@@ -196,6 +196,8 @@ export default async function ProjectWorkspacePage({
         source: tokens.confidence === "high" ? "extracted" : "inferred",
         colors: Object.entries(tokens.color ?? {})
           .filter(([, v]) => typeof v === "string" && v.startsWith("#"))
+          // Drop duplicate hex values so the same swatch isn't listed twice.
+          .filter(([, v], i, arr) => arr.findIndex(([, w]) => w === v) === i)
           .slice(0, 8)
           .map(([name, value]) => ({ name, value })),
         bodyFont: tokens.fonts?.[0] ?? null,

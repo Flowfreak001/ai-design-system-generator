@@ -377,8 +377,8 @@ function StageBody({
         {style ? (
           <div className="grid gap-3">
             <div className="flex flex-wrap gap-2">
-              {style.colors.map((c) => (
-                <span key={c.value} className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-[12px] text-ink">
+              {style.colors.map((c, i) => (
+                <span key={`${c.name}-${c.value}-${i}`} className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-[12px] text-ink">
                   <span className="h-4 w-4 rounded-full border border-line" style={{ background: c.value }} />
                   {c.name} <code className="text-faint">{c.value}</code>
                 </span>
