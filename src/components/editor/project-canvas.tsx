@@ -96,8 +96,8 @@ export function ProjectCanvas({
         </div>
       </div>
 
-      {/* Bottom controls: device + zoom */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-3 flex items-center justify-center">
+      {/* Bottom controls: device + zoom — pinned to the screen bottom, always visible */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-4 z-40 flex items-center justify-center">
         <div className="pointer-events-auto flex items-center gap-2 rounded-xl border border-line bg-surface/95 p-1 shadow-lg backdrop-blur">
           <div className="flex items-center gap-0.5 rounded-lg bg-panel p-0.5">
             {(Object.keys(FRAME_W) as Device[]).map((d) => (
