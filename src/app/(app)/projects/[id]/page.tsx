@@ -162,20 +162,36 @@ export default async function ProjectWorkspacePage({
     ok: p.ok,
   }));
 
-  // Sitemap = confirmed/discovered page types ∪ selected page needs, labelled.
-  const discoveredTypes = new Set(discovered.filter((d) => d.ok).map((d) => d.pageType));
+  // Sitemap = every page the user selected (keyItems) + any extra pages the
+  // crawl discovered. Pages are named by type (not the raw <title>), Home first,
+  // and each is labelled detected (found by the crawl) or user-added.
+  const friendlyPageName = (pt?: string) => {
+    const map: Record<string, string> = {
+      homepage: "Home", home: "Home", about: "About", "about us": "About",
+      services: "Services", service: "Services", contact: "Contact", "contact us": "Contact",
+      pricing: "Pricing", faq: "FAQ", blog: "Blog", portfolio: "Portfolio",
+      booking: "Booking", login: "Login", dashboard: "Dashboard",
+    };
+    const k = (pt ?? "").toLowerCase().trim();
+    return map[k] ?? (pt ? pt.charAt(0).toUpperCase() + pt.slice(1) : "Page");
+  };
+  const detectedNames = new Set(discovered.filter((d) => d.ok).map((d) => friendlyPageName(d.pageType).toLowerCase()));
   const sitemap: CanvasPage[] = (() => {
     const out: CanvasPage[] = [];
     const seen = new Set<string>();
     const push = (name: string, source: string) => {
-      const key = name.toLowerCase();
-      if (name && !seen.has(key)) {
+      const key = name.trim().toLowerCase();
+      if (name.trim() && !seen.has(key)) {
         seen.add(key);
-        out.push({ name, source });
+        out.push({ name: name.trim(), source });
       }
     };
-    for (const d of discovered.filter((x) => x.ok)) push(d.title || d.pageType, "detected");
-    for (const p of b.keyItems ?? []) push(p, discoveredTypes.has(p.toLowerCase()) ? "detected" : "user-added");
+    // 1) Every selected page (source of truth for "all pages").
+    for (const p of b.keyItems ?? []) push(p, detectedNames.has(p.toLowerCase()) ? "detected" : "user-added");
+    // 2) Any extra pages the crawl found that the user didn't list.
+    for (const d of discovered.filter((x) => x.ok)) push(friendlyPageName(d.pageType), "detected");
+    // Home always leads the tree.
+    out.sort((a, b2) => (/^home$/i.test(a.name) ? -1 : /^home$/i.test(b2.name) ? 1 : 0));
     return out;
   })();
 
