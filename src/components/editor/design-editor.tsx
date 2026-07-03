@@ -13,6 +13,8 @@ import { Drawer, Popover } from "./overlays";
 import { ProjectCanvas } from "./project-canvas";
 import { SECTION_CATEGORIES, suggestSectionsForPage } from "@/lib/sections";
 import { getSectionVariants, sectionTypeForKind, getBestVariantId } from "@/components/sections/registry";
+import { createSectionTheme } from "@/components/sections/section-theme";
+import type { SectionTheme, SectionComponent } from "@/components/sections/types";
 import type { SectionContext } from "@/lib/sections";
 import { arrayMove } from "@dnd-kit/sortable";
 import type {
@@ -181,8 +183,8 @@ export function DesignEditor({
   // ---- Section mutators (scoped to a page) ----
   const patchPage = (pageId: string, fn: (pg: CanvasPage) => CanvasPage) =>
     setPages((p) => p.map((x) => (x.id === pageId ? fn(x) : x)));
-  const addSection = (pageId: string, name: string) =>
-    patchPage(pageId, (pg) => ({ ...pg, sections: [...pg.sections, { id: uid("s"), name, source: "user-added" }] }));
+  const addSection = (pageId: string, name: string, variant?: string) =>
+    patchPage(pageId, (pg) => ({ ...pg, sections: [...pg.sections, { id: uid("s"), name, source: "user-added", variant }] }));
   const removeSection = (pageId: string, sid: string) =>
     patchPage(pageId, (pg) => ({ ...pg, sections: pg.sections.filter((s) => s.id !== sid) }));
   const patchSection = (pageId: string, sid: string, patch: Partial<CanvasSection>) =>
@@ -310,6 +312,7 @@ export function DesignEditor({
             <SitemapEditor
               pages={pages}
               schemes={style.colors}
+              previewTheme={createSectionTheme(style)}
               onAddPage={addPageInCategory}
               onRemovePage={removePage}
               onRenamePage={renamePage}
@@ -469,18 +472,19 @@ function SectionFrameIcon() {
 }
 
 function SitemapEditor({
-  pages, schemes, onAddPage, onRemovePage, onRenamePage, onDuplicatePage, onPatchPageMeta,
+  pages, schemes, previewTheme, onAddPage, onRemovePage, onRenamePage, onDuplicatePage, onPatchPageMeta,
   onAddSection, onRemoveSection, onPatchSection, onMoveSection, onDuplicateSection,
   onGeneratePage, onGenerateAll, onApplyGlobal, onMarkApproved, onOpenWireframe, approved, onApprove, busy,
 }: {
   pages: CanvasPage[];
   schemes: CanvasColor[];
+  previewTheme: SectionTheme;
   onAddPage: (category: PageCategory, parentId?: string) => void;
   onRemovePage: (id: string) => void;
   onRenamePage: (id: string, name: string) => void;
   onDuplicatePage: (id: string) => void;
   onPatchPageMeta: (id: string, patch: Partial<CanvasPage>) => void;
-  onAddSection: (pageId: string, name: string) => void;
+  onAddSection: (pageId: string, name: string, variant?: string) => void;
   onRemoveSection: (pageId: string, sid: string) => void;
   onPatchSection: (pageId: string, sid: string, patch: Partial<CanvasSection>) => void;
   onMoveSection: (pageId: string, sid: string, dir: -1 | 1) => void;
@@ -608,7 +612,7 @@ function SitemapEditor({
       </div>
 
       {/* Add section drawer for the chosen page */}
-      <AddSectionDrawer open={Boolean(addForPage)} onClose={() => setAddForPage(null)} onAdd={(name, keepOpen) => { if (addForPage) onAddSection(addForPage, name); if (!keepOpen) setAddForPage(null); }} />
+      <AddSectionDrawer open={Boolean(addForPage)} previewTheme={previewTheme} onClose={() => setAddForPage(null)} onAdd={(name, keepOpen, variant) => { if (addForPage) onAddSection(addForPage, name, variant); if (!keepOpen) setAddForPage(null); }} />
 
       {/* Section edit drawer */}
       <Drawer open={Boolean(editSection)} onClose={() => setEditing(null)} title="Section" subtitle={editSection ? `Type: ${sectionKind(editSection.name)}` : undefined} width={340}>
@@ -758,7 +762,7 @@ function WireframeEditor({
   onDuplicatePage: (id: string) => void;
   onCyclePageSource: (id: string) => void;
   onPatchPageMeta: (id: string, patch: Partial<CanvasPage>) => void;
-  onAddSection: (pageId: string, name: string) => void;
+  onAddSection: (pageId: string, name: string, variant?: string) => void;
   onRemoveSection: (pageId: string, sid: string) => void;
   onPatchSection: (pageId: string, sid: string, patch: Partial<CanvasSection>) => void;
   onMoveSection: (pageId: string, sid: string, dir: -1 | 1) => void;
@@ -784,8 +788,8 @@ function WireframeEditor({
     prevLen.current = sections.length;
   }, [sections]);
 
-  const addSectionFromLibrary = (name: string, keepOpen: boolean) => {
-    onAddSection(pageId, name);
+  const addSectionFromLibrary = (name: string, keepOpen: boolean, variant?: string) => {
+    onAddSection(pageId, name, variant);
     if (!keepOpen) setAddOpen(false);
   };
 
@@ -834,7 +838,7 @@ function WireframeEditor({
       </div>
 
       {/* ---------- Add Section drawer ---------- */}
-      <AddSectionDrawer open={addOpen} onClose={() => setAddOpen(false)} onAdd={addSectionFromLibrary} />
+      <AddSectionDrawer open={addOpen} previewTheme={createSectionTheme(style)} onClose={() => setAddOpen(false)} onAdd={addSectionFromLibrary} />
 
       {/* ---------- Section Settings drawer ---------- */}
       <Drawer
@@ -859,9 +863,28 @@ function WireframeEditor({
   );
 }
 
-function AddSectionDrawer({ open, onClose, onAdd }: { open: boolean; onClose: () => void; onAdd: (name: string, keepOpen: boolean) => void }) {
+// A tiny live preview of a section variant (Elementor-style thumbnail): the real
+// component rendered at a fixed design width and scaled down (CSS zoom), clipped.
+function VariantThumbPreview({ Comp, theme, label, onClick }: { Comp: SectionComponent; theme: SectionTheme; label: string; onClick: () => void }) {
+  return (
+    <button type="button" onClick={onClick} className="group overflow-hidden rounded-lg border border-line text-left transition-colors hover:border-accent">
+      <div className="pointer-events-none overflow-hidden bg-surface" style={{ height: 104 }}>
+        <div style={{ width: 1100, zoom: 0.26 } as React.CSSProperties}>
+          <Comp theme={theme} />
+        </div>
+      </div>
+      <div className="flex items-center justify-between border-t border-line px-2.5 py-1.5">
+        <span className="text-[11.5px] font-medium text-body">{label}</span>
+        <span className="text-[11px] font-medium text-accent opacity-0 transition-opacity group-hover:opacity-100">＋ Add</span>
+      </div>
+    </button>
+  );
+}
+
+function AddSectionDrawer({ open, previewTheme, onClose, onAdd }: { open: boolean; previewTheme: SectionTheme; onClose: () => void; onAdd: (name: string, keepOpen: boolean, variant?: string) => void }) {
   const [q, setQ] = useState("");
   const [multi, setMulti] = useState(false);
+  const [expanded, setExpanded] = useState<string | null>(null);
   const query = q.trim().toLowerCase();
   const groups = SECTION_CATEGORIES.map((g) => ({
     ...g,
@@ -869,7 +892,7 @@ function AddSectionDrawer({ open, onClose, onAdd }: { open: boolean; onClose: ()
   })).filter((g) => g.items.length);
 
   return (
-    <Drawer open={open} onClose={onClose} title="Add section" subtitle="Search the library and click to add" width={340}>
+    <Drawer open={open} onClose={onClose} title="Add section" subtitle="Expand a section to preview its layouts, then click to add" width={360}>
       <div className="sticky top-0 z-10 border-b border-line bg-surface p-3">
         <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search sections…" autoFocus className="w-full rounded-lg border border-line px-3 py-1.5 text-[13px]" />
         <label className="mt-2 flex items-center gap-2 text-[12px] text-muted">
@@ -886,18 +909,33 @@ function AddSectionDrawer({ open, onClose, onAdd }: { open: boolean; onClose: ()
         {groups.map((g) => (
           <div key={g.category} className="mb-3">
             <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-faint">{g.category}</p>
-            <div className="grid gap-1.5">
-              {g.items.map((name) => (
-                <button
-                  key={name}
-                  type="button"
-                  onClick={() => onAdd(name, multi)}
-                  className="flex items-center justify-between rounded-lg border border-line px-3 py-2 text-left text-[13px] text-ink hover:border-accent hover:bg-accent-soft/40"
-                >
-                  <span>{name}</span>
-                  <span className="text-faint">＋</span>
-                </button>
-              ))}
+            <div className="grid gap-2">
+              {g.items.map((name) => {
+                const variants = getSectionVariants(sectionTypeForKind(sectionKind(name)));
+                const isOpen = expanded === name;
+                return (
+                  <div key={name} className={`overflow-hidden rounded-lg border ${isOpen ? "border-accent" : "border-line"}`}>
+                    <button
+                      type="button"
+                      onClick={() => setExpanded(isOpen ? null : name)}
+                      className={`flex w-full items-center justify-between px-3 py-2 text-left text-[13px] text-ink ${isOpen ? "bg-accent-soft/40" : "hover:bg-panel"}`}
+                    >
+                      <span>{name}{variants.length > 1 && <span className="ml-1.5 text-[11px] text-faint">· {variants.length} layouts</span>}</span>
+                      <span className={`text-faint transition-transform ${isOpen ? "rotate-180" : ""}`}>⌄</span>
+                    </button>
+                    {isOpen && (
+                      <div className="grid gap-2 border-t border-line bg-panel/40 p-2">
+                        {variants.map((v) => (
+                          <VariantThumbPreview key={v.id} Comp={v.component} theme={previewTheme} label={v.label} onClick={() => onAdd(name, multi, v.id)} />
+                        ))}
+                        {variants.length === 0 && (
+                          <button type="button" onClick={() => onAdd(name, multi)} className="rounded-md px-2 py-1.5 text-left text-[12px] text-accent hover:bg-accent-soft">＋ Add {name}</button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
         ))}
