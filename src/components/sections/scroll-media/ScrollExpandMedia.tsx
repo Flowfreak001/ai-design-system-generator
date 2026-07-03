@@ -18,6 +18,7 @@ import { resolveTheme } from "../section-theme";
 export default function ScrollExpandMedia({ theme, eyebrow, title, subtitle }: SectionProps) {
   const t = resolveTheme(theme);
   const wrapRef = useRef<HTMLElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
   const mediaRef = useRef<HTMLDivElement>(null);
   const stageRefs = [useRef<HTMLDivElement>(null), useRef<HTMLDivElement>(null), useRef<HTMLDivElement>(null)];
 
@@ -41,11 +42,7 @@ export default function ScrollExpandMedia({ theme, eyebrow, title, subtitle }: S
       stageRefs.forEach((s, i) => { if (s.current) s.current.style.opacity = i === active ? "1" : "0"; });
     };
 
-    // Reduced motion: show the media large and static; skip the scroll listener.
-    if (typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches) {
-      apply(1, 100, 80);
-      return;
-    }
+    const inner = innerRef.current;
 
     // Nearest scrollable ancestor (the editor canvas) or the window.
     const scrollParent = (() => {
@@ -56,33 +53,47 @@ export default function ScrollExpandMedia({ theme, eyebrow, title, subtitle }: S
       }
       return null;
     })();
-    const target: HTMLElement | Window = scrollParent ?? window;
 
+    // A nested scroll container means we're inside the editor's stacked, zoomed
+    // canvas (a planning board — not a single scroll viewport), where the
+    // scroll-scrub can't read as intended. There, render a tidy STATIC card (no
+    // runway/gap). A real page scrolls the window (no such ancestor) → animate.
+    const reduce = typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (scrollParent || reduce) {
+      // Collapse the tall runway and show a clean centered card.
+      wrap.style.height = "auto";
+      if (inner) { inner.style.position = "static"; inner.style.height = "auto"; inner.style.paddingTop = "72px"; inner.style.paddingBottom = "72px"; }
+      media.style.width = "62%";
+      media.style.height = "440px";
+      media.style.borderRadius = "20px";
+      media.style.transform = "none";
+      stageRefs.forEach((s, i) => { if (s.current) s.current.style.opacity = i === 0 ? "1" : "0"; });
+      return;
+    }
+
+    // Real page: the section scrolls the window. Progress = how far the section
+    // top has moved above the viewport top, over its pinned scroll distance.
     let raf = 0;
     const clamp = (n: number) => Math.min(1, Math.max(0, n));
     const update = () => {
-      // Measure section + container in the SAME (post-zoom) coordinate space so
-      // CSS `zoom` on the editor canvas doesn't break the ratio.
       const wr = wrap.getBoundingClientRect();
-      const cr = scrollParent ? scrollParent.getBoundingClientRect() : null;
-      const cTop = cr ? cr.top : 0;
-      const cH = cr ? cr.height : window.innerHeight;
-      const total = wr.height - cH; // scroll distance while the section is pinned
-      const p = total > 0 ? clamp((cTop - wr.top) / total) : 0;
-      const mobile = (scrollParent ? scrollParent.clientWidth : window.innerWidth) < 640;
+      const total = wr.height - window.innerHeight; // pinned scroll distance
+      const p = total > 0 ? clamp(-wr.top / total) : 0;
+      const mobile = window.innerWidth < 640;
       apply(p, mobile ? 82 : 56, mobile ? 44 : 55);
     };
     const onScroll = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(update); };
-    target.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll);
     update();
-    return () => { target.removeEventListener("scroll", onScroll); window.removeEventListener("resize", onScroll); cancelAnimationFrame(raf); };
+    return () => { window.removeEventListener("scroll", onScroll); window.removeEventListener("resize", onScroll); cancelAnimationFrame(raf); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
     <section ref={wrapRef} className="relative" style={{ background: t.backgroundColor, height: "170vh" }}>
-      <div className="sticky top-0 flex h-screen items-center justify-center overflow-hidden">
+      <div ref={innerRef} className="sticky top-0 flex h-screen items-center justify-center overflow-hidden">
         <span className="absolute left-6 top-6 z-20 text-[11px] font-medium tracking-[0.2em]" style={{ color: t.textColor }}>[ {eyebrow || "JOURNEY"} ]</span>
         <p className="pointer-events-none absolute inset-x-0 z-0 px-[8%] text-center font-semibold leading-[1.18]" style={{ fontFamily: t.headingFont, color: t.textColor, fontSize: "clamp(24px, 4.4vw, 60px)" }}>
           {title || "From glaciers in Austria to rooftops in New York & ten-foot swells in Nias. Every brief: a global playground where presence becomes story."}
