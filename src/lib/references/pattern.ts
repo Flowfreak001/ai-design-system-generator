@@ -9,9 +9,44 @@ import type { SectionType } from "@/components/sections/types";
 import type { ReferenceVisionResult } from "@/lib/ai/reference-vision";
 import {
   DEFAULT_SIMILARITY_RULES, PURPOSE_CATEGORY_OF, LEGACY_GOAL_TO_PURPOSE,
+  VISUAL_STYLE_TAGS, LAYOUT_TAGS, INTERACTION_TAGS,
   type CustomSectionSpec, type GeneratedSectionSpec,
   type ReferenceSectionType, type SectionPattern,
 } from "./types";
+
+// Extra keyword hints so auto-tagging still fires when the model doesn't
+// return a tag verbatim (also covers the no-API-key keyword fallback).
+const TAG_SYNONYMS: Record<string, string[]> = {
+  dark: ["dark", "black background", "midnight"], light: ["light background", "white background", "bright"],
+  bold: ["bold", "large heading", "oversized", "strong"], minimal: ["minimal", "clean", "whitespace", "sparse"],
+  luxury: ["luxury", "premium", "elegant", "refined"], playful: ["playful", "fun", "rounded", "vibrant"],
+  editorial: ["editorial", "magazine", "serif"], corporate: ["corporate", "professional", "enterprise"],
+  futuristic: ["futuristic", "neon", "glow", "gradient mesh"], soft: ["soft", "pastel", "muted"],
+  "high-contrast": ["high contrast", "high-contrast"], premium: ["premium", "polished"],
+  "split-layout": ["split", "two column", "two-column", "side by side", "side-by-side"],
+  "grid-based": ["grid"], "card-based": ["card"], "image-led": ["image-led", "image led", "large image", "photo-forward"],
+  "text-heavy": ["text-heavy", "text heavy", "copy-dense"], "full-width": ["full-width", "full width", "full-bleed", "edge to edge"],
+  asymmetric: ["asymmetric", "asymmetrical", "offset"], centered: ["centered", "center-aligned"],
+  "multi-column": ["multi-column", "multi column", "columns"], sticky: ["sticky", "pinned"],
+  interactive: ["interactive"], accordion: ["accordion", "expand/collapse", "collapsible"], tabs: ["tab"],
+  "hover-expand": ["hover expand", "hover-expand", "hover to expand"], "scroll-reveal": ["scroll reveal", "scroll-reveal", "fade in on scroll", "reveal on scroll"],
+  "sticky-scroll": ["sticky scroll", "sticky-scroll", "pinned scroll", "scroll pin"], carousel: ["carousel", "slider"],
+  marquee: ["marquee", "ticker", "moving strip", "infinite scroll strip"], "motion-heavy": ["motion-heavy", "animation-heavy", "lots of motion"],
+  "subtle-motion": ["subtle motion", "subtle-motion", "gentle motion"],
+};
+
+/** Auto-tag from Vision suggestions + keyword scan, constrained to a vocab. */
+function autoTags(vocab: readonly string[], suggested: string[], text: string): string[] {
+  const t = text.toLowerCase();
+  const out = new Set(suggested.filter((s) => (vocab as readonly string[]).includes(s)));
+  for (const tag of vocab) {
+    const keys = TAG_SYNONYMS[tag] ?? [tag];
+    if (keys.some((k) => t.includes(k))) out.add(tag);
+  }
+  return [...out];
+}
+
+const union = (a: string[], b: string[]): string[] => [...new Set([...a, ...b])];
 
 /** The pattern's effective primary purpose (maps legacy patternGoal forward). */
 function effectivePurpose(p: SectionPattern): string {
@@ -110,9 +145,16 @@ export function createSectionPatternFromReferenceImage(input: {
 }): SectionPattern {
   const v = input.vision;
   const now = new Date().toISOString();
-  const styleTags = input.styleTags ?? [];
-  const layoutTags = input.layoutTags ?? [];
-  const interactionTags = input.interactionTags ?? [];
+  // Text the keyword auto-tagger scans (image-derived observations + notes).
+  const visionText = [
+    v.layoutPattern, v.visualHierarchy, ...v.componentStructure, ...v.interactionClues,
+    ...v.animationClues, ...v.backgroundStyle, ...v.cardStyle, ...v.reusableDesignRules,
+    ...v.typographyObservations, input.notes ?? "",
+  ].join(" ");
+  // Merge the user's picks with what the AI detected from the image.
+  const styleTags = union(input.styleTags ?? [], autoTags(VISUAL_STYLE_TAGS, v.suggestedStyleTags, visionText));
+  const layoutTags = union(input.layoutTags ?? [], autoTags(LAYOUT_TAGS, v.suggestedLayoutTags, visionText));
+  const interactionTags = union(input.interactionTags ?? [], autoTags(INTERACTION_TAGS, v.suggestedInteractionTags, visionText));
   const conversionTags = input.conversionTags ?? [];
   const secondaryPurposes = input.secondaryPurposes ?? [];
   const purposeCategory = input.primaryPurpose ? PURPOSE_CATEGORY_OF[input.primaryPurpose] ?? input.purposeCategory : input.purposeCategory;

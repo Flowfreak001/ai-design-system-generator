@@ -5,6 +5,7 @@
 // API key is missing or the call fails.
 
 import { getOpenAI, VISION_MODEL, type ChatMessage } from "./openai-client";
+import { VISUAL_STYLE_TAGS, LAYOUT_TAGS, INTERACTION_TAGS } from "@/lib/references/types";
 
 export interface ReferenceVisionResult {
   source: "openai_vision" | "fallback";
@@ -26,8 +27,24 @@ export interface ReferenceVisionResult {
   contentSlots: string[];
   reusableDesignRules: string[];
   originalityWarnings: string[];
+  /** Auto-tags chosen by the model from our known vocabularies. */
+  suggestedStyleTags: string[];
+  suggestedLayoutTags: string[];
+  suggestedInteractionTags: string[];
   confidence: "high" | "medium" | "low";
 }
+
+/** Keep only values that exist in the given vocabulary (case-insensitive). */
+const pickFromVocab = (v: unknown, vocab: readonly string[]): string[] => {
+  const set = new Map(vocab.map((t) => [t.toLowerCase(), t]));
+  const arr = Array.isArray(v) ? v : [];
+  const out = new Set<string>();
+  for (const x of arr) {
+    const hit = set.get(String(x).trim().toLowerCase());
+    if (hit) out.add(hit);
+  }
+  return [...out];
+};
 
 const arrOr = (v: unknown, fallback: string): string[] => {
   const a = Array.isArray(v) ? v.map((x) => String(x).trim()).filter(Boolean).slice(0, 14) : [];
@@ -60,7 +77,9 @@ export async function analyzeSectionReferenceImage(input: {
     cardStyle: NA("Cards"), buttonStyle: NA("Buttons"), backgroundStyle: NA("Background"),
     interactionClues: NA("Interaction"), animationClues: NA("Animation"),
     responsiveAssumptions: NA("Responsive"), contentSlots: NA("Content slots"),
-    reusableDesignRules: NA("Design rules"), originalityWarnings: [], confidence: "low",
+    reusableDesignRules: NA("Design rules"), originalityWarnings: [],
+    suggestedStyleTags: [], suggestedLayoutTags: [], suggestedInteractionTags: [],
+    confidence: "low",
   };
 
   const client = getOpenAI();
@@ -92,7 +111,10 @@ export async function analyzeSectionReferenceImage(input: {
     " spacingObservations (array), imagePlacement (array), cardStyle (array), buttonStyle (array), backgroundStyle (array)," +
     " interactionClues (array), animationClues (array), responsiveAssumptions (array), contentSlots (array of content/asset slots)," +
     " reusableDesignRules (array of do's for building a similar original section), originalityWarnings (array — anything that must NOT be copied: text, logos, photos, exact palette)," +
-    " confidence ('high'|'medium'|'low').";
+    ` suggestedStyleTags (array — choose ALL that visibly apply, ONLY from: ${VISUAL_STYLE_TAGS.join(", ")}),` +
+    ` suggestedLayoutTags (array — choose ALL that apply, ONLY from: ${LAYOUT_TAGS.join(", ")}),` +
+    ` suggestedInteractionTags (array — choose ALL that apply, ONLY from: ${INTERACTION_TAGS.join(", ")}),` +
+    " confidence ('high'|'medium'|'low'). For the three suggested*Tags, pick multiple as needed based on what the image actually shows — do not invent tags outside the given lists.";
 
   const messages: ChatMessage[] = [
     { role: "system", content: system },
@@ -123,6 +145,9 @@ export async function analyzeSectionReferenceImage(input: {
       contentSlots: arrOr(p.contentSlots, "No clear evidence visible."),
       reusableDesignRules: arrOr(p.reusableDesignRules, "No clear evidence visible."),
       originalityWarnings: Array.isArray(p.originalityWarnings) ? p.originalityWarnings.map(String).slice(0, 8) : [],
+      suggestedStyleTags: pickFromVocab(p.suggestedStyleTags, VISUAL_STYLE_TAGS),
+      suggestedLayoutTags: pickFromVocab(p.suggestedLayoutTags, LAYOUT_TAGS),
+      suggestedInteractionTags: pickFromVocab(p.suggestedInteractionTags, INTERACTION_TAGS),
       confidence: conf === "high" || conf === "low" ? (conf as "high" | "low") : "medium",
     };
   } catch (err) {
