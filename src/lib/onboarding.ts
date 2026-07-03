@@ -16,6 +16,30 @@ export const WEBSITE_TYPES = [
   "Custom",
 ] as const;
 
+// Predefined industries an agency commonly builds for. Values are worded so
+// suggestFeatures() keyword-matches them (car rental, trades, restaurant…).
+export const INDUSTRIES = [
+  "Car rental / vehicle hire",
+  "Trades / home services",
+  "Restaurant / cafe / food",
+  "Real estate / property",
+  "Health / clinic / medical",
+  "Beauty / salon / spa",
+  "Fitness / gym / wellness",
+  "Professional services (law, accounting, consulting)",
+  "Agency / marketing",
+  "Ecommerce / retail / shop",
+  "SaaS / software / tech",
+  "Travel / tourism / tours",
+  "Education / training",
+  "Finance / insurance",
+  "Construction / builder",
+  "Nonprofit / charity",
+  "Events / hospitality",
+  "Automotive / repair",
+  "Other",
+] as const;
+
 export const GOAL_OPTIONS = [
   "Generate leads",
   "Get bookings",

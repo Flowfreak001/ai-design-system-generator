@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import {
+  INDUSTRIES,
   WEBSITE_TYPES,
   GOAL_OPTIONS,
   FEATURE_OPTIONS,
@@ -457,16 +458,30 @@ export function ProjectWizard({
               <Field label="Business name" name="businessName" required placeholder="e.g. Simba Car Hire" invalid={missing.includes("businessName")} />
               <Field label="Business type" name="businessType" required placeholder="e.g. Car rental, plumber, restaurant" invalid={missing.includes("businessType")} />
             </div>
-            <Field
-              label="Industry"
-              name="industry"
-              required
-              placeholder="e.g. Car rental, trades / home services, SaaS, real estate"
-              hint="Used to suggest the right features for your site."
-              value={industry}
-              onChange={setIndustry}
-              invalid={missing.includes("industry")}
-            />
+            <div>
+              <label htmlFor="industry" className="mb-1.5 block text-sm font-medium">
+                Industry <span className="text-accent">*</span>
+              </label>
+              <select
+                id="industry"
+                name="industry"
+                value={industry}
+                onChange={(e) => setIndustry(e.target.value)}
+                aria-invalid={missing.includes("industry") || undefined}
+                className={`${inputCls} cursor-pointer ${missing.includes("industry") ? "border-danger" : ""}`}
+              >
+                <option value="" disabled>
+                  Select an industry…
+                </option>
+                {INDUSTRIES.map((i) => (
+                  <option key={i} value={i}>
+                    {i}
+                  </option>
+                ))}
+              </select>
+              {missing.includes("industry") && <p className="mt-1 text-xs text-danger">This field is required.</p>}
+              <p className="mt-1 text-xs text-faint">Used to suggest the right features for your site.</p>
+            </div>
             <Area label="Target audience" name="targetAudience" placeholder="Who is this for? e.g. Tourists and business travelers renting cars in Nairobi" />
             {clients.length > 0 ? (
               <div className="grid gap-5 sm:grid-cols-2">
