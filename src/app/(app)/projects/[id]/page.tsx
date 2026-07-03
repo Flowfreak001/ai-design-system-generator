@@ -303,13 +303,18 @@ export default async function ProjectWorkspacePage({
 
       {/* Summary */}
       <div className="card p-5">
-        <p className="text-sm font-semibold text-ink">Project summary</p>
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-sm font-semibold text-ink">Project summary</p>
+          <span className="font-mono text-[10px] uppercase tracking-wider text-faint">from onboarding</span>
+        </div>
         <dl className="mt-2 divide-y divide-line">
           <Row label="Business" value={`${gen.clientName ?? ""}${b.businessType ? ` · ${b.businessType}` : ""}`} />
-          <Row label="Goal" value={b.goal} />
-          <Row label="Audience" value={b.targetAudience} />
+          <Row label="Industry" value={b.industry} />
+          <Row label="Website type" value={b.websiteType} />
+          <Row label="Goals" value={b.goals.join(", ")} />
+          <Row label="Features" value={b.features.join(", ")} />
           <Row label="Pages" value={b.keyItems.join(", ")} />
-          <Row label="Platform" value={b.platformTarget} />
+          <Row label="Audience" value={b.targetAudience} />
         </dl>
       </div>
 
@@ -333,27 +338,67 @@ export default async function ProjectWorkspacePage({
     </div>
   );
 
-  const inputs = (
+  // Everything the user selected during onboarding, grouped as it was captured.
+  const legacyRows = [
+    ["Style preference", b.stylePreference],
+    ["Font preference", b.fontPreference],
+    ["Brand personality", b.brandPersonality],
+    ["Tone of voice", b.toneOfVoice],
+    ["Services / products", b.services],
+    ["CTA goal", b.ctaGoal],
+    ["SEO keywords", b.seoKeywords.join(", ")],
+    ["Platform target", b.platformTarget],
+    ["Animation preference", b.animationPreference],
+  ].filter(([, v]) => v && String(v).trim()) as [string, string][];
+
+  const InputGroup = ({ title, children }: { title: string; children: React.ReactNode }) => (
     <div className="card p-5">
-      <dl className="divide-y divide-line">
+      <p className="mb-1 font-mono text-[10px] uppercase tracking-wider text-accent">{title}</p>
+      <dl className="divide-y divide-line">{children}</dl>
+    </div>
+  );
+
+  const inputs = (
+    <div className="grid gap-4">
+      <InputGroup title="Business basics">
         <Row label="Business name" value={gen.clientName} />
         <Row label="Business type" value={b.businessType} />
+        <Row label="Industry" value={b.industry} />
         <Row label="Website goal" value={b.goal} />
         <Row label="Target audience" value={b.targetAudience} />
-        <Row label="Style preference" value={b.stylePreference} />
+      </InputGroup>
+
+      <InputGroup title="What you're building">
+        <Row label="Website type" value={b.websiteType} />
+        <Row label="Goals" value={b.goals.join(", ")} />
+        <Row label="Features" value={b.features.join(", ")} />
+      </InputGroup>
+
+      <InputGroup title="Pages needed">
+        <Row label="Selected pages" value={b.keyItems.join(", ")} />
+        <Row label="Approx page count" value={b.pageCount} />
+        <Row label="Notes for special pages" value={b.pageNotes} />
+      </InputGroup>
+
+      <InputGroup title="Reference sources & brand evidence">
+        <Row label="Primary reference" value={b.mainReferenceUrl} />
+        <Row label="Additional references" value={b.referenceUrls.filter((u) => u !== b.mainReferenceUrl).join(", ")} />
+        <Row label="Existing website" value={b.existingWebsiteUrl} />
+        <Row label="Learn from reference" value={b.referenceLearn.join(", ")} />
         <Row label="Primary color" value={b.primaryColor} />
         <Row label="Secondary color" value={b.secondaryColor} />
-        <Row label="Font preference" value={b.fontPreference} />
-        <Row label="Brand personality" value={b.brandPersonality} />
-        <Row label="Tone of voice" value={b.toneOfVoice} />
-        <Row label="Required pages" value={b.keyItems.join(", ")} />
-        <Row label="Services / products" value={b.services} />
-        <Row label="CTA goal" value={b.ctaGoal} />
-        <Row label="SEO keywords" value={b.seoKeywords.join(", ")} />
-        <Row label="Platform target" value={b.platformTarget} />
-        <Row label="Animation preference" value={b.animationPreference} />
+        <Row label="Logo" value={b.logoDataUrl ? "Uploaded" : undefined} />
+        <Row label="Screenshots" value={screenshots.length ? `${screenshots.length} uploaded` : undefined} />
         <Row label="Notes" value={b.notes} />
-      </dl>
+      </InputGroup>
+
+      {legacyRows.length > 0 && (
+        <InputGroup title="Additional (legacy)">
+          {legacyRows.map(([k, v]) => (
+            <Row key={k} label={k} value={v} />
+          ))}
+        </InputGroup>
+      )}
     </div>
   );
 
