@@ -224,6 +224,23 @@ export default async function ProjectWorkspacePage({
   const approveStage = approveStageAction.bind(null, id);
   const confirmPages = confirmPagesAction.bind(null, id);
 
+  // Evidence summary shown in the Evidence Review stage (all from real inputs).
+  const animationClue =
+    (parse<{ recommendedAnimationRules?: string[] }>("ANIMATION_ANALYSIS.json")?.recommendedAnimationRules ?? [])[0] ?? null;
+  const multiAssumptions =
+    parse<{ assumptions?: string[] }>("MULTI_PAGE_WEBSITE_ANALYSIS.json")?.assumptions ?? [];
+  const evidence = {
+    refUrls: refUrls.map((r) => r.url),
+    screenshots: screenshots.length,
+    logoPresent: Boolean(b.logoDataUrl),
+    brandColors: [b.primaryColor, b.secondaryColor].filter(Boolean) as string[],
+    visionRan: aiStatus.lastRunStatus === "completed",
+    visionKeyConfigured: aiStatus.keyConfigured,
+    animationClue,
+    referenceLearn: b.referenceLearn ?? [],
+    assumptions: multiAssumptions,
+  };
+
   const timeline = [
     { label: "Created", done: true },
     { label: "Files generated", done: docFiles.length > 0 },
@@ -246,6 +263,7 @@ export default async function ProjectWorkspacePage({
         sitemap={sitemap}
         wireframe={wireframe}
         style={styleGuide}
+        evidence={evidence}
         previewExists={Boolean(previewHtml)}
         producedFiles={docFiles.map((f) => f.name)}
         exportHref={`/api/projects/${id}/export`}
@@ -253,6 +271,7 @@ export default async function ProjectWorkspacePage({
           generateBrand,
           approveBrand,
           crawl,
+          runVision: runAiVision,
           confirmPages,
           approveStage,
           setDesignType: setDesignTypeAction,

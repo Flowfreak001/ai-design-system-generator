@@ -59,10 +59,23 @@ export type StyleGuide = {
   spacingPx: number;
 } | null;
 
+export type EvidenceInfo = {
+  refUrls: string[];
+  screenshots: number;
+  logoPresent: boolean;
+  brandColors: string[];
+  visionRan: boolean;
+  visionKeyConfigured: boolean;
+  animationClue: string | null;
+  referenceLearn: string[];
+  assumptions: string[];
+};
+
 type Actions = {
   generateBrand: () => Promise<void>;
   approveBrand: () => Promise<void>;
   crawl: () => Promise<void>;
+  runVision: () => Promise<void>;
   confirmPages: (pages: string[]) => Promise<{ error?: string }>;
   approveStage: (stage: string) => Promise<{ error?: string }>;
   setDesignType: (projectId: string, designType: string) => Promise<{ error?: string }>;
@@ -82,6 +95,7 @@ export function ProjectPipeline({
   sitemap,
   wireframe,
   style,
+  evidence,
   previewExists,
   producedFiles,
   exportHref,
@@ -98,6 +112,7 @@ export function ProjectPipeline({
   sitemap: CanvasPage[];
   wireframe: WireframePage[];
   style: StyleGuide;
+  evidence: EvidenceInfo;
   previewExists: boolean;
   producedFiles: string[];
   exportHref: string;
@@ -128,6 +143,7 @@ export function ProjectPipeline({
             sitemap={sitemap}
             wireframe={wireframe}
             style={style}
+            evidence={evidence}
             previewExists={previewExists}
             producedFiles={producedFiles}
             exportHref={exportHref}
@@ -219,6 +235,7 @@ function StageBody({
   sitemap,
   wireframe,
   style,
+  evidence,
   previewExists,
   producedFiles,
   exportHref,
@@ -235,6 +252,7 @@ function StageBody({
   sitemap: CanvasPage[];
   wireframe: WireframePage[];
   style: StyleGuide;
+  evidence: EvidenceInfo;
   previewExists: boolean;
   producedFiles: string[];
   exportHref: string;
@@ -280,14 +298,17 @@ function StageBody({
     );
   }
 
-  if (id === "crawl") {
+  if (id === "evidence") {
     return (
-      <CrawlBody
+      <EvidenceBody
         projectId={projectId}
         hasReference={hasReference}
         discovered={discovered}
         confirmedPages={confirmedPages}
+        evidence={evidence}
+        style={style}
         crawl={actions.crawl}
+        runVision={actions.runVision}
         confirmPages={actions.confirmPages}
       />
     );
@@ -453,19 +474,25 @@ function Row({ k, v }: { k: string; v: string }) {
   );
 }
 
-function CrawlBody({
+function EvidenceBody({
   projectId,
   hasReference,
   discovered,
   confirmedPages,
+  evidence,
+  style,
   crawl,
+  runVision,
   confirmPages,
 }: {
   projectId: string;
   hasReference: boolean;
   discovered: DiscoveredPage[];
   confirmedPages: string[];
+  evidence: EvidenceInfo;
+  style: StyleGuide;
   crawl: () => Promise<void>;
+  runVision: () => Promise<void>;
   confirmPages: (pages: string[]) => Promise<{ error?: string }>;
 }) {
   const { run, pending, error } = useAction();
@@ -488,23 +515,40 @@ function CrawlBody({
     setManual("");
   };
 
+  const colors = evidence.brandColors.length ? evidence.brandColors : style?.colors.map((c) => c.value) ?? [];
+  const fonts = [style?.bodyFont, style?.displayFont].filter(Boolean) as string[];
+
   return (
     <div className="grid gap-4">
       <p className="text-[13px] text-body">
-        The system crawls the primary reference site and discovers important pages automatically. Confirm the
-        ones to analyze — remove irrelevant pages, add a URL only if something is missing.
+        Before generating anything, the system collects and you confirm the real evidence. It crawls the
+        primary reference site, discovers important pages automatically, and analyzes any uploaded images.
       </p>
+
+      {/* 1. Crawl + discovered pages */}
       <div className="flex flex-wrap items-center gap-2.5">
         <ActionDialog
           projectId={projectId}
           trigger="button"
           title={discovered.length ? "Re-crawl Reference Site" : "Crawl Reference Site"}
-          description="Discover the important pages of the reference site."
+          description="Discover the important pages and measure rendered styles."
           confirmText="Crawl the primary reference site in a real browser, discover its important pages, and measure rendered styles. Run it now?"
           runName="Website analysis run"
           action={crawl}
           disabledNote={hasReference ? undefined : "Add a reference URL to crawl."}
         />
+        {evidence.screenshots > 0 && (
+          <ActionDialog
+            projectId={projectId}
+            trigger="button"
+            title={evidence.visionRan ? "Re-run Image Analysis" : "Analyze Uploaded Images"}
+            description="OpenAI Vision reads the uploaded screenshots for sections, colors, and layout."
+            confirmText="Analyze the uploaded reference screenshots with OpenAI Vision to extract sections, colors, and layout clues. Run it now?"
+            runName="AI Vision analysis"
+            action={runVision}
+            disabledNote={evidence.visionKeyConfigured ? undefined : "OpenAI key not set — a labelled fallback is used."}
+          />
+        )}
         {discovered.length > 0 && (
           <span className="text-[12px] text-muted">{discovered.length} page{discovered.length === 1 ? "" : "s"} discovered</span>
         )}
@@ -512,6 +556,7 @@ function CrawlBody({
 
       {discovered.length > 0 && (
         <div className="grid gap-2">
+          <p className="text-[12px] font-medium text-ink">Discovered pages — select the ones to analyze</p>
           {discovered.map((d) => (
             <label key={d.url} className="flex cursor-pointer items-center gap-2.5 rounded-lg border border-line px-3 py-2 text-[13px]">
               <input type="checkbox" checked={selected.has(d.url)} onChange={() => toggle(d.url)} className="accent-accent" />
@@ -537,18 +582,53 @@ function CrawlBody({
             />
             <Button type="button" variant="secondary" size="sm" onClick={addManual}>Add</Button>
           </div>
-          <div>
-            <Button
-              size="sm"
-              disabled={pending || selected.size === 0}
-              onClick={() => run(() => confirmPages([...selected]))}
-            >
-              {pending ? "Saving…" : `Confirm ${selected.size} page${selected.size === 1 ? "" : "s"}`}
-            </Button>
-          </div>
-          {error && <p className="text-xs text-danger">{error}</p>}
         </div>
       )}
+
+      {/* 2. Evidence summary */}
+      <div className="rounded-xl border border-line bg-panel/40 p-4">
+        <p className="text-[12px] font-semibold text-ink">Evidence summary</p>
+        <dl className="mt-2 grid gap-1.5 text-[12.5px] sm:grid-cols-2">
+          <EvRow k="Reference URLs" v={evidence.refUrls.length ? `${evidence.refUrls.length}` : "none"} />
+          <EvRow k="Pages to analyze" v={`${selected.size}`} />
+          <EvRow k="Uploaded screenshots" v={`${evidence.screenshots}`} src={evidence.screenshots ? "user-added" : undefined} />
+          <EvRow k="Logo" v={evidence.logoPresent ? "provided" : "none"} src={evidence.logoPresent ? "user-added" : undefined} />
+          <EvRow k="Image analysis" v={evidence.visionRan ? "OpenAI Vision run" : "not run"} src={evidence.visionRan ? "vision-detected" : undefined} />
+          <EvRow k="Detected colors" v={colors.length ? colors.slice(0, 4).join(" · ") : "—"} src={colors.length ? (style?.source ?? "extracted") : undefined} />
+          <EvRow k="Detected typography" v={fonts.length ? fonts.join(" · ") : "—"} src={fonts.length ? (style?.source ?? "extracted") : undefined} />
+          <EvRow k="Animation clue" v={evidence.animationClue ?? "—"} src={evidence.animationClue ? "extracted" : undefined} />
+          <EvRow k="Learn from reference" v={evidence.referenceLearn.length ? evidence.referenceLearn.join(", ") : "—"} src={evidence.referenceLearn.length ? "user-added" : undefined} />
+        </dl>
+        {evidence.assumptions.length > 0 && (
+          <p className="mt-2 text-[12px] text-muted">
+            <span className="font-medium text-warning">Missing / assumed:</span> {evidence.assumptions.slice(0, 4).join(" · ")}
+          </p>
+        )}
+      </div>
+
+      <div>
+        <Button
+          size="sm"
+          disabled={pending || selected.size === 0}
+          onClick={() => run(() => confirmPages([...selected]))}
+        >
+          {pending ? "Saving…" : `Confirm evidence & ${selected.size} page${selected.size === 1 ? "" : "s"}`}
+        </Button>
+        {selected.size === 0 && <p className="mt-1 text-[11.5px] text-faint">Crawl the reference site or add a URL, then confirm.</p>}
+      </div>
+      {error && <p className="text-xs text-danger">{error}</p>}
+    </div>
+  );
+}
+
+function EvRow({ k, v, src }: { k: string; v: string; src?: string }) {
+  return (
+    <div className="flex items-center justify-between gap-2 border-b border-line/50 py-0.5">
+      <dt className="text-faint">{k}</dt>
+      <dd className="flex items-center gap-1.5 text-right font-medium text-ink">
+        <span className="truncate">{v}</span>
+        {src && <SourceChip source={src} />}
+      </dd>
     </div>
   );
 }

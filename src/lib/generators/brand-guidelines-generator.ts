@@ -41,6 +41,8 @@ ${analysisConfidenceNote(ctx)}
 - **Goal:** ${brief.goal?.trim() || "_Not specified_"}
 - **Audience:** ${brief.targetAudience?.trim() || "_Not specified_"}
 ${host ? `- **Reference site (evidence):** ${host}${measured ? " — styles measured from the rendered page" : ""}` : "- **Reference site:** none provided — guidance is assumption-based."}
+${brief.confirmedPages?.length ? `- **Confirmed reference pages (evidence):** ${brief.confirmedPages.length} — ${brief.confirmedPages.slice(0, 6).map((p) => p.replace(/^https?:\/\//, "")).join(", ")}` : ""}
+${brief.logoDataUrl ? "- **Logo:** provided at onboarding (user-added evidence)." : ""}${brief.referenceLearn?.length ? `\n- **Learn from reference:** ${brief.referenceLearn.join(", ")} (user-added)` : ""}
 
 ## 2. Logo usage
 - Clear space: keep at least the logo's cap-height of padding on all sides.

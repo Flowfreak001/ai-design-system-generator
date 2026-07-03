@@ -1,12 +1,14 @@
 // The design pipeline that runs after a project (workspace) is created.
-// Brand Guideline is the foundation; every later stage is gated on the previous
-// one so the design system is never generated before brand + structure + style.
+// Evidence Review is first — the system crawls/collects real evidence and the
+// user confirms it BEFORE any generation. Brand Guideline is then the
+// foundation, and every later stage is gated on the previous one so the design
+// system is never generated before evidence + brand + structure + style.
 
 import type { ProjectBrief } from "@/types";
 
 export type StageId =
+  | "evidence"
   | "brand"
-  | "crawl"
   | "sitemap"
   | "wireframe"
   | "style"
@@ -24,8 +26,8 @@ export type Stage = {
 };
 
 export const STAGES: Stage[] = [
-  { id: "brand", step: 1, label: "Brand Guideline", description: "The foundation — generated from your brief and reference evidence, then approved." },
-  { id: "crawl", step: 2, label: "Crawl Reference Site", description: "Discover the important pages of the primary reference site automatically." },
+  { id: "evidence", step: 1, label: "Evidence Review", description: "Crawl the reference site, confirm discovered pages, and analyze uploaded images before anything is generated." },
+  { id: "brand", step: 2, label: "Brand Guideline", description: "The foundation — generated from the confirmed evidence, then approved." },
   { id: "sitemap", step: 3, label: "Sitemap Canvas", description: "Confirm the page structure from discovered pages + selected page needs." },
   { id: "wireframe", step: 4, label: "Wireframe Canvas", description: "Confirm the sections per page from detected + reference-inspired structure." },
   { id: "style", step: 5, label: "Style Guide", description: "Colors, type, components, and motion from the approved brand + rendered styles." },
@@ -53,10 +55,10 @@ export type PipelineInputs = {
 function isComplete(id: StageId, i: PipelineInputs): boolean {
   const b = i.brief;
   switch (id) {
+    case "evidence":
+      return Boolean(b.pagesConfirmed);
     case "brand":
       return Boolean(b.brandApproved) && i.fileNames.has("BRAND_GUIDELINES.md");
-    case "crawl":
-      return Boolean(b.pagesConfirmed);
     case "sitemap":
       return Boolean(b.sitemapApproved);
     case "wireframe":

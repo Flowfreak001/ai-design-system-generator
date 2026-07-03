@@ -120,10 +120,17 @@ async function patchBrief(projectId: string, patch: Record<string, unknown>) {
 
 // ---- Two-phase flow: Brand foundation → approval → Design system ----------
 
-/** Phase 1 — generate BRAND.md, BRAND_GUIDELINES.md, CREATIVE_DIRECTION.md. */
+/** Generate BRAND.md, BRAND_GUIDELINES.md, CREATIVE_DIRECTION.md, STYLE_DIRECTION.json.
+ *  Gated on the Evidence Review step: the reference pages must be confirmed
+ *  first so the brand is built from real, reviewed evidence. */
 export async function generateBrandAction(projectId: string) {
   const user = await requireUser();
   if (!user.agencyId || !(await ownsProject(projectId, user.agencyId))) return;
+  const input = await prisma.projectInput.findFirst({ where: { projectId, category: "brief" } });
+  const confirmed = Boolean((input?.data as { pagesConfirmed?: boolean } | null)?.pagesConfirmed);
+  if (!confirmed) {
+    throw new Error("Complete the Evidence Review (confirm discovered pages) before generating the brand guideline.");
+  }
   await runBrandGeneration(projectId);
   revalidatePath(`/projects/${projectId}`);
 }
