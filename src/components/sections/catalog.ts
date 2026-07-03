@@ -27,10 +27,55 @@ export const SECTION_CATALOG: Partial<Record<SectionType, SectionCatalogEntry>> 
     variants: [
       V("centered", "Centered Hero", "CenteredHero", "hero/CenteredHero", ["general", "agency", "professional-service"]),
       V("split", "Split Hero", "SplitHero", "hero/SplitHero", ["agency", "professional-service", "construction"], { supportsAssetSwap: true }),
+      V("split-visual", "Split Visual Hero", "SplitVisualHero", "hero/marketing", ["saas", "platform", "agency", "software"], { supportsAssetSwap: true }),
       V("image", "Hero With Image", "HeroWithImage", "hero/HeroWithImage", ["ecommerce", "agency", "construction"]),
       V("booking", "Hero With Booking Form", "HeroWithBookingForm", "hero/HeroWithBookingForm", ["booking", "car-rental", "parking", "taxi", "healthcare"], { supportsAssetSwap: true }),
-      V("saas", "SaaS Hero", "SaaSHero", "hero/SaaSHero", ["saas", "platform", "dashboard"]),
+      V("saas", "SaaS Product Hero", "SaaSHero", "hero/SaaSHero", ["saas", "platform", "dashboard"]),
+      V("ai-platform", "AI Platform Hero", "AIPlatformHero", "hero/marketing", ["saas", "platform", "ai", "software"]),
       V("local", "Local Business Hero", "LocalBusinessHero", "hero/LocalBusinessHero", ["local-service", "construction", "maintenance", "healthcare"], { supportsAssetSwap: true }),
+    ],
+  },
+  "social-proof": {
+    label: "Social Proof",
+    variants: [
+      V("logo-cloud", "Logo Cloud", "LogoCloud", "social-proof", ["saas", "platform", "agency", "software"]),
+      V("review-stats", "Review Stats", "ReviewStats", "social-proof", ["general", "agency", "local-service", "ecommerce"]),
+      V("trust-badges", "Trust Badge Strip", "TrustBadgeStrip", "social-proof", ["saas", "local-service", "healthcare", "booking"]),
+    ],
+  },
+  workflow: {
+    label: "Product Workflow",
+    variants: [
+      V("steps", "Step-by-step Process", "StepByStepProcess", "workflow", ["saas", "platform", "professional-service"]),
+      V("cards", "How It Works Cards", "HowItWorksCards", "workflow", ["saas", "agency", "software"]),
+      V("ai", "AI Workflow", "AIWorkflowSection", "workflow", ["ai", "saas", "platform"], { supportsAssetSwap: true }),
+    ],
+  },
+  showcase: {
+    label: "Showcase",
+    variants: [
+      V("templates", "Template Gallery", "TemplateGallery", "showcase", ["saas", "platform", "ecommerce"]),
+      V("case-studies", "Case Study Cards", "CaseStudyCards", "showcase", ["agency", "professional-service", "software"]),
+    ],
+  },
+  "use-cases": {
+    label: "Use Cases",
+    variants: [
+      V("cards", "Use Case Cards", "UseCaseCards", "use-cases", ["saas", "platform", "software"]),
+      V("industries", "Industry Grid", "IndustryGrid", "use-cases", ["saas", "agency", "platform"]),
+    ],
+  },
+  comparison: {
+    label: "Comparison",
+    variants: [
+      V("table", "Comparison Table", "ComparisonTable", "comparison", ["saas", "platform", "software"]),
+      V("why-us", "Why Choose Us", "WhyChooseUsGrid", "comparison", ["agency", "professional-service", "local-service"]),
+    ],
+  },
+  integrations: {
+    label: "Integrations",
+    variants: [
+      V("logos", "Integration Logos", "IntegrationLogoCloud", "integrations", ["saas", "platform", "software", "ai"]),
     ],
   },
   services: {
@@ -45,6 +90,8 @@ export const SECTION_CATALOG: Partial<Record<SectionType, SectionCatalogEntry>> 
     label: "Features",
     variants: [
       V("grid", "Feature Grid", "FeatureGrid", "features/FeatureGrid", ["saas", "platform", "agency"]),
+      V("icon-cards", "Feature Cards With Icons", "FeatureCardsWithIcons", "features/marketing", ["saas", "platform", "agency", "software"]),
+      V("tabs", "Feature Tabs", "FeatureTabs", "features/marketing", ["saas", "platform", "software"]),
     ],
   },
   "booking-form": {
@@ -79,6 +126,8 @@ export const SECTION_CATALOG: Partial<Record<SectionType, SectionCatalogEntry>> 
       V("simple", "Simple CTA", "SimpleCTA", "cta/SimpleCTA", ["general", "agency"]),
       V("split", "Split CTA", "SplitCTA", "cta/SplitCTA", ["saas", "professional-service"]),
       V("banner", "Banner CTA", "BannerCTA", "cta/BannerCTA", ["booking", "ecommerce", "local-service"]),
+      V("gradient", "Gradient CTA", "GradientCTA", "cta/marketing", ["saas", "platform", "software", "ai"]),
+      V("trial", "Trial Signup CTA", "TrialSignupCTA", "cta/marketing", ["saas", "platform", "software"]),
     ],
   },
   footer: {
@@ -87,6 +136,7 @@ export const SECTION_CATALOG: Partial<Record<SectionType, SectionCatalogEntry>> 
       V("simple", "Simple Footer", "SimpleFooter", "footer/SimpleFooter", ["local-service", "professional-service"]),
       V("multi-column", "Multi Column", "MultiColumnFooter", "footer/MultiColumnFooter", ["saas", "agency", "ecommerce", "platform"]),
       V("newsletter", "Footer With Newsletter", "FooterWithNewsletter", "footer/FooterWithNewsletter", ["saas", "ecommerce", "blog"]),
+      V("saas", "SaaS Footer", "SaaSFooter", "footer/marketing", ["saas", "platform", "software", "ai"]),
     ],
   },
   // Single-variant sections (more variants are Phase 2 TODO).
@@ -103,6 +153,8 @@ export const SECTION_CATALOG: Partial<Record<SectionType, SectionCatalogEntry>> 
 export function sectionTypeForKind(kind: string): SectionType {
   const map: Record<string, SectionType> = {
     navbar: "navbar", hero: "hero", services: "services", features: "features",
+    socialproof: "social-proof", workflow: "workflow", showcase: "showcase",
+    usecases: "use-cases", comparison: "comparison", integrations: "integrations",
     form: "contact-form", booking: "booking-form", pricing: "pricing", faq: "faq",
     testimonials: "testimonials", gallery: "gallery", cta: "cta", footer: "footer",
     directory: "directory", dashboard: "dashboard", generic: "features",
@@ -143,22 +195,42 @@ export function getBestVariantId(type: SectionType, ctx: VariantContext = {}): s
   const list = getVariantMetas(type);
   if (list.length === 0) return "default";
   const first = list[0].id;
+  const blob = [ctx.websiteType, ctx.industry, ctx.businessType].filter(Boolean).join(" ");
+  const saas = has(blob, "saas", "platform", "software", "app", "tool", "tech", "startup", "product", "dashboard");
+  const ai = has(blob, "ai", "artificial", "ml", "gpt", "llm");
+  const agency = has(blob, "agency", "studio", "consult", "marketing");
+  const booking = has(ctx.websiteType, "booking") || has(ctx.businessType, "booking", "rental", "taxi", "parking", "salon", "clinic") || any(ctx.goals, "booking", "book");
+  const local = has(ctx.businessType, "local", "service", "trade") || has(ctx.industry, "construction", "maintenance", "clinic", "healthcare", "plumb", "electric");
+
   switch (type) {
     case "hero":
-      if (has(ctx.websiteType, "booking") || has(ctx.businessType, "booking", "rental", "taxi", "parking") || any(ctx.goals, "booking"))
-        return "booking";
-      if (has(ctx.websiteType, "saas", "platform") || has(ctx.industry, "saas")) return "saas";
-      if (has(ctx.businessType, "local", "service", "trade") || has(ctx.industry, "construction", "maintenance", "clinic", "healthcare"))
-        return "local";
+      if (booking) return "booking";
+      if (ai) return "ai-platform";
+      if (saas) return "saas";
+      if (agency) return "split-visual";
+      if (local) return "local";
       return "centered";
+    case "social-proof":
+      return saas || agency ? "logo-cloud" : "review-stats";
+    case "workflow":
+      return ai ? "ai" : "steps";
+    case "showcase":
+      return agency ? "case-studies" : "templates";
+    case "use-cases":
+      return "cards";
+    case "comparison":
+      return saas ? "table" : "why-us";
+    case "features":
+      return saas || agency ? "icon-cards" : "grid";
     case "services":
       return (ctx.serviceCount ?? 3) > 3 ? "grid-6" : "cards-3";
     case "faq":
       return "accordion";
     case "footer":
-      return (ctx.pageCount ?? 0) > 5 ? "multi-column" : "simple";
+      return saas ? "saas" : (ctx.pageCount ?? 0) > 5 ? "multi-column" : "simple";
     case "cta":
-      if (any(ctx.goals, "booking", "book") || has(ctx.websiteType, "booking")) return "banner";
+      if (booking) return "banner";
+      if (saas || ai) return any(ctx.goals, "trial", "signup", "sign up") ? "trial" : "gradient";
       return "split";
     default:
       return first;

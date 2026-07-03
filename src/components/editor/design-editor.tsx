@@ -12,7 +12,8 @@ import { sectionKind } from "./wireframe-block";
 import { Drawer, Popover } from "./overlays";
 import { ProjectCanvas } from "./project-canvas";
 import { SECTION_CATEGORIES, suggestSectionsForPage } from "@/lib/sections";
-import { getSectionVariants, sectionTypeForKind } from "@/components/sections/registry";
+import { getSectionVariants, sectionTypeForKind, getBestVariantId } from "@/components/sections/registry";
+import type { SectionContext } from "@/lib/sections";
 import { arrayMove } from "@dnd-kit/sortable";
 import type {
   SitemapCanvas,
@@ -70,6 +71,7 @@ export function DesignEditor({
   initialSitemap,
   initialStyle,
   features = [],
+  siteContext = {},
   approvals: initialApprovals,
   saveSitemap,
   saveStyle,
@@ -80,6 +82,7 @@ export function DesignEditor({
   initialSitemap: SitemapCanvas;
   initialStyle: StyleGuideCanvas;
   features?: string[];
+  siteContext?: SectionContext;
   approvals: Approvals;
   saveSitemap: (projectId: string, canvas: SitemapCanvas) => Promise<{ error?: string }>;
   saveStyle: (projectId: string, canvas: StyleGuideCanvas) => Promise<{ error?: string }>;
@@ -219,9 +222,14 @@ export function DesignEditor({
   // ---- Sitemap board helpers ----
   const recommendedFor = (pg: CanvasPage): CanvasSection[] => {
     const existing = new Set(pg.sections.map((s) => sectionKind(s.name)));
-    return suggestSectionsForPage(pg.name, features)
+    return suggestSectionsForPage(pg.name, features, siteContext)
       .filter((name) => !existing.has(sectionKind(name)))
-      .map((name) => ({ id: uid("s"), name, source: "AI-suggested" as const, status: "draft" as const }));
+      .map((name) => {
+        const kind = sectionKind(name);
+        // Pick the best-fit Elementor-style variant for this site context.
+        const variant = getBestVariantId(sectionTypeForKind(kind), siteContext);
+        return { id: uid("s"), name, source: "AI-suggested" as const, status: "draft" as const, variant };
+      });
   };
   const addPageInCategory = (category: CanvasPage["category"], parentId?: string) =>
     setPages((p) => [...p, { id: uid("p"), name: `New page ${p.length + 1}`, source: "user-added", category, parentId, sections: [] }]);

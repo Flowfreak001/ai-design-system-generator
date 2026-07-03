@@ -39,19 +39,36 @@ import TestimonialCards from "./testimonials/TestimonialCards";
 import GalleryGrid from "./gallery/GalleryGrid";
 import ListingGrid from "./directory/ListingGrid";
 import DashboardPreviewSection from "./dashboard/DashboardPreviewSection";
+// Elementor-grade marketing sections (folder index files, named exports).
+import { AIPlatformHero, SplitVisualHero } from "./hero/marketing";
+import { FeatureCardsWithIcons, FeatureTabs } from "./features/marketing";
+import { GradientCTA, TrialSignupCTA } from "./cta/marketing";
+import { SaaSFooter } from "./footer/marketing";
+import { LogoCloud, ReviewStats, TrustBadgeStrip } from "./social-proof";
+import { StepByStepProcess, HowItWorksCards, AIWorkflowSection } from "./workflow";
+import { TemplateGallery, CaseStudyCards } from "./showcase";
+import { UseCaseCards, IndustryGrid } from "./use-cases";
+import { ComparisonTable, WhyChooseUsGrid } from "./comparison";
+import { IntegrationLogoCloud } from "./integrations";
 
 /** SectionType → variant id → component. Keys mirror catalog.ts ids. */
 const COMPONENTS: Partial<Record<SectionType, Record<string, SectionComponent>>> = {
   navbar: { simple: SimpleNavbar, "center-logo": CenterLogoNavbar, "with-cta": NavbarWithCTA },
-  hero: { centered: CenteredHero, split: SplitHero, image: HeroWithImage, booking: HeroWithBookingForm, saas: SaaSHero, local: LocalBusinessHero },
+  hero: { centered: CenteredHero, split: SplitHero, "split-visual": SplitVisualHero, image: HeroWithImage, booking: HeroWithBookingForm, saas: SaaSHero, "ai-platform": AIPlatformHero, local: LocalBusinessHero },
   services: { "cards-3": ServiceCards3, "grid-6": ServiceGrid6, "image-cards": ServiceImageCards },
-  features: { grid: FeatureGrid },
+  features: { grid: FeatureGrid, "icon-cards": FeatureCardsWithIcons, tabs: FeatureTabs },
+  "social-proof": { "logo-cloud": LogoCloud, "review-stats": ReviewStats, "trust-badges": TrustBadgeStrip },
+  workflow: { steps: StepByStepProcess, cards: HowItWorksCards, ai: AIWorkflowSection },
+  showcase: { templates: TemplateGallery, "case-studies": CaseStudyCards },
+  "use-cases": { cards: UseCaseCards, industries: IndustryGrid },
+  comparison: { table: ComparisonTable, "why-us": WhyChooseUsGrid },
+  integrations: { logos: IntegrationLogoCloud },
   "booking-form": { default: BookingFormSection },
   "contact-form": { default: ContactFormSection },
   "quote-form": { default: QuoteFormSection },
   faq: { accordion: FAQAccordion, "two-column": FAQTwoColumn, "with-cta": FAQWithCTA },
-  cta: { simple: SimpleCTA, split: SplitCTA, banner: BannerCTA },
-  footer: { simple: SimpleFooter, "multi-column": MultiColumnFooter, newsletter: FooterWithNewsletter },
+  cta: { simple: SimpleCTA, split: SplitCTA, banner: BannerCTA, gradient: GradientCTA, trial: TrialSignupCTA },
+  footer: { simple: SimpleFooter, "multi-column": MultiColumnFooter, newsletter: FooterWithNewsletter, saas: SaaSFooter },
   pricing: { cards: PricingCards },
   testimonials: { cards: TestimonialCards },
   gallery: { grid: GalleryGrid },

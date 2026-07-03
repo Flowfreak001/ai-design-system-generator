@@ -54,6 +54,7 @@ export default async function EditorPage({ params }: { params: Promise<{ id: str
       initialSitemap={sitemap}
       initialStyle={style}
       features={b.features ?? []}
+      siteContext={{ websiteType: b.websiteType, industry: b.industry, businessType: b.businessType, goals: b.goals }}
       approvals={{
         sitemap: Boolean(b.sitemapApproved),
         wireframe: Boolean(b.wireframeApproved),

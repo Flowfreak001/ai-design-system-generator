@@ -1,4 +1,4 @@
-import { type GeneratorContext, type MdArtifact, Assumptions, inline, who, paletteOf, fontsOf, analysisConfidenceNote } from "./context";
+import { type GeneratorContext, type MdArtifact, Assumptions, inline, who, paletteOf, fontsOf, analysisConfidenceNote, DESIGN_QUALITY_RULES } from "./context";
 import { sectionKind } from "@/lib/sections";
 
 // PROMPT_REPLIT.md and PROMPT_LOVABLE.md — single strong build prompts tuned for
@@ -63,7 +63,9 @@ Design tokens (use exactly, do not invent):
 Pages and section order (build EXACTLY this — no extra sections):
 ${outlineBlock(outline)}
 
-For each section, build a real, polished component (navbar, hero, services, forms, pricing, FAQ, testimonials, CTA, footer as applicable). Use real, specific copy for ${name} — no lorem ipsum, no fake reviews.
+For each section, use the exact section VARIANT for that section from REACT_EXPORT_PLAN.json (fields: sectionType, component, importPath, designVariant) — build that specific layout, not a generic one. Use real, specific copy for ${name} — no lorem ipsum, no fake reviews.
+
+${DESIGN_QUALITY_RULES}
 
 Motion: ${animRules[0]}
 
@@ -102,7 +104,9 @@ Theme (apply as Tailwind theme tokens — do not deviate):
 Build these pages, each with exactly these sections in order:
 ${outlineBlock(outline)}
 
-Use shadcn/ui for buttons, cards, inputs, accordions (FAQ), dialogs. Write real, benefit-led copy for ${name}. Responsive and accessible. Subtle motion only: ${animRules[0]}.
+Use shadcn/ui for buttons, cards, inputs, accordions (FAQ), dialogs. For each section use the exact VARIANT from REACT_EXPORT_PLAN.json (sectionType, component, importPath, designVariant). Write real, benefit-led copy for ${name}. Responsive and accessible. Subtle motion only: ${animRules[0]}.
+
+${DESIGN_QUALITY_RULES}
 
 Do not add sections or pages beyond the list. Do not use placeholder text or stock filler.
 \`\`\`

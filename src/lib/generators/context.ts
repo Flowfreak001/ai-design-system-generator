@@ -12,6 +12,19 @@ import type {
 import type { AiScreenshotAnalysis } from "@/lib/ai/types";
 import type { SitemapCanvas } from "@/lib/canvas";
 
+/** Elementor-grade design quality bar injected into every builder prompt so the
+ *  generated site reaches modern SaaS/marketing polish (not generic filler). */
+export const DESIGN_QUALITY_RULES = `Design quality bar — build to this standard:
+- Strong hero hierarchy with ONE clear primary CTA above the fold.
+- Modern navigation with a clear primary action (sticky on scroll).
+- Generous, consistent section spacing and comfortable whitespace.
+- Card-based feature sections with consistent radius/border/shadow and a single button system.
+- Alternating section layouts — never stack identical blocks.
+- Trust/social proof near the fold (logo cloud, review stats, or trust badges).
+- Conversion-focused CTAs repeated at natural decision points; polished multi-column footer.
+- Consistent typographic scale; mobile-first responsive (navbar collapses, heroes stack, grids collapse to one column).
+Do NOT: generic "modern website" filler or repeated identical card grids, weak/hidden CTAs, poor whitespace, inconsistent buttons, colours/fonts outside the tokens, sections that don't serve the goal, or lorem ipsum.`;
+
 export type GeneratorContext = {
   input: GenerationInput;
   website: WebsiteAnalysis | null;

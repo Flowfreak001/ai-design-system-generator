@@ -10,6 +10,7 @@ import {
   sectionsOf,
   pagesOf,
   analysisConfidenceNote,
+  DESIGN_QUALITY_RULES,
 } from "./context";
 
 export function generatePromptMd(ctx: GeneratorContext): MdArtifact {
@@ -52,9 +53,14 @@ structure. Apply the SEO.md titles, headings, URLs, and schema.
 ## Page requirements
 ${pages.map((p) => `- ${p}`).join("\n")}
 
+## Section variants
+- Use the exact section VARIANT for each section from **REACT_EXPORT_PLAN.json** (sectionType, component, importPath, designVariant). Build that specific layout — do not substitute a generic block.
+
 ## Design rules
 - Use the exact tokens above; neutral surfaces, accent for CTAs/state only.
 - ${m?.containerWidth ? `${m.containerWidth}px container (measured)` : "1180–1240px container (assumed)"}, 12-col grid, ${m?.spacingBase ? `${m.spacingBase}px spacing rhythm (measured)` : "4/8px spacing rhythm (assumed)"}, WCAG AA contrast.
+
+${DESIGN_QUALITY_RULES}
 
 ## Animation rules
 ${animRules.map((r) => `- ${r}`).join("\n")}
