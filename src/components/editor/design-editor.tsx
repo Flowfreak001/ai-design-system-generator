@@ -872,6 +872,7 @@ function WireframeEditor({
           onMoveSection={onMoveSection}
           onDuplicateSection={onDuplicateSection}
           onRemoveSection={(pid, sid) => { onRemoveSection(pid, sid); setSelectedSectionId(null); }}
+          onEditText={(pid, sid, field, value) => onPatchSection(pid, sid, field === "title" ? { name: value } : { note: value })}
         />
       </div>
 
@@ -1605,6 +1606,7 @@ function DesignTab({
           onDuplicateSection={onDuplicateSection}
           onRemoveSection={(pid, sid) => { onRemoveSection(pid, sid); setSelectedSectionId(null); }}
           onApproveSection={(pid, sid, status) => onPatchSection(pid, sid, { status })}
+          onEditText={(pid, sid, field, value) => onPatchSection(pid, sid, field === "title" ? { name: value } : { note: value })}
         />
       </div>
 

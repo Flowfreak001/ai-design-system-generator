@@ -29,7 +29,7 @@ export function renderSection(section: SectionProps) {
 export function renderSectionByKind(
   kind: string,
   variantId: string | undefined,
-  props: { name?: string; note?: string; theme?: SectionTheme; mobile?: boolean; assetSide?: "left" | "right"; hidden?: string[] },
+  props: { name?: string; note?: string; theme?: SectionTheme; mobile?: boolean; assetSide?: "left" | "right"; hidden?: string[]; onEditText?: (field: "title" | "description", value: string) => void },
 ) {
   const type = sectionTypeForKind(kind);
   const meta = resolveVariantMeta(type, variantId);
@@ -43,6 +43,7 @@ export function renderSectionByKind(
       mobile={props.mobile}
       assetSide={props.assetSide}
       hidden={props.hidden}
+      onEditText={props.onEditText}
     />
   );
 }

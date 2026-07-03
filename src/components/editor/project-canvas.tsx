@@ -37,7 +37,7 @@ export function ProjectCanvas({
   pages, mode, style, schemes,
   selectedPageId, selectedSectionId,
   onSelectPage, onSelectSection,
-  onMoveSection, onDuplicateSection, onRemoveSection, onApproveSection,
+  onMoveSection, onDuplicateSection, onRemoveSection, onApproveSection, onEditText,
 }: {
   pages: CanvasPage[];
   mode: "wireframe" | "design";
@@ -51,6 +51,8 @@ export function ProjectCanvas({
   onDuplicateSection: (pageId: string, sid: string) => void;
   onRemoveSection: (pageId: string, sid: string) => void;
   onApproveSection?: (pageId: string, sid: string, status: "approved" | "rejected") => void;
+  /** Inline canvas text edit → writes back to the section (title/description). */
+  onEditText?: (pageId: string, sid: string, field: "title" | "description", value: string) => void;
 }) {
   const [device, setDevice] = useState<Device>("desktop");
   const [zoom, setZoom] = useState(0.55);
@@ -120,6 +122,7 @@ export function ProjectCanvas({
               onDuplicateSection={onDuplicateSection}
               onRemoveSection={onRemoveSection}
               onApproveSection={onApproveSection}
+              onEditText={onEditText}
             />
           ))}
         </div>
@@ -156,7 +159,7 @@ export function ProjectCanvas({
 
 function PageFrame({
   page, frameW, mode, baseTheme, schemes, device, isHome, selectedPage, selectedSectionId,
-  onSelectPage, onSelectSection, onMoveSection, onDuplicateSection, onRemoveSection, onApproveSection,
+  onSelectPage, onSelectSection, onMoveSection, onDuplicateSection, onRemoveSection, onApproveSection, onEditText,
 }: {
   page: CanvasPage;
   frameW: number;
@@ -173,6 +176,7 @@ function PageFrame({
   onDuplicateSection: (pageId: string, sid: string) => void;
   onRemoveSection: (pageId: string, sid: string) => void;
   onApproveSection?: (pageId: string, sid: string, status: "approved" | "rejected") => void;
+  onEditText?: (pageId: string, sid: string, field: "title" | "description", value: string) => void;
 }) {
   const mobile = device === "mobile";
   return (
@@ -240,6 +244,7 @@ function PageFrame({
                     mobile,
                     assetSide: s.asset === "left" ? "left" : "right",
                     hidden: s.hidden,
+                    onEditText: onEditText ? (field, value) => onEditText(page.id, s.id, field, value) : undefined,
                   })}
                 </div>
               );

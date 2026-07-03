@@ -10,7 +10,7 @@
 
 import type { SectionProps, SectionTheme } from "../types";
 import { resolveTheme, h, b, btnRadius } from "../section-theme";
-import { HiddenParts, useHidden } from "./parts";
+import { HiddenParts, useHidden, EditText_Ctx, EditText } from "./parts";
 
 // ---- modern theme helpers (all derived from brand tokens) ----
 const tint = (t: SectionTheme, pct = 12) => `color-mix(in srgb, ${t.accentColor} ${pct}%, ${t.backgroundColor})`;
@@ -30,8 +30,8 @@ const Head: React.FC<{ t: SectionTheme; title?: string; sub?: string; center?: b
   title || sub || eyebrow ? (
     <div className={center ? "mx-auto mb-10 max-w-2xl text-center" : "mb-10 max-w-2xl"}>
       {eyebrow && <Eyebrow t={t} onDark={onDark}>{eyebrow}</Eyebrow>}
-      {title && <h2 className="text-[30px] font-semibold leading-[1.1] tracking-[-0.02em]" style={{ fontFamily: t.headingFont, color: onDark ? "#fff" : t.textColor }}>{title}</h2>}
-      {sub && <p className="mt-3 text-[15px] leading-relaxed" style={{ color: onDark ? "#fff" : t.mutedTextColor, opacity: onDark ? 0.75 : 1 }}>{sub}</p>}
+      {title && <EditText field="title" as="h2" className="text-[30px] font-semibold leading-[1.1] tracking-[-0.02em]" style={{ fontFamily: t.headingFont, color: onDark ? "#fff" : t.textColor }}>{title}</EditText>}
+      {sub && <EditText field="description" as="p" className="mt-3 text-[15px] leading-relaxed" style={{ color: onDark ? "#fff" : t.mutedTextColor, opacity: onDark ? 0.75 : 1 }}>{sub}</EditText>}
     </div>
   ) : null;
 // Accent icon chip (rounded square).
@@ -55,7 +55,9 @@ const Btn: React.FC<{ t: SectionTheme; label: string; kind?: "fill" | "ghost" }>
 const Elev = (t: SectionTheme) => ({ background: t.backgroundColor, borderRadius: "20px", border: `1px solid ${t.borderColor}`, boxShadow: "0 1px 2px rgba(16,16,20,0.04), 0 12px 32px -12px rgba(16,16,20,0.12)" });
 
 type BlockFC = React.FC<SectionProps>;
-const make = (fn: (t: SectionTheme, p: SectionProps) => React.ReactNode): BlockFC => (p) => <HiddenParts.Provider value={new Set(p.hidden)}>{fn(resolveTheme(p.theme), p)}</HiddenParts.Provider>;
+const make = (fn: (t: SectionTheme, p: SectionProps) => React.ReactNode): BlockFC => (p) => (
+  <EditText_Ctx.Provider value={p.onEditText ?? null}><HiddenParts.Provider value={new Set(p.hidden)}>{fn(resolveTheme(p.theme), p)}</HiddenParts.Provider></EditText_Ctx.Provider>
+);
 
 // ── BASIC ──────────────────────────────────────────────────────────────────
 export const ImageBox = make((t, p) => {

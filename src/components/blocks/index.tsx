@@ -8,7 +8,7 @@
 
 import type { SectionProps, SectionTheme } from "../sections/types";
 import { resolveTheme, h, b, btnRadius } from "../sections/section-theme";
-import { HiddenParts, useHidden } from "../sections/blocks/parts";
+import { HiddenParts, useHidden, EditText_Ctx, EditText } from "../sections/blocks/parts";
 
 const tint = (t: SectionTheme, p = 12) => `color-mix(in srgb, ${t.accentColor} ${p}%, ${t.backgroundColor})`;
 const grad = (t: SectionTheme) => `linear-gradient(135deg, ${t.accentColor}, color-mix(in srgb, ${t.accentColor} 55%, #0b0b12))`;
@@ -24,8 +24,8 @@ const Eyebrow: React.FC<{ t: SectionTheme; children: React.ReactNode; onDark?: b
 const Head: React.FC<{ t: SectionTheme; eyebrow?: string; title?: string; sub?: string; center?: boolean; onDark?: boolean }> = ({ t, eyebrow, title, sub, center, onDark }) => (
   <div className={center ? "mx-auto mb-10 max-w-2xl text-center" : "mb-10 max-w-2xl"}>
     {eyebrow && <Eyebrow t={t} onDark={onDark}>{eyebrow}</Eyebrow>}
-    {title && <h2 className="text-[30px] font-semibold leading-[1.1] tracking-[-0.02em]" style={{ fontFamily: t.headingFont, color: onDark ? "#fff" : t.textColor }}>{title}</h2>}
-    {sub && <p className="mt-3 text-[15px] leading-relaxed" style={{ color: onDark ? "#fff" : t.mutedTextColor, opacity: onDark ? 0.75 : 1 }}>{sub}</p>}
+    {title && <EditText field="title" as="h2" className="text-[30px] font-semibold leading-[1.1] tracking-[-0.02em]" style={{ fontFamily: t.headingFont, color: onDark ? "#fff" : t.textColor }}>{title}</EditText>}
+    {sub && <EditText field="description" as="p" className="mt-3 text-[15px] leading-relaxed" style={{ color: onDark ? "#fff" : t.mutedTextColor, opacity: onDark ? 0.75 : 1 }}>{sub}</EditText>}
   </div>
 );
 const Chip: React.FC<{ t: SectionTheme; children?: React.ReactNode }> = ({ t, children }) => {
@@ -44,7 +44,9 @@ const Btn: React.FC<{ t: SectionTheme; label: string; kind?: "fill" | "ghost" }>
 };
 
 type BlockFC = React.FC<SectionProps>;
-const make = (fn: (t: SectionTheme, p: SectionProps) => React.ReactNode): BlockFC => (p) => <HiddenParts.Provider value={new Set(p.hidden)}>{fn(resolveTheme(p.theme), p)}</HiddenParts.Provider>;
+const make = (fn: (t: SectionTheme, p: SectionProps) => React.ReactNode): BlockFC => (p) => (
+  <EditText_Ctx.Provider value={p.onEditText ?? null}><HiddenParts.Provider value={new Set(p.hidden)}>{fn(resolveTheme(p.theme), p)}</HiddenParts.Provider></EditText_Ctx.Provider>
+);
 
 // 1 — Bento Grid: asymmetric feature mosaic.
 export const BentoGrid = make((t, p) => (

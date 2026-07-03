@@ -102,6 +102,8 @@ export interface SectionProps {
   assetSide?: "left" | "right";
   /** Canvas-editable parts to hide (e.g. "icon", "eyebrow", "button"). */
   hidden?: string[];
+  /** When set, primary text slots render inline-editable on the canvas. */
+  onEditText?: (field: "title" | "description", value: string) => void;
 }
 
 export type SectionComponent = ComponentType<SectionProps>;
