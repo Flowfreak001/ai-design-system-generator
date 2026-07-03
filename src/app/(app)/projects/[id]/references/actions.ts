@@ -32,17 +32,37 @@ async function saveLibrary(projectId: string, lib: ReferenceLibrary) {
 /** Run Vision on the uploaded image and return a draft pattern (not saved yet). */
 export async function analyzeReferenceAction(
   projectId: string,
-  input: { imageDataUrl: string; thumbnailUrl?: string; sectionType: ReferenceSectionType; websiteType?: string; industry?: string; styleTags?: string[]; notes?: string },
+  input: {
+    imageDataUrl: string; thumbnailUrl?: string; sectionType: ReferenceSectionType;
+    websiteType?: string; industry?: string; patternGoal?: string;
+    styleTags?: string[]; layoutTags?: string[]; interactionTags?: string[];
+    conversionTags?: string[]; notes?: string;
+  },
 ): Promise<{ pattern?: SectionPattern; error?: string }> {
   const user = await requireUser();
   if (!user.agencyId || !(await ownsProject(projectId, user.agencyId))) return { error: "Not found" };
   if (!input.imageDataUrl?.startsWith("data:image/")) return { error: "Please upload a valid image." };
-  const vision = await analyzeSectionReferenceImage(input);
+  const vision = await analyzeSectionReferenceImage({
+    imageDataUrl: input.imageDataUrl,
+    sectionType: input.sectionType,
+    websiteType: input.websiteType,
+    industry: input.industry,
+    patternGoal: input.patternGoal,
+    styleTags: input.styleTags,
+    layoutTags: input.layoutTags,
+    interactionTags: input.interactionTags,
+    conversionTags: input.conversionTags,
+    notes: input.notes,
+  });
   const pattern = createSectionPatternFromReferenceImage({
     sectionType: input.sectionType,
     websiteType: input.websiteType,
     industry: input.industry,
+    patternGoal: input.patternGoal,
     styleTags: input.styleTags,
+    layoutTags: input.layoutTags,
+    interactionTags: input.interactionTags,
+    conversionTags: input.conversionTags,
     notes: input.notes,
     referenceImageUrl: input.thumbnailUrl,
     vision,

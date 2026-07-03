@@ -39,6 +39,11 @@ export async function analyzeSectionReferenceImage(input: {
   sectionType?: string;
   websiteType?: string;
   industry?: string;
+  patternGoal?: string;
+  styleTags?: string[];
+  layoutTags?: string[];
+  interactionTags?: string[];
+  conversionTags?: string[];
   notes?: string;
 }): Promise<ReferenceVisionResult> {
   const NA = (w: string) => [`${w} — no clear evidence visible.`];
@@ -68,9 +73,15 @@ export async function analyzeSectionReferenceImage(input: {
     "Never suggest reusing the reference's photos. NEVER return an empty array for a useful field — if evidence is missing, return a single string \"No clear evidence visible.\". " +
     "Reply with a SINGLE minified JSON object only.";
 
+  const tagLine = (label: string, arr?: string[]) => (arr && arr.length ? ` ${label}: ${arr.join(", ")}.` : "");
   const userText =
-    `Analyse this section reference. Hint — section type: ${input.sectionType || "unknown"}; website type: ${input.websiteType || "unknown"}; industry: ${input.industry || "unknown"}.` +
-    (input.notes ? ` User likes: ${input.notes}.` : "") +
+    `Analyse this section reference. Classification hints from the user — section type: ${input.sectionType || "unknown"}; website type: ${input.websiteType || "unknown"}; industry: ${input.industry || "unknown"}; pattern goal: ${input.patternGoal || "unknown"}.` +
+    tagLine("Visual style tags", input.styleTags) +
+    tagLine("Layout tags", input.layoutTags) +
+    tagLine("Interaction tags", input.interactionTags) +
+    tagLine("Conversion tags", input.conversionTags) +
+    " Use these hints to classify the pattern more accurately and keep the extracted structure consistent with them." +
+    (input.notes ? ` The user specifically likes: ${input.notes}.` : "") +
     " Return JSON with keys: likelySectionType (string), pageContext (string), layoutPattern (string)," +
     " visualHierarchy (string), componentStructure (array), typographyObservations (array), colorUsage (array with colour names + best-guess hex, described as DIRECTION not exact copy)," +
     " spacingObservations (array), imagePlacement (array), cardStyle (array), buttonStyle (array), backgroundStyle (array)," +

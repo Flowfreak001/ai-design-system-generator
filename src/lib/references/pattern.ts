@@ -17,10 +17,12 @@ const uid = (p: string) => `${p}-${(typeof crypto !== "undefined" && crypto.rand
 /** Map a reference section type to a catalog SectionType (null = no direct match). */
 function catalogTypeFor(rt: ReferenceSectionType): SectionType | null {
   const m: Record<string, SectionType> = {
-    hero: "hero", features: "features", product: "features", services: "services",
+    hero: "hero", features: "features", product: "showcase", services: "services",
     showcase: "showcase", gallery: "gallery", pricing: "pricing", testimonials: "testimonials",
     faq: "faq", cta: "cta", footer: "footer", navbar: "navbar", booking: "booking-form",
-    contact: "contact-form", dashboard: "dashboard",
+    contact: "contact-form", quote: "quote-form", dashboard: "dashboard",
+    portfolio: "showcase", blog: "blog", directory: "directory", comparison: "comparison",
+    accordion: "faq", process: "features", "social-proof": "social-proof",
   };
   return m[rt] ?? null;
 }
@@ -69,29 +71,43 @@ export function createSectionPatternFromReferenceImage(input: {
   sectionType: ReferenceSectionType;
   websiteType?: string;
   industry?: string;
+  patternGoal?: string;
   styleTags?: string[];
+  layoutTags?: string[];
+  interactionTags?: string[];
+  conversionTags?: string[];
   notes?: string;
   referenceImageUrl?: string;
   vision: ReferenceVisionResult;
 }): SectionPattern {
   const v = input.vision;
   const now = new Date().toISOString();
-  const matchText = [v.layoutPattern, v.visualHierarchy, ...v.componentStructure, ...v.interactionClues, ...(input.styleTags ?? []), input.notes ?? ""].join(" ");
+  const styleTags = input.styleTags ?? [];
+  const layoutTags = input.layoutTags ?? [];
+  const interactionTags = input.interactionTags ?? [];
+  const conversionTags = input.conversionTags ?? [];
+  const allTags = [...styleTags, ...layoutTags, ...interactionTags, ...conversionTags];
+  const matchText = [v.layoutPattern, v.visualHierarchy, ...v.componentStructure, ...v.interactionClues, ...allTags, input.patternGoal ?? "", input.notes ?? ""].join(" ");
   const matchedComponent = matchExistingVariant(input.sectionType, matchText);
   const customSpec = matchedComponent ? null : buildCustomSpec(input.sectionType, v);
-  const bestFor = [input.websiteType, input.industry, ...(input.styleTags ?? [])].filter(Boolean) as string[];
+  const bestFor = [input.websiteType, input.industry, input.patternGoal, ...allTags].filter(Boolean) as string[];
 
   return {
     id: uid("pat"),
-    name: `${input.sectionType} pattern — ${(input.styleTags ?? [])[0] ?? input.websiteType ?? "reference"}`,
+    name: `${input.sectionType} pattern — ${styleTags[0] ?? input.patternGoal ?? input.websiteType ?? "reference"}`,
     sectionType: input.sectionType,
     source: "uploaded-reference",
     referenceImageId: uid("img"),
     referenceImageUrl: input.referenceImageUrl,
     websiteType: input.websiteType,
     industry: input.industry,
-    styleTags: input.styleTags ?? [],
+    patternGoal: input.patternGoal,
+    styleTags,
+    layoutTags,
+    interactionTags,
+    conversionTags,
     bestFor,
+    userNotes: input.notes,
     notes: input.notes,
     layoutPattern: v.layoutPattern,
     visualHierarchy: v.visualHierarchy,

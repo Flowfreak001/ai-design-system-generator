@@ -7,15 +7,89 @@
 export const SECTION_REFERENCE_LIBRARY_FILE = "SECTION_REFERENCE_LIBRARY.json";
 
 export type ReferenceSectionType =
-  | "hero" | "features" | "services" | "showcase" | "gallery" | "pricing"
-  | "testimonials" | "faq" | "cta" | "footer" | "navbar" | "booking"
-  | "contact" | "product" | "dashboard" | "custom";
+  | "hero" | "navbar" | "features" | "services" | "product" | "gallery"
+  | "portfolio" | "pricing" | "testimonials" | "faq" | "cta" | "footer"
+  | "contact" | "booking" | "quote" | "blog" | "directory" | "dashboard"
+  | "accordion" | "comparison" | "process" | "social-proof"
+  // kept for backward compatibility with earlier saved patterns:
+  | "showcase" | "custom";
 
-export const STYLE_TAGS = [
-  "premium", "minimal", "bold", "dark", "light", "SaaS", "ecommerce", "editorial",
-  "interactive", "conversion-focused", "image-led", "card-based", "motion-heavy",
-  "clean corporate", "playful", "luxury",
+/** Section-type dropdown options (value = stored slug, label = display). */
+export const SECTION_TYPE_OPTIONS: { value: ReferenceSectionType; label: string }[] = [
+  { value: "hero", label: "Hero" },
+  { value: "navbar", label: "Navbar / Header" },
+  { value: "features", label: "Features" },
+  { value: "services", label: "Services" },
+  { value: "product", label: "Product Showcase" },
+  { value: "gallery", label: "Gallery" },
+  { value: "portfolio", label: "Portfolio / Case Studies" },
+  { value: "pricing", label: "Pricing" },
+  { value: "testimonials", label: "Testimonials / Reviews" },
+  { value: "faq", label: "FAQ" },
+  { value: "cta", label: "CTA" },
+  { value: "footer", label: "Footer" },
+  { value: "contact", label: "Contact Form" },
+  { value: "booking", label: "Booking Form" },
+  { value: "quote", label: "Quote Form" },
+  { value: "blog", label: "Blog / Content" },
+  { value: "directory", label: "Directory / Listings" },
+  { value: "dashboard", label: "Dashboard / App Preview" },
+  { value: "accordion", label: "Accordion / Tabs" },
+  { value: "comparison", label: "Comparison" },
+  { value: "process", label: "Process / How It Works" },
+  { value: "social-proof", label: "Social Proof" },
+  { value: "custom", label: "Custom" },
+];
+
+/** Website-type dropdown options (value = stored, "custom" enables free text). */
+export const WEBSITE_TYPE_OPTIONS = [
+  "SaaS / Software", "AI Tool / Platform", "Agency / Studio", "Local Service Business",
+  "Booking Website", "Ecommerce", "Marketplace", "Directory / Listing Platform",
+  "Portfolio / Personal Brand", "Healthcare / Clinic", "Education / Course Platform",
+  "Real Estate", "Finance / Fintech", "Restaurant / Hospitality",
+  "Automotive / Car Rental / Taxi", "Construction / Maintenance", "Nonprofit / Community",
+  "Blog / Media", "Dashboard / Client Portal", "Custom",
 ] as const;
+
+export const INDUSTRY_OPTIONS = [
+  "Digital Marketing", "Web Design / Development", "AI / Automation", "Finance / Fintech",
+  "Healthcare", "Legal", "Real Estate", "Travel / Hospitality", "Automotive",
+  "Car Rental / Parking / Taxi", "Construction", "Home Services", "Education",
+  "Ecommerce / Retail", "Fashion / Apparel", "Fitness / Wellness", "Food / Restaurant",
+  "Technology", "Professional Services", "Creative / Media", "Other",
+] as const;
+
+export const PATTERN_GOAL_OPTIONS = [
+  "Explain product/service", "Generate leads", "Get bookings", "Showcase work",
+  "Build trust", "Compare options", "Educate visitors", "Show process",
+  "Show product features", "Improve conversion", "Create visual impact",
+] as const;
+
+// Grouped, meaningful tag vocabularies. Each group maps to a field on the pattern.
+export const VISUAL_STYLE_TAGS = [
+  "premium", "minimal", "bold", "dark", "light", "luxury", "playful",
+  "editorial", "corporate", "futuristic", "soft", "high-contrast",
+] as const;
+
+export const LAYOUT_TAGS = [
+  "split-layout", "grid-based", "card-based", "image-led", "text-heavy",
+  "full-width", "asymmetric", "centered", "multi-column", "sticky",
+] as const;
+
+export const INTERACTION_TAGS = [
+  "interactive", "accordion", "tabs", "hover-expand", "scroll-reveal",
+  "sticky-scroll", "carousel", "marquee", "motion-heavy", "subtle-motion",
+] as const;
+
+export const CONVERSION_TAGS = [
+  "conversion-focused", "lead-generation", "booking-focused", "sales-focused",
+  "trust-building", "social-proof", "product-education",
+] as const;
+
+/** @deprecated Flat legacy tag list. Kept so old saved patterns still parse. */
+export const STYLE_TAGS = VISUAL_STYLE_TAGS;
+
+export type PatternGoal = (typeof PATTERN_GOAL_OPTIONS)[number];
 
 /** What may / may not be reused from a reference — enforced everywhere. */
 export interface SimilarityRules {
@@ -60,8 +134,15 @@ export interface SectionPattern {
   referenceImageUrl?: string;
   websiteType?: string;
   industry?: string;
+  patternGoal?: string;
+  /** Grouped tag vocabularies. `styleTags` == visual style (legacy name kept). */
   styleTags: string[];
+  layoutTags: string[];
+  interactionTags: string[];
+  conversionTags: string[];
   bestFor: string[];
+  /** Free-text "what do you like about it" — `notes` kept as legacy alias. */
+  userNotes?: string;
   notes?: string;
   layoutPattern: string;
   visualHierarchy: string;

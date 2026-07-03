@@ -10,9 +10,11 @@ import { Button } from "@/components/ui/button";
 import { PageContainer } from "@/components/layout/page-container";
 import { analyzeReferenceAction, saveReferencePatternAction, deleteReferencePatternAction } from "@/app/(app)/projects/[id]/references/actions";
 import { generateSectionFromReferencePattern, filterPatterns } from "@/lib/references/pattern";
-import { STYLE_TAGS, type ReferenceSectionType, type SectionPattern } from "@/lib/references/types";
-
-const SECTION_TYPES: ReferenceSectionType[] = ["hero", "features", "services", "showcase", "gallery", "pricing", "testimonials", "faq", "cta", "footer", "navbar", "booking", "contact", "product", "dashboard", "custom"];
+import {
+  SECTION_TYPE_OPTIONS, WEBSITE_TYPE_OPTIONS, INDUSTRY_OPTIONS, PATTERN_GOAL_OPTIONS,
+  VISUAL_STYLE_TAGS, LAYOUT_TAGS, INTERACTION_TAGS, CONVERSION_TAGS,
+  type ReferenceSectionType, type SectionPattern,
+} from "@/lib/references/types";
 
 async function downscale(file: File, max: number): Promise<string> {
   const dataUrl = await new Promise<string>((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result)); r.onerror = rej; r.readAsDataURL(file); });
@@ -34,10 +36,15 @@ export function ReferenceLibraryClient({ projectId, projectName, initialPatterns
   const [patterns, setPatterns] = useState<SectionPattern[]>(initialPatterns);
   const [full, setFull] = useState<string>("");
   const [thumb, setThumb] = useState<string>("");
-  const [sectionType, setSectionType] = useState<ReferenceSectionType>("features");
+  const [sectionType, setSectionType] = useState<ReferenceSectionType>("hero");
   const [websiteType, setWebsiteType] = useState("");
+  const [websiteTypeCustom, setWebsiteTypeCustom] = useState("");
   const [industry, setIndustry] = useState("");
-  const [tags, setTags] = useState<string[]>([]);
+  const [patternGoal, setPatternGoal] = useState("");
+  const [styleTags, setStyleTags] = useState<string[]>([]);
+  const [layoutTags, setLayoutTags] = useState<string[]>([]);
+  const [interactionTags, setInteractionTags] = useState<string[]>([]);
+  const [conversionTags, setConversionTags] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
   const [draft, setDraft] = useState<SectionPattern | null>(null);
   const [busy, start] = useTransition();
@@ -60,13 +67,20 @@ export function ReferenceLibraryClient({ projectId, projectName, initialPatterns
     setFull(await downscale(f, 1024));
     setThumb(await downscale(f, 360));
   };
-  const toggleTag = (t: string) => setTags((cur) => (cur.includes(t) ? cur.filter((x) => x !== t) : [...cur, t]));
+  const toggle = (setter: React.Dispatch<React.SetStateAction<string[]>>) => (t: string) =>
+    setter((cur) => (cur.includes(t) ? cur.filter((x) => x !== t) : [...cur, t]));
+
+  const resolvedWebsiteType = websiteType === "Custom" ? websiteTypeCustom.trim() : websiteType;
 
   const analyze = () => {
     if (!full) { setErr("Upload a section image first."); return; }
     setErr(""); setDraft(null);
     start(async () => {
-      const r = await analyzeReferenceAction(projectId, { imageDataUrl: full, thumbnailUrl: thumb, sectionType, websiteType, industry, styleTags: tags, notes });
+      const r = await analyzeReferenceAction(projectId, {
+        imageDataUrl: full, thumbnailUrl: thumb, sectionType,
+        websiteType: resolvedWebsiteType, industry, patternGoal,
+        styleTags, layoutTags, interactionTags, conversionTags, notes,
+      });
       if (r.error) setErr(r.error); else setDraft(r.pattern ?? null);
     });
   };
@@ -77,6 +91,7 @@ export function ReferenceLibraryClient({ projectId, projectName, initialPatterns
       if (r.error) { setErr(r.error); return; }
       setPatterns((cur) => [{ ...draft, approved: true }, ...cur.filter((p) => p.id !== draft.id)]);
       setDraft(null); setFull(""); setThumb(""); setNotes(""); setAddOpen(false);
+      setStyleTags([]); setLayoutTags([]); setInteractionTags([]); setConversionTags([]);
     });
   };
   const remove = (id: string) => start(async () => { await deleteReferencePatternAction(projectId, id); setPatterns((cur) => cur.filter((p) => p.id !== id)); });
@@ -111,7 +126,7 @@ export function ReferenceLibraryClient({ projectId, projectName, initialPatterns
       <div>
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search patterns…" className="w-56 rounded-lg border border-line px-3 py-1.5 text-[13px]" />
-          <select value={fType} onChange={(e) => setFType(e.target.value)} className="rounded-lg border border-line bg-surface px-2 py-1.5 text-[12.5px] capitalize"><option value="all">All types</option>{SECTION_TYPES.map((s) => <option key={s} value={s}>{s}</option>)}</select>
+          <select value={fType} onChange={(e) => setFType(e.target.value)} className="rounded-lg border border-line bg-surface px-2 py-1.5 text-[12.5px]"><option value="all">All types</option>{SECTION_TYPE_OPTIONS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}</select>
           <select value={fApproved} onChange={(e) => setFApproved(e.target.value as typeof fApproved)} className="rounded-lg border border-line bg-surface px-2 py-1.5 text-[12.5px]"><option value="all">All</option><option value="approved">Approved</option><option value="unapproved">Unapproved</option></select>
           <label className="flex items-center gap-1.5 text-[12px] text-muted"><input type="checkbox" checked={fNeedsNew} onChange={(e) => setFNeedsNew(e.target.checked)} className="accent-accent" /> Needs new component</label>
           <span className="ml-auto text-[12px] text-faint">{visible.length} pattern{visible.length === 1 ? "" : "s"}</span>
@@ -171,39 +186,66 @@ export function ReferenceLibraryClient({ projectId, projectName, initialPatterns
             </div>
 
             <div className="grid gap-5 md:grid-cols-2">
-              {/* Form */}
-              <div>
-                <label className="grid cursor-pointer place-items-center rounded-xl border border-dashed border-line py-6 text-center hover:border-accent">
-                  {thumb ? <img src={thumb} alt="reference" className="max-h-48 rounded-lg" /> : <span className="text-[12.5px] text-muted">Click to upload a section screenshot</span>}
-                  <input type="file" accept="image/*" className="hidden" onChange={(e) => onFile(e.target.files?.[0])} />
-                </label>
+              {/* Left: upload + classification */}
+              <div className="flex max-h-[70vh] flex-col">
+                <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+                  <label className="grid cursor-pointer place-items-center rounded-xl border border-dashed border-line py-6 text-center hover:border-accent">
+                    {thumb ? <img src={thumb} alt="reference" className="max-h-48 rounded-lg" /> : <span className="text-[12.5px] text-muted">Click to upload a section screenshot</span>}
+                    <input type="file" accept="image/*" className="hidden" onChange={(e) => onFile(e.target.files?.[0])} />
+                  </label>
 
-                <label className="mt-3 block text-[11px] font-medium uppercase tracking-wide text-faint">Section type</label>
-                <select value={sectionType} onChange={(e) => setSectionType(e.target.value as ReferenceSectionType)} className="mt-1 w-full rounded-lg border border-line bg-surface px-2.5 py-1.5 text-[13px] capitalize">
-                  {SECTION_TYPES.map((s) => <option key={s} value={s}>{s}</option>)}
-                </select>
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <Field label="Section type">
+                      <Select value={sectionType} onChange={(e) => setSectionType(e.target.value as ReferenceSectionType)}>
+                        {SECTION_TYPE_OPTIONS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+                      </Select>
+                    </Field>
+                    <Field label="Pattern goal">
+                      <Select value={patternGoal} onChange={(e) => setPatternGoal(e.target.value)}>
+                        <option value="">Select…</option>
+                        {PATTERN_GOAL_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+                      </Select>
+                    </Field>
+                    <Field label="Website type">
+                      <Select value={websiteType} onChange={(e) => setWebsiteType(e.target.value)}>
+                        <option value="">Select…</option>
+                        {WEBSITE_TYPE_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+                      </Select>
+                    </Field>
+                    <Field label="Industry">
+                      <Select value={industry} onChange={(e) => setIndustry(e.target.value)}>
+                        <option value="">Select…</option>
+                        {INDUSTRY_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+                      </Select>
+                    </Field>
+                  </div>
+                  {websiteType === "Custom" && (
+                    <input value={websiteTypeCustom} onChange={(e) => setWebsiteTypeCustom(e.target.value)} placeholder="Describe the website type…" className="mt-2 w-full rounded-lg border border-line px-2.5 py-1.5 text-[13px]" />
+                  )}
 
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  <div><label className="block text-[11px] font-medium uppercase tracking-wide text-faint">Website type</label><input value={websiteType} onChange={(e) => setWebsiteType(e.target.value)} placeholder="SaaS, agency…" className="mt-1 w-full rounded-lg border border-line px-2.5 py-1.5 text-[13px]" /></div>
-                  <div><label className="block text-[11px] font-medium uppercase tracking-wide text-faint">Industry</label><input value={industry} onChange={(e) => setIndustry(e.target.value)} placeholder="fintech…" className="mt-1 w-full rounded-lg border border-line px-2.5 py-1.5 text-[13px]" /></div>
+                  <TagGroup title="Visual style" tags={VISUAL_STYLE_TAGS} selected={styleTags} onToggle={toggle(setStyleTags)} />
+                  <TagGroup title="Layout style" tags={LAYOUT_TAGS} selected={layoutTags} onToggle={toggle(setLayoutTags)} />
+                  <TagGroup title="Interaction style" tags={INTERACTION_TAGS} selected={interactionTags} onToggle={toggle(setInteractionTags)} />
+                  <TagGroup title="Conversion style" tags={CONVERSION_TAGS} selected={conversionTags} onToggle={toggle(setConversionTags)} />
+
+                  <label className="mt-4 block text-[11px] font-medium uppercase tracking-wide text-faint">What do you like about it?</label>
+                  <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} className="mt-1 w-full rounded-lg border border-line px-2.5 py-1.5 text-[13px]" placeholder="Example: I like the split layout, accordion interaction, large image area, strong headline hierarchy, and clean CTA placement." />
                 </div>
 
-                <label className="mt-3 block text-[11px] font-medium uppercase tracking-wide text-faint">Style tags</label>
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
-                  {STYLE_TAGS.map((t) => (
-                    <button key={t} type="button" onClick={() => toggleTag(t)} className={`rounded-full px-2.5 py-1 text-[11.5px] ${tags.includes(t) ? "bg-accent text-white" : "bg-panel text-muted hover:text-ink"}`}>{t}</button>
-                  ))}
+                {/* Bottom-anchored action */}
+                <div className="mt-3 border-t border-line pt-3">
+                  {err && <p className="mb-2 text-[12px] text-danger">{err}</p>}
+                  <Button size="sm" className="w-full" onClick={analyze} disabled={busy || !full}>
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="-ml-0.5">
+                      <path d="M12 3.5 13.7 9l5.5 1.7-5.5 1.7L12 18l-1.7-5.6L4.8 10.7 10.3 9 12 3.5Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" />
+                    </svg>
+                    {busy ? "Analyzing…" : "Analyze reference"}
+                  </Button>
                 </div>
-
-                <label className="mt-3 block text-[11px] font-medium uppercase tracking-wide text-faint">What do you like about it?</label>
-                <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} className="mt-1 w-full rounded-lg border border-line px-2.5 py-1.5 text-[13px]" placeholder="e.g. the split layout and the accordion interaction" />
-
-                {err && <p className="mt-2 text-[12px] text-danger">{err}</p>}
-                <Button size="sm" className="mt-3 w-full" onClick={analyze} disabled={busy || !full}>{busy ? "Analyzing…" : "✦ Analyze reference"}</Button>
               </div>
 
-              {/* Extracted pattern review */}
-              <div className="rounded-xl border border-line bg-panel/30 p-4">
+              {/* Right: analysis preview */}
+              <div className="max-h-[70vh] overflow-y-auto rounded-xl border border-line bg-panel/30 p-4">
                 {draft ? (
                   <>
                     <div className="flex items-center justify-between">
@@ -242,8 +284,61 @@ export function ReferenceLibraryClient({ projectId, projectName, initialPatterns
   );
 }
 
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="block text-[11px] font-medium uppercase tracking-wide text-faint">{label}</label>
+      {children}
+    </div>
+  );
+}
+
+function Select({ children, ...props }: React.SelectHTMLAttributes<HTMLSelectElement>) {
+  return (
+    <select {...props} className="mt-1 w-full rounded-lg border border-line bg-surface px-2.5 py-1.5 text-[13px]">
+      {children}
+    </select>
+  );
+}
+
+/** A titled, collapsible group of selectable tag chips. */
+function TagGroup({ title, tags, selected, onToggle }: {
+  title: string; tags: readonly string[]; selected: string[]; onToggle: (t: string) => void;
+}) {
+  const [open, setOpen] = useState(true);
+  const count = selected.length;
+  return (
+    <div className="mt-3 rounded-lg border border-line">
+      <button type="button" onClick={() => setOpen((o) => !o)} className="flex w-full items-center justify-between px-2.5 py-1.5">
+        <span className="text-[11px] font-medium uppercase tracking-wide text-faint">
+          {title}{count > 0 && <span className="ml-1.5 rounded-full bg-accent-soft px-1.5 py-0.5 text-[10px] font-semibold text-accent">{count}</span>}
+        </span>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true" className={`text-faint transition-transform ${open ? "rotate-180" : ""}`}>
+          <path d="m6 9 6 6 6-6" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+      {open && (
+        <div className="flex flex-wrap gap-1.5 px-2.5 pb-2.5">
+          {tags.map((t) => {
+            const active = selected.includes(t);
+            return (
+              <button key={t} type="button" onClick={() => onToggle(t)}
+                className={`rounded-full border px-2.5 py-1 text-[11.5px] transition-colors ${active ? "border-accent bg-accent font-medium text-white" : "border-line bg-panel text-muted hover:border-accent/40 hover:text-ink"}`}>
+                {t}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PatternDetail({ p }: { p: SectionPattern }) {
+  const allTags = [...(p.styleTags ?? []), ...(p.layoutTags ?? []), ...(p.interactionTags ?? []), ...(p.conversionTags ?? [])];
   const rows: [string, string[] | string][] = [
+    ["Classified as", [p.sectionType, p.websiteType, p.industry, p.patternGoal].filter(Boolean) as string[]],
+    ["Tags", allTags.length ? allTags : ["—"]],
     ["Layout", p.layoutPattern],
     ["Hierarchy", p.visualHierarchy],
     ["Components", p.componentStructure],
