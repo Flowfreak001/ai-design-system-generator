@@ -8,6 +8,7 @@ import { generatePreviewHtml, type PreviewData } from "./preview-generator";
 import { generateComponentPreviewHtml } from "./component-preview-generator";
 import type { AnimationAnalysis } from "@/lib/analysis/animation-extractor";
 import type { TokensAnalysis } from "@/lib/analysis/site-analyzer";
+import type { AiScreenshotAnalysis } from "@/lib/ai/types";
 
 export { generatePreviewHtml, generateComponentPreviewHtml };
 export type { PreviewData };
@@ -44,7 +45,7 @@ export async function runPreviewGeneration(projectId: string) {
   if (!project) throw new Error("Project not found");
 
   const jsonFiles = await prisma.generatedFile.findMany({
-    where: { projectId, name: { in: ["DESIGN_TOKENS.json", "ANIMATION_ANALYSIS.json"] } },
+    where: { projectId, name: { in: ["DESIGN_TOKENS.json", "ANIMATION_ANALYSIS.json", "AI_SCREENSHOT_ANALYSIS.json"] } },
     select: { name: true, content: true },
   });
   const byName = new Map(jsonFiles.map((f) => [f.name, f.content]));
@@ -53,6 +54,7 @@ export async function runPreviewGeneration(projectId: string) {
     input: toGenerationInput(project),
     tokens: safeParse<TokensAnalysis>(byName.get("DESIGN_TOKENS.json")),
     animation: safeParse<AnimationAnalysis>(byName.get("ANIMATION_ANALYSIS.json")),
+    ai: safeParse<AiScreenshotAnalysis>(byName.get("AI_SCREENSHOT_ANALYSIS.json")),
   };
 
   const run = await prisma.agentRun.create({

@@ -6,11 +6,13 @@
 import type { GenerationInput } from "@/types";
 import type { AnimationAnalysis } from "@/lib/analysis/animation-extractor";
 import type { TokensAnalysis } from "@/lib/analysis/site-analyzer";
+import type { AiScreenshotAnalysis } from "@/lib/ai/types";
 
 export type PreviewData = {
   input: GenerationInput;
   tokens: TokensAnalysis | null;
   animation: AnimationAnalysis | null;
+  ai?: AiScreenshotAnalysis | null;
 };
 
 const esc = (s: string) =>
@@ -30,6 +32,7 @@ type Swatch = { name: string; value: string; note: string };
 
 export function generatePreviewHtml(data: PreviewData): string {
   const { input, tokens, animation } = data;
+  const aiVision = data.ai && data.ai.source === "openai_vision" && data.ai.sections.length ? data.ai : null;
   const name = input.clientName || input.projectName;
   const c = (tokens?.color ?? {}) as Record<string, string>;
   const m = tokens?.metrics ?? null;
@@ -350,6 +353,46 @@ export function generatePreviewHtml(data: PreviewData): string {
     });
   }
 
+  // Vision section — real OpenAI Vision notes per screenshot. Visual
+  // interpretation only; exact values above stay from the rendered probe.
+  if (aiVision) {
+    const cats: { key: keyof typeof aiVision.sections[number]; label: string }[] = [
+      { key: "visualLayout", label: "Layout" },
+      { key: "componentStructure", label: "Component structure" },
+      { key: "typographyObservations", label: "Typography" },
+      { key: "colorUsage", label: "Color usage" },
+      { key: "spacingObservations", label: "Spacing" },
+      { key: "buttonStyles", label: "Buttons" },
+      { key: "cardStyles", label: "Cards" },
+      { key: "formStyles", label: "Forms" },
+      { key: "responsiveNotes", label: "Responsive" },
+    ];
+    const cards = aiVision.sections
+      .map((s) => {
+        const rows = cats
+          .map(({ key, label }) => {
+            const v = s[key];
+            const items = Array.isArray(v) ? v : typeof v === "string" && v ? [v] : [];
+            if (!items.length) return "";
+            return `<div class="virow"><span class="vilabel">${esc(label)}</span><span class="vitext">${items.slice(0, 4).map((x) => esc(String(x))).join(" · ")}</span></div>`;
+          })
+          .filter(Boolean)
+          .join("");
+        if (!rows) return "";
+        return `<div class="vicard"><div class="vihead">${esc(s.label ?? s.sectionType)} <span class="viconf">${esc(s.pageType)} · confidence ${esc(s.confidence)}</span></div>${rows}</div>`;
+      })
+      .filter(Boolean)
+      .join("");
+    if (cards) {
+      sections.push({
+        kicker: "Screenshot analysis (OpenAI Vision)",
+        title: `Detected by OpenAI Vision · ${aiVision.sectionsAnalyzed} section${aiVision.sectionsAnalyzed === 1 ? "" : "s"}`,
+        intro: `Visual interpretation of your uploaded screenshots (model ${aiVision.model ?? "?"}). These are section-level observations — the exact colors, sizes, and radii above remain measured from the rendered page, not guessed from images.`,
+        body: `<div class="vigrid">${cards}</div>`,
+      });
+    }
+  }
+
   const sec = (num: string, kicker: string, title: string, intro: string, body: string) => `
   <section>
     <div class="kicker">${num} — ${esc(kicker)}</div>
@@ -413,6 +456,13 @@ ${fontLink ? `<link rel="preconnect" href="https://fonts.googleapis.com" /><link
   .cell .l { font:600 10px/1.6 ui-monospace,monospace; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin-top:10px; }
   ul.motion { list-style:none; display:grid; gap:10px; padding:0; }
   ul.motion li { border-left:2px solid var(--accent); padding:4px 0 4px 16px; color:var(--muted); font-size:14px; }
+  .vigrid { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px; }
+  .vicard { border:1px solid var(--line); border-radius:12px; background:var(--surface); padding:16px; }
+  .vihead { font-weight:700; font-size:13px; text-transform:uppercase; letter-spacing:.04em; margin-bottom:10px; }
+  .viconf { display:block; font:400 11px/1.5 ui-monospace,monospace; text-transform:none; letter-spacing:0; color:var(--muted); }
+  .virow { display:grid; grid-template-columns:96px 1fr; gap:10px; padding:6px 0; border-top:1px solid var(--line); }
+  .vilabel { font:600 10px/1.5 ui-monospace,monospace; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); }
+  .vitext { font-size:13px; line-height:1.5; color:var(--ink); }
   .scope { border:1px solid var(--line); border-left:3px solid var(--accent); background:var(--surface); border-radius:8px; padding:12px 16px; margin-bottom:16px; font-size:13px; color:var(--muted); line-height:1.5; }
   .scope b { color:var(--ink); }
   .scope .acc { display:inline-block; margin-left:6px; font:600 11px/1 ui-monospace,monospace; color:var(--accent); }

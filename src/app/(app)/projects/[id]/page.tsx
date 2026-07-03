@@ -25,6 +25,7 @@ import { ActionDialog } from "@/components/projects/action-dialog";
 import { ReferencesEditor } from "@/components/projects/references-editor";
 import { ScreenshotUpload } from "@/components/projects/screenshot-upload";
 import { prisma } from "@/lib/db/client";
+import { hasOpenAIKey } from "@/lib/ai/openai-client";
 import type { Screenshot } from "@/app/(app)/projects/actions";
 import { Button } from "@/components/ui/button";
 import { FadeUp } from "@/components/ui/motion";
@@ -63,6 +64,18 @@ export default async function ProjectWorkspacePage({
   if (!project) notFound();
   const screenshotInput = await prisma.projectInput.findFirst({ where: { projectId: id, category: "screenshots" } });
   const screenshots = ((screenshotInput?.data as { shots?: Screenshot[] } | null)?.shots ?? []) as Screenshot[];
+  const lastVisionRun = await prisma.agentRun.findFirst({
+    where: { projectId: id, name: "AI Vision analysis" },
+    orderBy: { createdAt: "desc" },
+    select: { status: true, output: true, createdAt: true },
+  });
+  const aiStatus = {
+    keyConfigured: hasOpenAIKey(),
+    screenshots: screenshots.length,
+    lastRunStatus: lastVisionRun?.status ?? null,
+    lastRunError: (lastVisionRun?.output as { error?: string } | null)?.error ?? null,
+    lastRunSource: (lastVisionRun?.output as { source?: string } | null)?.source ?? null,
+  };
 
   const versions = await getFileVersions(id, user.agencyId);
   const gen = toGenerationInput(project);
@@ -284,8 +297,50 @@ export default async function ProjectWorkspacePage({
     </div>
   );
 
+  const hasVisionFile = analysisFiles.some((f) => f.name === "AI_SCREENSHOT_ANALYSIS.json");
+  const StatusDot = ({ ok }: { ok: boolean }) => (
+    <span aria-hidden="true" className={`inline-block h-2 w-2 rounded-full ${ok ? "bg-success" : "bg-faint"}`} />
+  );
+  const aiDebugPanel = (
+    <div className="card p-5">
+      <p className="text-sm font-semibold text-ink">AI Vision status</p>
+      <p className="mt-0.5 text-[13px] text-muted">Diagnostics for the OpenAI Vision flow. The API key is never shown.</p>
+      <dl className="mt-3 grid gap-2 sm:grid-cols-2">
+        <div className="flex items-center gap-2 text-[13px]">
+          <StatusDot ok={aiStatus.keyConfigured} />
+          <span className="text-muted">OpenAI key configured:</span>
+          <span className="font-medium text-ink">{aiStatus.keyConfigured ? "Yes" : "No (fallback mode)"}</span>
+        </div>
+        <div className="flex items-center gap-2 text-[13px]">
+          <StatusDot ok={aiStatus.screenshots > 0} />
+          <span className="text-muted">Screenshots available:</span>
+          <span className="font-medium text-ink">{aiStatus.screenshots}</span>
+        </div>
+        <div className="flex items-center gap-2 text-[13px]">
+          <StatusDot ok={hasVisionFile} />
+          <span className="text-muted">Vision analysis available:</span>
+          <span className="font-medium text-ink">{hasVisionFile ? `Yes${aiStatus.lastRunSource ? ` (${aiStatus.lastRunSource})` : ""}` : "No"}</span>
+        </div>
+        <div className="flex items-center gap-2 text-[13px]">
+          <StatusDot ok={aiStatus.lastRunStatus === "completed"} />
+          <span className="text-muted">Last Vision run:</span>
+          <span className="font-medium text-ink">{aiStatus.lastRunStatus ?? "never run"}</span>
+        </div>
+      </dl>
+      {aiStatus.lastRunError && (
+        <p className="mt-3 rounded-lg bg-danger-soft px-3 py-2 text-[12.5px] text-danger">Last error: {aiStatus.lastRunError}</p>
+      )}
+      {!aiStatus.keyConfigured && (
+        <p className="mt-3 text-[12.5px] text-muted">
+          Set <code className="font-mono">OPENAI_API_KEY</code> (Railway → App service → Variables) to run real OpenAI Vision. Without it, the flow returns a clearly-labelled fallback.
+        </p>
+      )}
+    </div>
+  );
+
   const analysis = (
     <div className="grid gap-4">
+      {aiDebugPanel}
       {analysisFiles.length === 0 ? (
         <div className="card flex flex-col items-center p-12 text-center">
           <p className="text-sm font-medium text-ink">No analysis yet — and that&apos;s fine</p>
