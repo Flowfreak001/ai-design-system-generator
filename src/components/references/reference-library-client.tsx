@@ -90,8 +90,20 @@ export function ReferenceLibraryClient({ projectId, projectName, initialPatterns
           <p className="text-[12.5px] text-muted">Upload section references → extract reusable design patterns. Originals only — never copies of text, images, logos, or exact designs.</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button size="sm" onClick={() => setAddOpen(true)}>＋ Add reference</Button>
-          <Link href={`/projects/${projectId}/editor`}><Button size="sm" variant="secondary">← Editor</Button></Link>
+          <Button size="sm" onClick={() => setAddOpen(true)}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="-ml-0.5">
+              <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
+            </svg>
+            Add reference
+          </Button>
+          <Link href={`/projects/${projectId}/editor`}>
+            <Button size="sm" variant="secondary">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="-ml-0.5">
+                <path d="M14.5 5.5 18.5 9.5M4 20l.9-3.6a2 2 0 0 1 .5-.9l9.9-9.9a2 2 0 0 1 2.8 0l.9.9a2 2 0 0 1 0 2.8l-9.9 9.9a2 2 0 0 1-.9.5L4 20Z" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              Editor
+            </Button>
+          </Link>
         </div>
       </div>
 
@@ -108,7 +120,12 @@ export function ReferenceLibraryClient({ projectId, projectName, initialPatterns
         {visible.length === 0 ? (
           <div className="grid place-items-center gap-3 rounded-2xl border border-dashed border-line py-20 text-center">
             <p className="text-[13px] text-muted">No saved patterns yet.</p>
-            <Button size="sm" onClick={() => setAddOpen(true)}>＋ Add your first reference</Button>
+            <Button size="sm" onClick={() => setAddOpen(true)}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="-ml-0.5">
+                <path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
+              </svg>
+              Add your first reference
+            </Button>
           </div>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -146,7 +163,11 @@ export function ReferenceLibraryClient({ projectId, projectName, initialPatterns
                 <p className="text-[15px] font-semibold text-ink">Add a reference</p>
                 <p className="text-[12px] text-muted">Upload a section screenshot — we extract a reusable pattern, not a copy.</p>
               </div>
-              <button type="button" onClick={closeAdd} className="grid h-7 w-7 place-items-center rounded-md text-faint hover:bg-panel hover:text-ink">✕</button>
+              <button type="button" onClick={closeAdd} className="grid h-7 w-7 place-items-center rounded-md text-faint hover:bg-panel hover:text-ink" aria-label="Close">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="m6 6 12 12M18 6 6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                </svg>
+              </button>
             </div>
 
             <div className="grid gap-5 md:grid-cols-2">
@@ -206,7 +227,11 @@ export function ReferenceLibraryClient({ projectId, projectName, initialPatterns
           <div className="max-h-[80vh] w-full max-w-2xl overflow-auto rounded-2xl bg-surface p-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             <div className="mb-2 flex items-center justify-between">
               <p className="text-[13px] font-semibold text-ink">Generated section spec <span className="text-[11px] font-normal text-faint">· reference-inspired original (grey placeholders)</span></p>
-              <button type="button" onClick={() => setGenSpec(null)} className="text-faint hover:text-ink">✕</button>
+              <button type="button" onClick={() => setGenSpec(null)} className="text-faint hover:text-ink" aria-label="Close">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                  <path d="m6 6 12 12M18 6 6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                </svg>
+              </button>
             </div>
             <pre className="overflow-auto rounded-lg bg-panel p-3 text-[11px] leading-relaxed text-body">{genSpec}</pre>
             <p className="mt-2 text-[11px] text-faint">TODO: “Insert into page” / “Replace section” wiring in the Design Canvas.</p>

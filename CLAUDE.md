@@ -111,6 +111,11 @@ WorkflowRun/Approval are schema-ready but not yet surfaced in UI.
   `px-5 py-8 sm:px-8`, full content width) and lead with `<PageHeader>`. Do NOT
   hardcode per-page padding or `max-w-*` centering. Exceptions: full-bleed
   surfaces (the design editor, `/preview/*`) intentionally own the viewport.
+- **Buttons use inline SVG icons, never emoji or text glyphs** (no `＋`, `←`,
+  `✕`, `→`, 🖼, 👁). Draw 24×24 line icons with `stroke="currentColor"`,
+  `strokeWidth ~1.7`, rendered at 15px, with `className="-ml-0.5"` before a text
+  label; icon-only buttons need an `aria-label`. Keeps the UI consistent and
+  theme-aware.
 
 ### Design system (UI)
 
