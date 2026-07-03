@@ -56,6 +56,7 @@ export async function createProjectAction(
     stylePreference: str(formData, "stylePreference"),
     primaryColor: str(formData, "primaryColor"),
     secondaryColor: str(formData, "secondaryColor"),
+    logoDataUrl: str(formData, "logoDataUrl"),
     fontPreference: str(formData, "fontPreference"),
     brandPersonality: str(formData, "brandPersonality"),
     toneOfVoice: str(formData, "toneOfVoice"),
@@ -77,6 +78,24 @@ export async function createProjectAction(
   }
 
   const project = await createProject(parsed.data, user.agencyId ?? undefined);
+
+  // Persist any reference screenshots captured during onboarding as evidence.
+  const shotsRaw = str(formData, "screenshots");
+  if (shotsRaw) {
+    try {
+      const parsedShots = JSON.parse(shotsRaw) as Screenshot[];
+      const clean = parsedShots
+        .filter((s) => typeof s?.dataUrl === "string" && s.dataUrl.startsWith("data:image/") && s.dataUrl.length < 900_000)
+        .slice(0, 12)
+        .map((s) => ({ id: s.id, name: String(s.name).slice(0, 80), dataUrl: s.dataUrl }));
+      if (clean.length) {
+        await prisma.projectInput.create({ data: { projectId: project.id, category: "screenshots", data: { shots: clean } } });
+      }
+    } catch {
+      // Ignore malformed screenshot payloads — they are optional evidence.
+    }
+  }
+
   revalidatePath("/projects");
   redirect(`/projects/${project.id}`);
 }

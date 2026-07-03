@@ -93,6 +93,7 @@ export const createProjectSchema = z.object({
   stylePreference: optionalText,
   primaryColor: optionalText,
   secondaryColor: optionalText,
+  logoDataUrl: optionalText,
   fontPreference: optionalText,
   brandPersonality: optionalText,
   toneOfVoice: optionalText,

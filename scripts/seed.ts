@@ -39,6 +39,7 @@ async function main() {
     pageCount: undefined,
     pageNotes: undefined,
     mainReferenceUrl: undefined,
+    logoDataUrl: undefined,
     referenceUrls: [] as string[],
     existingWebsiteUrl: undefined,
     pageUrls: [] as string[],

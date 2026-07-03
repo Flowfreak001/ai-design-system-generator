@@ -208,6 +208,24 @@ function SummaryCard({
   );
 }
 
+// Resize + compress an image file to a data URL in the browser. Logos keep PNG
+// (transparency); screenshots become JPEG to stay small.
+async function compressImage(file: File, maxW: number, kind: "logo" | "shot"): Promise<string> {
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, maxW / bitmap.width);
+  const w = Math.round(bitmap.width * scale);
+  const h = Math.round(bitmap.height * scale);
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return "";
+  ctx.drawImage(bitmap, 0, 0, w, h);
+  return kind === "logo" ? canvas.toDataURL("image/png") : canvas.toDataURL("image/jpeg", 0.72);
+}
+
+type Shot = { id: string; name: string; dataUrl: string };
+
 const toggle = (set: Set<string>, v: string) => {
   const next = new Set(set);
   if (next.has(v)) next.delete(v);
@@ -243,6 +261,32 @@ export function ProjectWizard({
     new Set(["Colors", "Typography", "Layout", "Overall style"]),
   );
   const featuresTouched = useRef(false);
+
+  // Optional brand evidence captured as compressed data URLs (no project yet).
+  const [logo, setLogo] = useState<string>("");
+  const [shots, setShots] = useState<Shot[]>([]);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+
+  const onLogo = async (file?: File) => {
+    if (!file) return;
+    setUploadError(null);
+    if (!file.type.startsWith("image/")) return setUploadError("Logo must be an image file.");
+    const dataUrl = await compressImage(file, 512, "logo");
+    if (!dataUrl || dataUrl.length > 900_000) return setUploadError("Logo is too large — try a smaller file.");
+    setLogo(dataUrl);
+  };
+
+  const onShots = async (files?: FileList | null) => {
+    if (!files?.length) return;
+    setUploadError(null);
+    const added: Shot[] = [];
+    for (const file of Array.from(files).slice(0, 6)) {
+      if (!file.type.startsWith("image/")) continue;
+      const dataUrl = await compressImage(file, 1200, "shot");
+      if (dataUrl && dataUrl.length < 900_000) added.push({ id: crypto.randomUUID(), name: file.name, dataUrl });
+    }
+    if (added.length) setShots((s) => [...s, ...added].slice(0, 6));
+  };
 
   const suggested = useMemo(() => suggestFeatures(industry, websiteType), [industry, websiteType]);
 
@@ -349,6 +393,8 @@ export function ProjectWizard({
       <input type="hidden" name="features" value={allFeatures.join("\n")} />
       <input type="hidden" name="keyItems" value={[...pages].join("\n")} />
       <input type="hidden" name="referenceLearn" value={[...learn].join("\n")} />
+      <input type="hidden" name="logoDataUrl" value={logo} />
+      <input type="hidden" name="screenshots" value={shots.length ? JSON.stringify(shots) : ""} />
 
       {/* Stepper — connectors fill with the accent color as steps complete. */}
       <ol className="flex items-center gap-1" aria-label="Progress steps">
@@ -557,17 +603,56 @@ export function ProjectWizard({
                 <Field label="Primary brand color" name="primaryColor" placeholder="#1E5AFF (if you have one)" />
                 <Field label="Secondary brand color" name="secondaryColor" placeholder="#0B1F3A (optional)" />
               </div>
-              {/* Upload placeholders — wiring lands with the References tab uploader. */}
               <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-xl border border-dashed border-line bg-panel/50 px-4 py-5 text-center">
-                  <p className="text-[13px] font-medium text-body">Logo upload</p>
-                  <p className="mt-0.5 text-[12px] text-faint">Add later on the References tab</p>
+                {/* Logo upload */}
+                <div>
+                  <p className="mb-1.5 text-sm font-medium">Logo <span className="text-faint text-xs font-normal">optional</span></p>
+                  {logo ? (
+                    <div className="flex items-center gap-3 rounded-xl border border-line bg-surface p-3">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={logo} alt="Logo preview" className="h-12 w-12 rounded-lg object-contain" />
+                      <button type="button" onClick={() => setLogo("")} className="text-[12px] font-medium text-danger hover:underline">
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-line bg-panel/50 px-4 py-5 text-center transition-colors hover:border-line-strong">
+                      <span className="text-[13px] font-medium text-body">Upload logo</span>
+                      <span className="mt-0.5 text-[12px] text-faint">PNG, SVG, or JPG</span>
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => onLogo(e.target.files?.[0])} />
+                    </label>
+                  )}
                 </div>
-                <div className="rounded-xl border border-dashed border-line bg-panel/50 px-4 py-5 text-center">
-                  <p className="text-[13px] font-medium text-body">Reference screenshots</p>
-                  <p className="mt-0.5 text-[12px] text-faint">Add later on the References tab</p>
+
+                {/* Reference screenshots */}
+                <div>
+                  <p className="mb-1.5 text-sm font-medium">Reference screenshots <span className="text-faint text-xs font-normal">optional</span></p>
+                  <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-line bg-panel/50 px-4 py-5 text-center transition-colors hover:border-line-strong">
+                    <span className="text-[13px] font-medium text-body">Upload screenshots</span>
+                    <span className="mt-0.5 text-[12px] text-faint">Hero, cards, forms, pricing… (up to 6)</span>
+                    <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => onShots(e.target.files)} />
+                  </label>
+                  {shots.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {shots.map((s) => (
+                        <div key={s.id} className="relative">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={s.dataUrl} alt={s.name} className="h-12 w-16 rounded-md border border-line object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => setShots((cur) => cur.filter((x) => x.id !== s.id))}
+                            aria-label="Remove screenshot"
+                            className="absolute -right-1.5 -top-1.5 grid h-4 w-4 place-items-center rounded-full bg-ink text-[10px] text-white"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
+              {uploadError && <p className="text-xs text-danger">{uploadError}</p>}
             </div>
 
             <div className="card grid gap-4 p-6">
@@ -625,6 +710,8 @@ export function ProjectWizard({
             <SummaryCard title="Brand evidence" onEdit={() => goTo(5)} rows={[
               ["Primary color", readText("primaryColor")],
               ["Secondary color", readText("secondaryColor")],
+              ["Logo", logo ? "uploaded" : ""],
+              ["Screenshots", shots.length ? `${shots.length} uploaded` : ""],
             ]} />
 
             <div className="card flex items-center justify-between gap-4 p-5">

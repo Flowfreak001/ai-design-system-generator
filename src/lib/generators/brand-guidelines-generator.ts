@@ -46,7 +46,7 @@ ${host ? `- **Reference site (evidence):** ${host}${measured ? " — styles meas
 - Clear space: keep at least the logo's cap-height of padding on all sides.
 - Minimum size: 24px tall (digital). Never stretch, recolor, rotate, or add effects.
 - On busy imagery use the single-color (mono) lockup with a subtle scrim.
-_${brief.notes?.trim() ? `Brand note: ${brief.notes.trim()}` : "No logo file provided — upload one on the References tab; these rules apply once it exists."}_
+_${brief.logoDataUrl ? "Logo provided at onboarding — these rules apply to it." : "No logo file provided — upload one on the References tab; these rules apply once it exists."}${brief.notes?.trim() ? ` Brand note: ${brief.notes.trim()}` : ""}_
 
 ## 3. Color system
 ${palette.map((p) => `- \`${p.value}\` — **${p.name}**`).join("\n")}

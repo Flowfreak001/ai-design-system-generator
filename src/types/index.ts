@@ -29,6 +29,8 @@ export type ProjectBrief = {
   // Step 3 — brand inputs (all optional)
   primaryColor?: string;
   secondaryColor?: string;
+  /** Optional logo image captured at onboarding (compressed data URL). */
+  logoDataUrl?: string;
   fontPreference?: string;
   brandPersonality?: string;
   toneOfVoice?: string;

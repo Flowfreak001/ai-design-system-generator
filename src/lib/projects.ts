@@ -80,6 +80,7 @@ export async function createProject(data: CreateProjectInput, agencyId?: string)
     stylePreference: data.stylePreference,
     primaryColor: data.primaryColor,
     secondaryColor: data.secondaryColor,
+    logoDataUrl: data.logoDataUrl,
     fontPreference: data.fontPreference,
     brandPersonality: data.brandPersonality,
     toneOfVoice: data.toneOfVoice,
