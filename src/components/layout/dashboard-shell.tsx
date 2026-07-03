@@ -171,7 +171,7 @@ export function DashboardShell({
               if (item.dynamic === "references") {
                 if (!projectIdActive) {
                   return (
-                    <span key={item.label} className={navItemCls(false, true, isCollapsed)} aria-disabled="true" title="Open a project to use its Section Reference Library">
+                    <span key={item.label} className={`mt-1 ${navItemCls(false, true, isCollapsed)}`} aria-disabled="true" title="Open a project to use its Section Reference Library">
                       {ICONS[item.icon]}
                       {item.label}
                     </span>
@@ -180,7 +180,7 @@ export function DashboardShell({
                 const href = `/projects/${projectIdActive}/references`;
                 const active = pathname === href;
                 return (
-                  <Link key={item.label} href={href} aria-current={active ? "page" : undefined} className={navItemCls(active, false, isCollapsed)}>
+                  <Link key={item.label} href={href} aria-current={active ? "page" : undefined} className={`mt-1 ${navItemCls(active, false, isCollapsed)}`}>
                     {!isCollapsed && active && <span aria-hidden="true" className="absolute -left-3 h-4 w-[3px] rounded-full bg-accent" />}
                     {ICONS[item.icon]}
                     {item.label}
