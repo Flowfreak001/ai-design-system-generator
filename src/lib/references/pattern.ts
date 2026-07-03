@@ -8,9 +8,35 @@ import { getVariantMetas, resolveVariantMeta } from "@/components/sections/catal
 import type { SectionType } from "@/components/sections/types";
 import type { ReferenceVisionResult } from "@/lib/ai/reference-vision";
 import {
-  DEFAULT_SIMILARITY_RULES, type CustomSectionSpec, type GeneratedSectionSpec,
+  DEFAULT_SIMILARITY_RULES, PURPOSE_CATEGORY_OF, LEGACY_GOAL_TO_PURPOSE,
+  type CustomSectionSpec, type GeneratedSectionSpec,
   type ReferenceSectionType, type SectionPattern,
 } from "./types";
+
+/** The pattern's effective primary purpose (maps legacy patternGoal forward). */
+function effectivePurpose(p: SectionPattern): string {
+  return p.primaryPurpose || (p.patternGoal ? LEGACY_GOAL_TO_PURPOSE[p.patternGoal] ?? p.patternGoal : "");
+}
+
+/** Purpose-driven guidance for generating an original section from a pattern. */
+function purposeGuidance(purpose: string): { cta: string; focus: string; exportNote: string } {
+  const p = purpose.toLowerCase();
+  if (/booking|reserv/.test(p)) return { cta: "Book now", focus: "booking action + supporting trust copy", exportNote: "Include a booking CTA/form and reassurance copy; conversion-focused layout." };
+  if (/quote/.test(p)) return { cta: "Request a quote", focus: "quote form + qualifying fields", exportNote: "Include a quote request form and trust copy; conversion-focused layout." };
+  if (/lead|contact sales/.test(p)) return { cta: "Get in touch", focus: "lead capture + value reminder", exportNote: "Include a short lead form or contact CTA; keep friction low." };
+  if (/free trial|signup|subscribe/.test(p)) return { cta: "Start free", focus: "primary signup CTA + low-risk reassurance", exportNote: "Emphasise the signup CTA and a no-risk line; conversion-focused layout." };
+  if (/buy|purchase/.test(p)) return { cta: "Buy now", focus: "price/value + purchase CTA", exportNote: "Emphasise price/value and a clear purchase CTA." };
+  if (/download/.test(p)) return { cta: "Download", focus: "resource value + download CTA", exportNote: "Emphasise the resource's value and a download CTA." };
+  if (/drive primary cta|main offer|promote/.test(p)) return { cta: "Get started", focus: "headline hierarchy + prominent primary CTA", exportNote: "Lead with a strong headline and a single prominent CTA; conversion layout." };
+  if (/benefit|feature|module|capabilit|technical/.test(p)) return { cta: "See features", focus: "benefit-led heading + feature cards/accordion + supporting visual", exportNote: "Use a benefit-led heading with feature cards or an accordion and a supporting visual placeholder." };
+  if (/trust|testimonial|logo|review|case study|certification|statistic/.test(p)) return { cta: "See the results", focus: "proof placement — logos, quotes, stats", exportNote: "Foreground proof (logos/quotes/stats) near the top; trust-building layout." };
+  if (/showcase|portfolio|gallery|before|visual impact|brand story/.test(p)) return { cta: "View work", focus: "large media + minimal chrome", exportNote: "Lead with large visual placeholders and minimal surrounding text." };
+  if (/process|how it works|guide|educate|answer|pricing|package/.test(p)) return { cta: "Learn more", focus: "clear steps/answers + scannable structure", exportNote: "Use a stepped or Q&A structure that is easy to scan." };
+  if (/navigate|categor|location|directory|filter|search|account|login/.test(p)) return { cta: "Browse", focus: "clear navigation/entry points", exportNote: "Prioritise clear navigation, categories or search entry points." };
+  if (/newsletter|community|related|keep user|next step/.test(p)) return { cta: "Continue", focus: "next-step nudge + secondary links", exportNote: "Add a gentle next-step nudge and related links; engagement-focused." };
+  if (/introduce brand|value proposition|product introduction|service introduction|launch/.test(p)) return { cta: "Learn more", focus: "brand/value headline + supporting visual", exportNote: "Lead with a clear value/brand headline and a supporting visual placeholder." };
+  return { cta: "Primary CTA", focus: "clear hierarchy + CTA", exportNote: "Communicate the message with a clear hierarchy and CTA." };
+}
 
 const uid = (p: string) => `${p}-${(typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID().slice(0, 8) : Math.random().toString(36).slice(2, 10))}`;
 
@@ -71,7 +97,9 @@ export function createSectionPatternFromReferenceImage(input: {
   sectionType: ReferenceSectionType;
   websiteType?: string;
   industry?: string;
-  patternGoal?: string;
+  primaryPurpose?: string;
+  secondaryPurposes?: string[];
+  purposeCategory?: string;
   styleTags?: string[];
   layoutTags?: string[];
   interactionTags?: string[];
@@ -86,22 +114,26 @@ export function createSectionPatternFromReferenceImage(input: {
   const layoutTags = input.layoutTags ?? [];
   const interactionTags = input.interactionTags ?? [];
   const conversionTags = input.conversionTags ?? [];
+  const secondaryPurposes = input.secondaryPurposes ?? [];
+  const purposeCategory = input.primaryPurpose ? PURPOSE_CATEGORY_OF[input.primaryPurpose] ?? input.purposeCategory : input.purposeCategory;
   const allTags = [...styleTags, ...layoutTags, ...interactionTags, ...conversionTags];
-  const matchText = [v.layoutPattern, v.visualHierarchy, ...v.componentStructure, ...v.interactionClues, ...allTags, input.patternGoal ?? "", input.notes ?? ""].join(" ");
+  const matchText = [v.layoutPattern, v.visualHierarchy, ...v.componentStructure, ...v.interactionClues, ...allTags, input.primaryPurpose ?? "", ...secondaryPurposes, input.notes ?? ""].join(" ");
   const matchedComponent = matchExistingVariant(input.sectionType, matchText);
   const customSpec = matchedComponent ? null : buildCustomSpec(input.sectionType, v);
-  const bestFor = [input.websiteType, input.industry, input.patternGoal, ...allTags].filter(Boolean) as string[];
+  const bestFor = [input.websiteType, input.industry, input.primaryPurpose, ...secondaryPurposes, ...allTags].filter(Boolean) as string[];
 
   return {
     id: uid("pat"),
-    name: `${input.sectionType} pattern — ${styleTags[0] ?? input.patternGoal ?? input.websiteType ?? "reference"}`,
+    name: `${input.sectionType} pattern — ${input.primaryPurpose ?? styleTags[0] ?? input.websiteType ?? "reference"}`,
     sectionType: input.sectionType,
     source: "uploaded-reference",
     referenceImageId: uid("img"),
     referenceImageUrl: input.referenceImageUrl,
     websiteType: input.websiteType,
     industry: input.industry,
-    patternGoal: input.patternGoal,
+    primaryPurpose: input.primaryPurpose,
+    secondaryPurposes,
+    purposeCategory,
     styleTags,
     layoutTags,
     interactionTags,
@@ -151,13 +183,18 @@ export function generateSectionFromReferencePattern(
   const designVariant = match?.variantId ?? "custom";
   const roles = (pattern.assetRoles.length ? pattern.assetRoles : ["primary visual"]).slice(0, 4);
   const who = ctx.businessName ? ` for ${ctx.businessName}` : "";
+  const primary = effectivePurpose(pattern);
+  const g = purposeGuidance(primary);
+  const secondary = pattern.secondaryPurposes ?? [];
 
   return {
     id: uid("sec"),
     type,
     name: `${pattern.sectionType.charAt(0).toUpperCase() + pattern.sectionType.slice(1)} (reference-inspired)`,
     description: `Original ${pattern.sectionType} section${who} inspired by the "${pattern.name}" pattern — same structure idea, original content, brand tokens.`,
-    purpose: pattern.visualHierarchy || `Communicate the ${pattern.sectionType} message with a clear hierarchy and CTA.`,
+    purpose: primary
+      ? `Primary purpose: ${primary}. Focus on ${g.focus}.${secondary.length ? ` Secondary: ${secondary.join(", ")}.` : ""}`
+      : pattern.visualHierarchy || `Communicate the ${pattern.sectionType} message with a clear hierarchy and CTA.`,
     layoutPattern: pattern.layoutPattern,
     designVariant,
     componentName,
@@ -166,7 +203,7 @@ export function generateSectionFromReferencePattern(
       eyebrowSlot: "Short label",
       headlineSlot: "Write an original, benefit-led headline (do not copy the reference).",
       subheadSlot: "One or two supporting sentences in the brand voice.",
-      ctaPrimary: "Primary CTA",
+      ctaPrimary: g.cta,
       ctaSecondary: "Secondary CTA",
       slots: pattern.contentSlots,
     },
@@ -188,7 +225,10 @@ export function generateSectionFromReferencePattern(
       : "Mobile-first; multi-column layouts collapse to a single column.",
     source: "reference-inspired",
     referencePatternId: pattern.id,
-    assumptions: needsNewComponent ? ["No existing component matched — a custom component spec was created for the builder."] : [],
+    assumptions: [
+      ...(primary ? [`Purpose "${primary}": ${g.exportNote}`] : []),
+      ...(needsNewComponent ? ["No existing component matched — a custom component spec was created for the builder."] : []),
+    ],
   };
 }
 

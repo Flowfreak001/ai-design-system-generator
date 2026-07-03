@@ -34,7 +34,8 @@ export async function analyzeReferenceAction(
   projectId: string,
   input: {
     imageDataUrl: string; thumbnailUrl?: string; sectionType: ReferenceSectionType;
-    websiteType?: string; industry?: string; patternGoal?: string;
+    websiteType?: string; industry?: string;
+    primaryPurpose?: string; secondaryPurposes?: string[]; purposeCategory?: string;
     styleTags?: string[]; layoutTags?: string[]; interactionTags?: string[];
     conversionTags?: string[]; notes?: string;
   },
@@ -47,18 +48,21 @@ export async function analyzeReferenceAction(
     sectionType: input.sectionType,
     websiteType: input.websiteType,
     industry: input.industry,
-    patternGoal: input.patternGoal,
+    primaryPurpose: input.primaryPurpose,
+    secondaryPurposes: input.secondaryPurposes,
+    purposeCategory: input.purposeCategory,
     styleTags: input.styleTags,
     layoutTags: input.layoutTags,
     interactionTags: input.interactionTags,
-    conversionTags: input.conversionTags,
     notes: input.notes,
   });
   const pattern = createSectionPatternFromReferenceImage({
     sectionType: input.sectionType,
     websiteType: input.websiteType,
     industry: input.industry,
-    patternGoal: input.patternGoal,
+    primaryPurpose: input.primaryPurpose,
+    secondaryPurposes: input.secondaryPurposes,
+    purposeCategory: input.purposeCategory,
     styleTags: input.styleTags,
     layoutTags: input.layoutTags,
     interactionTags: input.interactionTags,

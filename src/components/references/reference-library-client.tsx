@@ -4,14 +4,15 @@
 // reusable design PATTERN (never a copy) → review → save. Search/filter saved
 // patterns and generate an original, reference-inspired section spec from one.
 
-import { useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition, useRef, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { PageContainer } from "@/components/layout/page-container";
 import { analyzeReferenceAction, saveReferencePatternAction, deleteReferencePatternAction } from "@/app/(app)/projects/[id]/references/actions";
 import { generateSectionFromReferencePattern, filterPatterns } from "@/lib/references/pattern";
 import {
-  SECTION_TYPE_OPTIONS, WEBSITE_TYPE_OPTIONS, INDUSTRY_OPTIONS, PATTERN_GOAL_OPTIONS,
+  SECTION_TYPE_OPTIONS, WEBSITE_TYPE_OPTIONS, INDUSTRY_OPTIONS,
+  PURPOSE_GROUPS, PURPOSE_CATEGORY_OF,
   VISUAL_STYLE_TAGS, LAYOUT_TAGS, INTERACTION_TAGS,
   type ReferenceSectionType, type SectionPattern,
 } from "@/lib/references/types";
@@ -40,7 +41,8 @@ export function ReferenceLibraryClient({ projectId, projectName, initialPatterns
   const [websiteType, setWebsiteType] = useState("");
   const [websiteTypeCustom, setWebsiteTypeCustom] = useState("");
   const [industry, setIndustry] = useState("");
-  const [patternGoal, setPatternGoal] = useState("");
+  const [primaryPurpose, setPrimaryPurpose] = useState("");
+  const [secondaryPurposes, setSecondaryPurposes] = useState<string[]>([]);
   const [styleTags, setStyleTags] = useState<string[]>([]);
   const [layoutTags, setLayoutTags] = useState<string[]>([]);
   const [interactionTags, setInteractionTags] = useState<string[]>([]);
@@ -77,7 +79,9 @@ export function ReferenceLibraryClient({ projectId, projectName, initialPatterns
     start(async () => {
       const r = await analyzeReferenceAction(projectId, {
         imageDataUrl: full, thumbnailUrl: thumb, sectionType,
-        websiteType: resolvedWebsiteType, industry, patternGoal,
+        websiteType: resolvedWebsiteType, industry,
+        primaryPurpose, secondaryPurposes,
+        purposeCategory: primaryPurpose ? PURPOSE_CATEGORY_OF[primaryPurpose] : undefined,
         styleTags, layoutTags, interactionTags, notes,
       });
       if (r.error) setErr(r.error); else setDraft(r.pattern ?? null);
@@ -91,6 +95,7 @@ export function ReferenceLibraryClient({ projectId, projectName, initialPatterns
       setPatterns((cur) => [{ ...draft, approved: true }, ...cur.filter((p) => p.id !== draft.id)]);
       setDraft(null); setFull(""); setThumb(""); setNotes(""); setAddOpen(false);
       setStyleTags([]); setLayoutTags([]); setInteractionTags([]);
+      setPrimaryPurpose(""); setSecondaryPurposes([]);
     });
   };
   const remove = (id: string) => start(async () => { await deleteReferencePatternAction(projectId, id); setPatterns((cur) => cur.filter((p) => p.id !== id)); });
@@ -199,18 +204,15 @@ export function ReferenceLibraryClient({ projectId, projectName, initialPatterns
                         {SECTION_TYPE_OPTIONS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
                       </Select>
                     </Field>
-                    <Field label="Pattern goal">
-                      <Select value={patternGoal} onChange={(e) => setPatternGoal(e.target.value)}>
-                        <option value="">Select…</option>
-                        {PATTERN_GOAL_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
-                      </Select>
-                    </Field>
                     <Field label="Website type">
                       <Select value={websiteType} onChange={(e) => setWebsiteType(e.target.value)}>
                         <option value="">Select…</option>
                         {WEBSITE_TYPE_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
                       </Select>
                     </Field>
+                    {websiteType === "Custom" ? (
+                      <input value={websiteTypeCustom} onChange={(e) => setWebsiteTypeCustom(e.target.value)} placeholder="Describe the website type…" className="col-span-2 w-full rounded-lg border border-line px-2.5 py-1.5 text-[13px]" />
+                    ) : null}
                     <Field label="Industry">
                       <Select value={industry} onChange={(e) => setIndustry(e.target.value)}>
                         <option value="">Select…</option>
@@ -218,9 +220,27 @@ export function ReferenceLibraryClient({ projectId, projectName, initialPatterns
                       </Select>
                     </Field>
                   </div>
-                  {websiteType === "Custom" && (
-                    <input value={websiteTypeCustom} onChange={(e) => setWebsiteTypeCustom(e.target.value)} placeholder="Describe the website type…" className="mt-2 w-full rounded-lg border border-line px-2.5 py-1.5 text-[13px]" />
+
+                  <label className="mt-3 block text-[11px] font-medium uppercase tracking-wide text-faint">Section purpose</label>
+                  <PurposePicker value={primaryPurpose} onSelect={(o) => setPrimaryPurpose(o)} placeholder="Search or select purpose…" />
+                  <p className="mt-1 text-[11px] text-faint">Choose what this section is mainly trying to achieve. This helps AI reuse the reference correctly.</p>
+
+                  <label className="mt-3 block text-[11px] font-medium uppercase tracking-wide text-faint">Secondary purposes <span className="text-faint/70">(optional)</span></label>
+                  {secondaryPurposes.length > 0 && (
+                    <div className="mt-1.5 flex flex-wrap gap-1.5">
+                      {secondaryPurposes.map((s) => (
+                        <span key={s} className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-1 text-[11.5px] font-medium text-white">
+                          {s}
+                          <button type="button" aria-label={`Remove ${s}`} onClick={() => setSecondaryPurposes((cur) => cur.filter((x) => x !== s))}>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" /></svg>
+                          </button>
+                        </span>
+                      ))}
+                    </div>
                   )}
+                  <PurposePicker multi values={secondaryPurposes} disabledValue={primaryPurpose}
+                    onSelect={(o) => setSecondaryPurposes((cur) => (cur.includes(o) ? cur.filter((x) => x !== o) : [...cur, o]))}
+                    placeholder="Add supporting purposes…" />
 
                   <TagGroup title="Visual style" tags={VISUAL_STYLE_TAGS} selected={styleTags} onToggle={toggle(setStyleTags)} />
                   <TagGroup title="Layout style" tags={LAYOUT_TAGS} selected={layoutTags} onToggle={toggle(setLayoutTags)} />
@@ -282,6 +302,65 @@ export function ReferenceLibraryClient({ projectId, projectName, initialPatterns
   );
 }
 
+/** Searchable, grouped purpose picker. Single-select (primary) or multi (secondary). */
+function PurposePicker({ value, values, multi, disabledValue, onSelect, placeholder }: {
+  value?: string; values?: string[]; multi?: boolean; disabledValue?: string;
+  onSelect: (option: string) => void; placeholder: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+  const selected = new Set(values ?? []);
+
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [open]);
+
+  const q = query.trim().toLowerCase();
+  const groups = PURPOSE_GROUPS
+    .map((g) => ({ category: g.category, options: g.options.filter((o) => !q || o.toLowerCase().includes(q) || g.category.toLowerCase().includes(q)) }))
+    .filter((g) => g.options.length);
+
+  return (
+    <div ref={ref} className="relative mt-1">
+      <button type="button" onClick={() => setOpen((o) => !o)}
+        className="flex w-full items-center justify-between rounded-lg border border-line bg-surface px-2.5 py-1.5 text-left text-[13px]">
+        <span className={value ? "text-ink" : "text-faint"}>{multi ? placeholder : value || placeholder}</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true" className={`text-faint transition-transform ${open ? "rotate-180" : ""}`}>
+          <path d="m6 9 6 6 6-6" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+      {open && (
+        <div className="absolute z-[90] mt-1 max-h-64 w-full overflow-auto rounded-lg border border-line bg-surface p-1.5 shadow-xl">
+          <input autoFocus value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search purposes…"
+            className="mb-1 w-full rounded-md border border-line px-2 py-1 text-[12.5px]" />
+          {groups.length === 0 && <p className="px-2 py-3 text-center text-[12px] text-faint">No matches.</p>}
+          {groups.map((g) => (
+            <div key={g.category} className="mb-1">
+              <p className="px-2 pt-1.5 pb-0.5 text-[10px] font-semibold uppercase tracking-wide text-faint">{g.category}</p>
+              {g.options.map((o) => {
+                const isSel = multi ? selected.has(o) : value === o;
+                const isDisabled = multi && disabledValue === o;
+                return (
+                  <button key={o} type="button" disabled={isDisabled}
+                    onClick={() => { onSelect(o); if (!multi) { setOpen(false); setQuery(""); } }}
+                    className={`flex w-full items-center justify-between gap-2 rounded-md px-2 py-1 text-left text-[12.5px] ${isDisabled ? "cursor-not-allowed text-faint/50" : isSel ? "bg-accent-soft font-medium text-accent" : "text-body hover:bg-panel"}`}>
+                    {o}
+                    {isSel && <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 12 4.5 4.5L19 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
@@ -335,7 +414,8 @@ function TagGroup({ title, tags, selected, onToggle }: {
 function PatternDetail({ p }: { p: SectionPattern }) {
   const allTags = [...(p.styleTags ?? []), ...(p.layoutTags ?? []), ...(p.interactionTags ?? []), ...(p.conversionTags ?? [])];
   const rows: [string, string[] | string][] = [
-    ["Classified as", [p.sectionType, p.websiteType, p.industry, p.patternGoal].filter(Boolean) as string[]],
+    ["Classified as", [p.sectionType, p.websiteType, p.industry].filter(Boolean) as string[]],
+    ["Purpose", [p.primaryPurpose ?? p.patternGoal, ...(p.secondaryPurposes ?? [])].filter(Boolean) as string[]],
     ["Tags", allTags.length ? allTags : ["—"]],
     ["Layout", p.layoutPattern],
     ["Hierarchy", p.visualHierarchy],

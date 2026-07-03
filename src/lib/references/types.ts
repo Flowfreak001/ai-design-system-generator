@@ -59,11 +59,89 @@ export const INDUSTRY_OPTIONS = [
   "Technology", "Professional Services", "Creative / Media", "Other",
 ] as const;
 
-export const PATTERN_GOAL_OPTIONS = [
-  "Explain product/service", "Generate leads", "Get bookings", "Showcase work",
-  "Build trust", "Compare options", "Educate visitors", "Show process",
-  "Show product features", "Improve conversion", "Create visual impact",
-] as const;
+/** Grouped "Section Purpose" vocabulary — one primary purpose per pattern,
+ *  plus optional secondary purposes. Replaces the old flat Pattern Goal list. */
+export const PURPOSE_GROUPS: { category: string; options: string[] }[] = [
+  {
+    category: "Hero / Intro",
+    options: [
+      "Introduce brand", "Explain main value proposition", "Promote main offer",
+      "Drive primary CTA", "Launch announcement", "Product introduction", "Service introduction",
+    ],
+  },
+  {
+    category: "Feature / Product",
+    options: [
+      "Explain key features", "Show product benefits", "Demonstrate product workflow",
+      "Highlight use cases", "Compare capabilities", "Explain technical advantage", "Show platform modules",
+    ],
+  },
+  {
+    category: "Trust / Proof",
+    options: [
+      "Build trust", "Show testimonials", "Show client logos", "Show reviews / ratings",
+      "Show case study results", "Show certifications / awards", "Show statistics / numbers",
+    ],
+  },
+  {
+    category: "Conversion",
+    options: [
+      "Generate leads", "Get bookings", "Request a quote", "Contact sales",
+      "Start free trial", "Buy product", "Subscribe / signup", "Download resource",
+    ],
+  },
+  {
+    category: "Education / Content",
+    options: [
+      "Explain process", "Answer common questions", "Educate visitors", "Explain pricing",
+      "Explain service packages", "Explain how it works", "Guide decision making",
+    ],
+  },
+  {
+    category: "Visual / Showcase",
+    options: [
+      "Showcase work", "Showcase product images", "Showcase portfolio", "Show before / after",
+      "Show gallery", "Create visual impact", "Present brand story",
+    ],
+  },
+  {
+    category: "Navigation / Utility",
+    options: [
+      "Help users navigate", "Show categories", "Show locations", "Show directory/listings",
+      "Filter/search content", "Support account/login flow",
+    ],
+  },
+  {
+    category: "Retention / Engagement",
+    options: [
+      "Encourage next step", "Promote related services", "Keep user exploring",
+      "Push newsletter signup", "Promote community/social",
+    ],
+  },
+];
+
+/** Flat list of every purpose option. */
+export const PURPOSE_OPTIONS: string[] = PURPOSE_GROUPS.flatMap((g) => g.options);
+
+/** Map a purpose option → its group/category name. */
+export const PURPOSE_CATEGORY_OF: Record<string, string> = Object.fromEntries(
+  PURPOSE_GROUPS.flatMap((g) => g.options.map((o) => [o, g.category])),
+);
+
+/** Best-effort remap of legacy flat Pattern Goal values → new purpose options. */
+export const LEGACY_GOAL_TO_PURPOSE: Record<string, string> = {
+  "Explain product/service": "Explain key features",
+  "Generate leads": "Generate leads",
+  "Get bookings": "Get bookings",
+  "Showcase work": "Showcase work",
+  "Build trust": "Build trust",
+  "Compare options": "Compare capabilities",
+  "Educate visitors": "Educate visitors",
+  "Show process": "Explain process",
+  "Show product features": "Explain key features",
+  "Improve conversion": "Drive primary CTA",
+  "Create visual impact": "Create visual impact",
+};
 
 // Grouped, meaningful tag vocabularies. Each group maps to a field on the pattern.
 export const VISUAL_STYLE_TAGS = [
@@ -89,7 +167,6 @@ export const CONVERSION_TAGS = [
 /** @deprecated Flat legacy tag list. Kept so old saved patterns still parse. */
 export const STYLE_TAGS = VISUAL_STYLE_TAGS;
 
-export type PatternGoal = (typeof PATTERN_GOAL_OPTIONS)[number];
 
 /** What may / may not be reused from a reference — enforced everywhere. */
 export interface SimilarityRules {
@@ -134,6 +211,11 @@ export interface SectionPattern {
   referenceImageUrl?: string;
   websiteType?: string;
   industry?: string;
+  /** What the section is mainly trying to achieve. Replaces legacy `patternGoal`. */
+  primaryPurpose?: string;
+  secondaryPurposes?: string[];
+  purposeCategory?: string;
+  /** @deprecated legacy flat goal — read-only for backward compatibility. */
   patternGoal?: string;
   /** Grouped tag vocabularies. `styleTags` == visual style (legacy name kept). */
   styleTags: string[];

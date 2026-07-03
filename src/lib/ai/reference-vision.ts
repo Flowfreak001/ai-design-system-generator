@@ -39,7 +39,9 @@ export async function analyzeSectionReferenceImage(input: {
   sectionType?: string;
   websiteType?: string;
   industry?: string;
-  patternGoal?: string;
+  primaryPurpose?: string;
+  secondaryPurposes?: string[];
+  purposeCategory?: string;
   styleTags?: string[];
   layoutTags?: string[];
   interactionTags?: string[];
@@ -75,7 +77,10 @@ export async function analyzeSectionReferenceImage(input: {
 
   const tagLine = (label: string, arr?: string[]) => (arr && arr.length ? ` ${label}: ${arr.join(", ")}.` : "");
   const userText =
-    `Analyse this section reference. Classification hints from the user — section type: ${input.sectionType || "unknown"}; website type: ${input.websiteType || "unknown"}; industry: ${input.industry || "unknown"}; pattern goal: ${input.patternGoal || "unknown"}.` +
+    `Analyse this section reference. Classification hints from the user — section type: ${input.sectionType || "unknown"}; website type: ${input.websiteType || "unknown"}; industry: ${input.industry || "unknown"}.` +
+    ` Primary purpose (what this section is mainly trying to achieve): ${input.primaryPurpose || "unknown"}${input.purposeCategory ? ` (category: ${input.purposeCategory})` : ""}.` +
+    tagLine("Secondary purposes", input.secondaryPurposes) +
+    " Focus the extracted pattern on serving the PRIMARY purpose first (e.g. for 'Drive primary CTA' — emphasise CTA placement, headline hierarchy and conversion layout; for 'Build trust' — emphasise where proof/logos/stats sit), and treat secondary purposes as supporting goals." +
     tagLine("Visual style tags", input.styleTags) +
     tagLine("Layout tags", input.layoutTags) +
     tagLine("Interaction tags", input.interactionTags) +
