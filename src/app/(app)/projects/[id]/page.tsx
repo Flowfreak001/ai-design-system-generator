@@ -26,6 +26,7 @@ import {
   type WireframePage,
   type StyleGuide,
 } from "@/components/projects/project-pipeline";
+import { DeleteProjectButton } from "@/components/projects/delete-project-button";
 import { TypeBadge } from "@/components/projects/status-badge";
 import { GeneratedFilesViewer } from "@/components/projects/generated-files-viewer";
 import { PreviewPanel } from "@/components/projects/preview-panel";
@@ -526,9 +527,7 @@ export default async function ProjectWorkspacePage({
           </div>
           <p className="mt-1 text-sm text-muted">{project.clientName || "—"}</p>
         </div>
-        <form action={remove}>
-          <Button type="submit" variant="ghost">Delete</Button>
-        </form>
+        <DeleteProjectButton projectName={project.name} action={remove} />
       </FadeUp>
 
       <WorkspaceTabs
