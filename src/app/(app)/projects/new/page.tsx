@@ -22,8 +22,8 @@ export default async function NewProjectPage({
       </Link>
       <h2 className="mt-3 text-[26px] font-semibold tracking-[-0.02em]">Create New Design System</h2>
       <p className="mt-1 text-sm text-muted">
-        Five quick steps. Only the basics are required — everything else is
-        optional and the system fills gaps with clear assumptions.
+        Just the basics, then the website to learn from. Everything else is
+        optional — the design system is built from what the pages actually show.
       </p>
       <div className="mt-8">
         <ProjectWizard

@@ -52,9 +52,9 @@ export const createProjectSchema = z.object({
   businessName: z.string().min(1, "Business name is required"),
   businessType: z.string().min(1, "Business type is required"),
   goal: z.string().min(1, "Website goal is required"),
-  keyItems: listField.refine((v) => v.length > 0, "Add at least one required page"),
-  platformTarget: z.string().min(1, "Choose a platform target"),
-  // Optional everything else:
+  // Optional everything else (the scan detects real pages/sections):
+  keyItems: listField,
+  platformTarget: optionalText.transform((v) => v ?? ""),
   businessId: optionalText,
   clientName: optionalText,
   type: z.enum(["WEBSITE_APP", "AUTOMATION_WORKFLOW"]).default("WEBSITE_APP"),

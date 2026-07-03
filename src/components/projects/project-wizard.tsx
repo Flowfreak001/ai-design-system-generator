@@ -12,26 +12,19 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import {
-  PLATFORM_TARGETS,
-  ANIMATION_PREFERENCES,
-  STYLE_PREFERENCES,
-} from "@/lib/validators/project";
+import { STYLE_PREFERENCES } from "@/lib/validators/project";
 
 const STEPS = [
   { id: 1, label: "Basics" },
-  { id: 2, label: "References" },
-  { id: 3, label: "Brand" },
-  { id: 4, label: "Structure" },
-  { id: 5, label: "Review" },
+  { id: 2, label: "Website" },
+  { id: 3, label: "Review" },
 ];
+const LAST = STEPS.length;
 
 // Required fields per step (names must match inputs below).
 const REQUIRED: Record<number, string[]> = {
   1: ["name", "businessName", "businessType", "goal"],
   2: [],
-  3: [],
-  4: ["keyItems", "platformTarget"],
 };
 
 const REQUIRED_LABELS: Record<string, string> = {
@@ -39,25 +32,14 @@ const REQUIRED_LABELS: Record<string, string> = {
   businessName: "Business name",
   businessType: "Business type",
   goal: "Website goal",
-  keyItems: "Required pages",
-  platformTarget: "Platform target",
 };
 
 const OPTIONAL_LABELS: [string, string][] = [
-  ["clientName", "Client name"],
-  ["targetAudience", "Target audience"],
+  ["pageUrls", "Website page URLs"],
   ["referenceUrls", "Reference websites"],
-  ["existingWebsiteUrl", "Existing website"],
-  ["competitorUrls", "Competitor URLs"],
-  ["stylePreference", "Style preference"],
-  ["primaryColor", "Primary color"],
-  ["secondaryColor", "Secondary color"],
+  ["primaryColor", "Brand color"],
   ["fontPreference", "Font preference"],
-  ["brandPersonality", "Brand personality"],
-  ["toneOfVoice", "Tone of voice"],
-  ["services", "Services / products"],
-  ["ctaGoal", "CTA goal"],
-  ["seoKeywords", "SEO keywords"],
+  ["stylePreference", "Style preference"],
 ];
 
 const inputCls =
@@ -201,7 +183,7 @@ export function ProjectWizard({
     }
     setStepError(null);
     setMissing([]);
-    if (next === 5) setSummary(readForm());
+    if (next === LAST) setSummary(readForm());
     setStep(next);
   };
 
@@ -261,10 +243,9 @@ export function ProjectWizard({
                 <Field label="Business type" name="businessType" required placeholder="e.g. Car rental, plumber, restaurant" invalid={missing.includes("businessType")} />
               </div>
               <Area label="Website goal" name="goal" required placeholder="What should the website achieve? e.g. Generate booking enquiries" invalid={missing.includes("goal")} />
-              <Area label="Target audience" name="targetAudience" placeholder="Who are the customers?" />
-              <div className="grid gap-5 sm:grid-cols-2">
-                <Field label="Client name" name="clientName" placeholder="Contact person" />
-                {clients.length > 0 && (
+              {clients.length > 0 ? (
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <Field label="Client name" name="clientName" placeholder="Contact person" />
                   <div>
                     <label htmlFor="businessId" className="mb-1.5 block text-sm font-medium">
                       Link to client <span className="text-faint text-xs font-normal">optional</span>
@@ -276,8 +257,10 @@ export function ProjectWizard({
                       ))}
                     </select>
                   </div>
-                )}
-              </div>
+                </div>
+              ) : (
+                <Field label="Client name" name="clientName" placeholder="Contact person" />
+              )}
               <input type="hidden" name="type" value="WEBSITE_APP" />
             </div>
           </div>
@@ -285,70 +268,34 @@ export function ProjectWizard({
           <div className={panel(2)}>
             <div className="card grid gap-5 p-6">
               <div>
-                <h3 className="text-base font-semibold">Design references</h3>
+                <h3 className="text-base font-semibold">Website &amp; style</h3>
                 <p className="mt-1 text-[13px] text-muted">
-                  Reference websites help us understand the design style. They are optional but recommended.
+                  Paste the website to learn its design from. Everything here is optional —
+                  but the more pages you add, the more accurate the design system.
                 </p>
               </div>
-              <Field label="Existing website / homepage URL" name="existingWebsiteUrl" placeholder="https://… (the client's own site)" />
               <Area
-                label="Additional page URLs to analyze"
+                label="Website page URLs to analyze"
                 name="pageUrls"
-                placeholder="One per line — about, services, pricing, FAQ, contact, booking, portfolio, blog…"
+                rows={4}
+                placeholder={"https://example.com  ← homepage first\nhttps://example.com/services\nhttps://example.com/pricing\nhttps://example.com/contact"}
               />
               <p className="-mt-3 text-[12px] text-muted">
-                Add as many page URLs as available. More pages help the system capture the real
-                section structure, forms, cards, FAQs, buttons, and responsive behavior — instead of
-                assuming a fixed layout. Page types are detected automatically.
+                One URL per line — the first is treated as the homepage. Add about, services,
+                pricing, FAQ, contact, booking, or portfolio pages so the system captures the real
+                sections, forms, cards, and FAQs instead of assuming a fixed layout. Page types are
+                detected automatically.
               </p>
-              <Area label="Reference website URLs" name="referenceUrls" placeholder="One per line — other sites whose style you like" />
-              <Area label="Competitor URLs" name="competitorUrls" placeholder="One per line" />
+              <Area label="Reference website URLs" name="referenceUrls" placeholder="One per line — other sites whose style you like (optional)" />
+              <div className="grid gap-5 sm:grid-cols-2">
+                <Field label="Brand color" name="primaryColor" placeholder="#1E5AFF (only if you have one)" />
+                <Field label="Font preference" name="fontPreference" placeholder="e.g. Inter (leave blank to use the site's)" />
+              </div>
               <Select label="Style preference" name="stylePreference" options={STYLE_PREFERENCES} />
             </div>
           </div>
 
           <div className={panel(3)}>
-            <div className="card grid gap-5 p-6">
-              <div>
-                <h3 className="text-base font-semibold">Brand inputs</h3>
-                <p className="mt-1 text-[13px] text-muted">
-                  If you don&apos;t have brand colors or a logo yet, leave this blank — the system will create clear assumptions.
-                </p>
-              </div>
-              <div className="rounded-xl border border-dashed border-line-strong bg-panel px-4 py-6 text-center text-sm text-muted">
-                Logo upload coming soon — files aren&apos;t required to generate.
-              </div>
-              <div className="grid gap-5 sm:grid-cols-2">
-                <Field label="Primary color" name="primaryColor" placeholder="#1E5AFF" />
-                <Field label="Secondary color" name="secondaryColor" placeholder="#0B1B3F" />
-              </div>
-              <Field label="Font preference" name="fontPreference" placeholder="e.g. Inter, Manrope, 'something modern'" />
-              <div className="grid gap-5 sm:grid-cols-2">
-                <Field label="Brand personality" name="brandPersonality" placeholder="e.g. dependable, friendly, premium" />
-                <Field label="Tone of voice" name="toneOfVoice" placeholder="e.g. plain-spoken and warm" />
-              </div>
-            </div>
-          </div>
-
-          <div className={panel(4)}>
-            <div className="card grid gap-5 p-6">
-              <div>
-                <h3 className="text-base font-semibold">Website structure</h3>
-                <p className="mt-1 text-[13px] text-muted">What should the site contain, and where will it be built?</p>
-              </div>
-              <Area label="Required pages" name="keyItems" required placeholder="e.g. Home, Fleet, Pricing, Locations, Contact" hint="One per line or comma-separated." invalid={missing.includes("keyItems")} />
-              <Area label="Services / products" name="services" placeholder="What does the business offer?" />
-              <Field label="CTA goal" name="ctaGoal" placeholder="e.g. Book a car, Request a quote" />
-              <Area label="SEO keywords" name="seoKeywords" placeholder="One per line or comma-separated" />
-              <div className="grid gap-5 sm:grid-cols-2">
-                <Select label="Platform target" name="platformTarget" options={PLATFORM_TARGETS} required invalid={missing.includes("platformTarget")} />
-                <Select label="Animation preference" name="animationPreference" options={ANIMATION_PREFERENCES} />
-              </div>
-              <Area label="Notes" name="notes" placeholder="Anything else worth knowing…" />
-            </div>
-          </div>
-
-          <div className={panel(5)}>
             <div className="grid gap-4">
               <div className="card p-6">
                 <h3 className="text-base font-semibold">Review &amp; create</h3>
@@ -357,11 +304,9 @@ export function ProjectWizard({
                     ["Project", summary.name],
                     ["Business", `${summary.businessName ?? ""}${summary.businessType ? ` · ${summary.businessType}` : ""}`],
                     ["Goal", summary.goal],
-                    ["Audience", summary.targetAudience],
-                    ["References", summary.referenceUrls ?? summary.existingWebsiteUrl],
-                    ["Brand colors", [summary.primaryColor, summary.secondaryColor].filter(Boolean).join(", ")],
-                    ["Pages", summary.keyItems],
-                    ["Platform", summary.platformTarget],
+                    ["Pages to scan", summary.pageUrls],
+                    ["References", summary.referenceUrls],
+                    ["Brand color", summary.primaryColor],
                   ]
                     .filter(([, v]) => v)
                     .map(([k, v]) => (
@@ -389,7 +334,7 @@ export function ProjectWizard({
         <Button type="button" variant="ghost" onClick={() => goTo(step - 1)} className={step === 1 ? "invisible" : ""}>
           ← Back
         </Button>
-        {step < 5 ? (
+        {step < LAST ? (
           <Button type="button" onClick={() => goTo(step + 1)}>
             Continue →
           </Button>
