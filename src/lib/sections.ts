@@ -22,7 +22,7 @@ export function sectionKind(name: string): SectionKind {
   if (/integration|ecosystem|works with|app grid/.test(n)) return "integrations";
   if (/compar|why choose|why us|versus|\bvs\b/.test(n)) return "comparison";
   if (/use ?case|industries|industry/.test(n)) return "usecases";
-  if (/showcase|template|case stud/.test(n)) return "showcase";
+  if (/showcase|template|case stud|journey|story|scroll/.test(n)) return "showcase";
   if (/stats|metrics|numbers|by the numbers/.test(n)) return "socialproof";
   if (/gallery|portfolio|our work/.test(n)) return "gallery";
   if (/booking|calendar|availab|reserv|appointment/.test(n)) return "booking";

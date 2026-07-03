@@ -50,6 +50,7 @@ import { SaaSFooter } from "./footer/marketing";
 import { LogoCloud, ReviewStats, TrustBadgeStrip } from "./social-proof";
 import { StepByStepProcess, HowItWorksCards, AIWorkflowSection } from "./workflow";
 import { TemplateGallery, CaseStudyCards } from "./showcase";
+import ScrollExpandMedia from "./showcase/ScrollExpandMedia";
 import { UseCaseCards, IndustryGrid } from "./use-cases";
 import { ComparisonTable, WhyChooseUsGrid } from "./comparison";
 import { IntegrationLogoCloud } from "./integrations";
@@ -62,7 +63,7 @@ const COMPONENTS: Partial<Record<SectionType, Record<string, SectionComponent>>>
   features: { grid: FeatureGrid, "icon-cards": FeatureCardsWithIcons, tabs: FeatureTabs, "accordion-visual": FeatureSplitAccordion },
   "social-proof": { "logo-cloud": LogoCloud, "review-stats": ReviewStats, "trust-badges": TrustBadgeStrip },
   workflow: { steps: StepByStepProcess, cards: HowItWorksCards, ai: AIWorkflowSection },
-  showcase: { templates: TemplateGallery, "case-studies": CaseStudyCards },
+  showcase: { templates: TemplateGallery, "case-studies": CaseStudyCards, "scroll-media": ScrollExpandMedia },
   "use-cases": { cards: UseCaseCards, industries: IndustryGrid },
   comparison: { table: ComparisonTable, "why-us": WhyChooseUsGrid },
   integrations: { logos: IntegrationLogoCloud },
