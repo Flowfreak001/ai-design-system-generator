@@ -119,4 +119,29 @@ export function puckToSections(data: PuckData): { name: string; kind: SectionKin
   });
 }
 
+/** Convert a Design (or Wireframe) Puck multi-page doc into a SitemapCanvas —
+ *  the shape MD/export generators consume. Preserves per-page ordered sections
+ *  so the export uses the approved design structure across all pages. */
+export function puckDocToSitemap(doc: MultiPagePuck): { pages: CanvasPage[]; approved?: boolean } {
+  return {
+    pages: doc.pages.map((p) => ({
+      id: p.id,
+      name: p.name,
+      source: p.source,
+      status: p.status,
+      sections: p.data.content.map((item) => {
+        const kind = (item.props.kind as SectionKind) ?? "generic";
+        return {
+          id: String(item.props.id),
+          name: String(item.props.name ?? KIND_LABEL[kind] ?? "Section"),
+          note: item.props.note ? String(item.props.note) : undefined,
+          source: (item.props.source as CanvasSource) ?? "user-added",
+          status: item.props.status as SectionStatus | undefined,
+          variant: item.props.variant ? String(item.props.variant) : undefined,
+        };
+      }),
+    })),
+  };
+}
+
 export { emptyData };

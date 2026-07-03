@@ -8,13 +8,15 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { PuckStage, AddSectionsHint } from "./puck-stage";
-import { suggestSectionsForPage } from "@/lib/sections";
+import { PuckPageEditor } from "./puck-stage";
+import { OverviewCanvas } from "./overview-canvas";
+import { suggestSectionsForPage, type SectionKind } from "@/lib/sections";
 import { SitemapFlow } from "./sitemap-flow";
 import {
   ensurePages,
-  puckToSections,
   KIND_LABEL,
+  WIREFRAME_TYPE,
+  DESIGN_TYPE,
   type MultiPagePuck,
   type PuckData,
 } from "@/lib/puck-canvas";
@@ -143,6 +145,21 @@ export function DesignEditor({
   const onDesignChange = (pageId: string, data: PuckData) => {
     setDesignDoc((d) => ({ ...d, pages: d.pages.map((p) => (p.id === pageId ? { ...p, data } : p)) }));
     mirrorSitemap(pageId, data);
+  };
+
+  // Which page (if any) is open in the single-page Puck editor, per stage.
+  const [wfEditId, setWfEditId] = useState<string | null>(null);
+  const [dsEditId, setDsEditId] = useState<string | null>(null);
+
+  // Quick "Add section" from the overview: append a Puck item to a page.
+  const addPuckSection = (mode: "wireframe" | "design", pageId: string, kind: SectionKind) => {
+    const type = (mode === "wireframe" ? WIREFRAME_TYPE : DESIGN_TYPE)[kind];
+    const item = { type, props: { id: uid("s"), kind, name: KIND_LABEL[kind], note: "", source: "user-added", status: "draft", variant: "default" } };
+    const doc = mode === "wireframe" ? wireframeDoc : designDoc;
+    const page = doc.pages.find((p) => p.id === pageId);
+    if (!page) return;
+    const data: PuckData = { ...page.data, content: [...page.data.content, item] };
+    (mode === "wireframe" ? onWireframeChange : onDesignChange)(pageId, data);
   };
 
   // Simple undo/redo history over the editable state.
@@ -298,26 +315,38 @@ export function DesignEditor({
             <div className="flex min-h-full flex-col">
               <StageHeader
                 title="Wireframe"
-                subtitle="Low-fidelity, structure-only. Add approved sections from the left panel — they stack header → footer per page."
+                subtitle={wfEditId ? "Editing one page — add / reorder / duplicate / delete sections." : "All pages overview. Click Edit on a page to open its low-fi Puck editor."}
                 approved={approvals.wireframe}
                 onApprove={() => approve("wireframe")}
                 busy={saving}
                 extra={
-                  <Button size="sm" variant="secondary" onClick={() => autoWireframe(selectedPage?.id ?? "")} disabled={!selectedPage} title="Seed the selected page's sections from its type + features">
-                    ✦ Auto-generate
-                  </Button>
+                  !wfEditId && (
+                    <Button size="sm" variant="secondary" onClick={() => autoWireframe(selectedPage?.id ?? "")} disabled={!selectedPage} title="Seed the selected page's sections from its type + features">
+                      ✦ Auto-generate
+                    </Button>
+                  )
                 }
               />
-              <PuckStage
-                mode="wireframe"
-                doc={wireframeDoc}
-                style={style}
-                selectedPageId={selectedPageId}
-                onSelectPage={setSelectedPageId}
-                onChangeData={onWireframeChange}
-                onAddPage={addPage}
-                topActions={<AddSectionsHint />}
-              />
+              {wfEditId && wireframeDoc.pages.some((p) => p.id === wfEditId) ? (
+                <PuckPageEditor
+                  mode="wireframe"
+                  page={wireframeDoc.pages.find((p) => p.id === wfEditId)!}
+                  style={style}
+                  onChange={onWireframeChange}
+                  onBack={() => setWfEditId(null)}
+                />
+              ) : (
+                <OverviewCanvas
+                  mode="wireframe"
+                  doc={wireframeDoc}
+                  style={style}
+                  selectedPageId={selectedPageId}
+                  onSelectPage={setSelectedPageId}
+                  onEditPage={(id) => { setSelectedPageId(id); setWfEditId(id); }}
+                  onAddPage={addPage}
+                  onAddSection={(pid, kind) => addPuckSection("wireframe", pid, kind)}
+                />
+              )}
             </div>
           )}
 
@@ -335,20 +364,31 @@ export function DesignEditor({
             <div className="flex min-h-full flex-col">
               <StageHeader
                 title="Design"
-                subtitle="Real styled sections from the approved wireframe + Style Guide tokens. Edit per page; sections stack header → footer."
+                subtitle={dsEditId ? "Editing one page — real styled sections from the Style Guide tokens." : "All pages design overview. Click Edit on a page to open its styled Puck editor."}
                 approved={approvals.design}
                 onApprove={() => approve("design")}
                 busy={saving}
               />
-              <PuckStage
-                mode="design"
-                doc={designDoc}
-                style={style}
-                selectedPageId={selectedPageId}
-                onSelectPage={setSelectedPageId}
-                onChangeData={onDesignChange}
-                onAddPage={addPage}
-              />
+              {dsEditId && designDoc.pages.some((p) => p.id === dsEditId) ? (
+                <PuckPageEditor
+                  mode="design"
+                  page={designDoc.pages.find((p) => p.id === dsEditId)!}
+                  style={style}
+                  onChange={onDesignChange}
+                  onBack={() => setDsEditId(null)}
+                />
+              ) : (
+                <OverviewCanvas
+                  mode="design"
+                  doc={designDoc}
+                  style={style}
+                  selectedPageId={selectedPageId}
+                  onSelectPage={setSelectedPageId}
+                  onEditPage={(id) => { setSelectedPageId(id); setDsEditId(id); }}
+                  onAddPage={addPage}
+                  onAddSection={(pid, kind) => addPuckSection("design", pid, kind)}
+                />
+              )}
             </div>
           )}
         </main>
