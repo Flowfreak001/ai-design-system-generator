@@ -8,10 +8,9 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { SectionWireframe, sectionKind } from "./wireframe-block";
+import { sectionKind } from "./wireframe-block";
 import { Drawer, Popover } from "./overlays";
-import { themeFromStyle } from "@/components/sections/theme";
-import { RenderSection } from "@/components/sections/registry";
+import { ProjectCanvas } from "./project-canvas";
 import { SECTION_CATEGORIES, suggestSectionsForPage } from "@/lib/sections";
 import { arrayMove } from "@dnd-kit/sortable";
 import { SitemapFlow } from "./sitemap-flow";
@@ -285,7 +284,7 @@ export function DesignEditor({
             <WireframeEditor
               pages={pages}
               selectedPage={selectedPage}
-              schemes={style.colors}
+              style={style}
               onSelect={setSelectedPageId}
               onAddPage={addPage}
               onRenamePage={renamePage}
@@ -410,16 +409,14 @@ function SitemapEditor({
 }
 
 // ----------------------------------------- Wireframe (real page canvas)
-const DEVICE_W = { desktop: 960, tablet: 720, mobile: 380 } as const;
-type Device = keyof typeof DEVICE_W;
 
 function WireframeEditor({
-  pages, selectedPage, schemes, onSelect, onAddPage, onRenamePage, onRemovePage, onDuplicatePage, onCyclePageSource, onPatchPageMeta,
+  pages, selectedPage, style, onSelect, onAddPage, onRenamePage, onRemovePage, onDuplicatePage, onCyclePageSource, onPatchPageMeta,
   onAddSection, onRemoveSection, onPatchSection, onMoveSection, onDuplicateSection, onAutoWireframe, approved, onApprove, busy,
 }: {
   pages: CanvasPage[];
   selectedPage?: CanvasPage;
-  schemes: CanvasColor[];
+  style: StyleGuideCanvas;
   onSelect: (id: string) => void;
   onAddPage: () => void;
   onRenamePage: (id: string, name: string) => void;
@@ -437,15 +434,14 @@ function WireframeEditor({
   onApprove: () => void;
   busy: boolean;
 }) {
-  const [device, setDevice] = useState<Device>("desktop");
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
+  const schemes = style.colors;
 
   if (!selectedPage) return <div className="p-6 text-[13px] text-muted">Add a page in the Sitemap first.</div>;
   const pageId = selectedPage.id;
   const sections = selectedPage.sections;
   const selected = sections.find((s) => s.id === selectedSectionId) ?? null;
-  const mobile = device === "mobile";
 
   // Auto-select the newly added section (it is appended to the list).
   const prevLen = useRef(sections.length);
@@ -458,7 +454,6 @@ function WireframeEditor({
     onAddSection(pageId, name);
     if (!keepOpen) setAddOpen(false);
   };
-  const schemeOf = (s: CanvasSection) => schemes.find((c) => c.name === s.scheme)?.value;
 
   return (
     <div className="flex min-h-full">
@@ -500,68 +495,34 @@ function WireframeEditor({
         </div>
       </aside>
 
-      {/* ---------- Center: canvas ---------- */}
-      <div className="flex min-w-0 flex-1 flex-col bg-panel/40">
+      {/* ---------- Center: full-project canvas (all pages) ---------- */}
+      <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-surface/70 px-4 py-2 backdrop-blur">
           <div className="flex items-center gap-2">
-            <span className="text-[14px] font-semibold text-ink">{selectedPage.name}</span>
-            <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${approved ? "bg-success-soft text-success" : "bg-warning-soft text-warning"}`}>
-              {approved ? "approved" : "draft"}
-            </span>
+            <span className="text-[14px] font-semibold text-ink">Wireframe — all pages</span>
+            <span className="text-[11.5px] text-muted">Selected: {selectedPage.name}</span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 rounded-lg bg-panel p-1">
-              {(Object.keys(DEVICE_W) as Device[]).map((d) => (
-                <button key={d} type="button" onClick={() => setDevice(d)} className={`rounded px-2 py-0.5 text-[11px] capitalize ${device === d ? "bg-surface text-ink shadow-sm" : "text-muted"}`}>{d}</button>
-              ))}
-            </div>
-            <span className="hidden text-[11px] text-faint sm:inline">100%</span>
-            <Button size="sm" variant="secondary" onClick={() => onAutoWireframe(pageId)} title="Seed sections from the page type + selected features">
+            <Button size="sm" variant="secondary" onClick={() => onAutoWireframe(pageId)} title="Seed the selected page's sections from its type + features">
               ✦ Auto-generate
             </Button>
             <ApproveBar approved={approved} onApprove={onApprove} busy={busy} label="wireframe" />
           </div>
         </div>
 
-        <div className="flex-1 overflow-auto p-8">
-          <div className="mx-auto rounded-xl border border-line bg-surface shadow-sm" style={{ width: DEVICE_W[device], maxWidth: "100%" }}>
-            <div className="flex items-center gap-1.5 rounded-t-xl border-b border-line bg-panel px-3 py-2">
-              <span className="h-2.5 w-2.5 rounded-full bg-line" />
-              <span className="h-2.5 w-2.5 rounded-full bg-line" />
-              <span className="h-2.5 w-2.5 rounded-full bg-line" />
-              <span className="ml-2 h-4 flex-1 rounded bg-surface" />
-            </div>
-
-            {sections.length === 0 ? (
-              <div className="grid place-items-center gap-3 px-6 py-16 text-center">
-                <p className="text-[13px] text-faint">
-                  Empty page. <span className="font-medium text-body">Auto-generate</span> a starter wireframe from the page type + your selected features, or add sections manually.
-                </p>
-                <Button size="sm" onClick={() => onAutoWireframe(pageId)}>✦ Auto-generate wireframe</Button>
-              </div>
-            ) : (
-              // Normal document flow: a vertical column, one block per section,
-              // top → bottom. No absolute positioning for section blocks.
-              <div className="flex flex-col divide-y divide-line">
-                {sections.map((s, i) => (
-                  <WireframeSectionBlock
-                    key={s.id}
-                    section={s}
-                    mobile={mobile}
-                    accentColor={schemeOf(s)}
-                    selected={s.id === selectedSectionId}
-                    isFirst={i === 0}
-                    isLast={i === sections.length - 1}
-                    onSelect={() => setSelectedSectionId(s.id)}
-                    onMove={(dir) => onMoveSection(pageId, s.id, dir)}
-                    onDuplicate={() => onDuplicateSection(pageId, s.id)}
-                    onDelete={() => { onRemoveSection(pageId, s.id); setSelectedSectionId(null); }}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+        <ProjectCanvas
+          pages={pages}
+          mode="wireframe"
+          style={style}
+          schemes={schemes}
+          selectedPageId={pageId}
+          selectedSectionId={selectedSectionId}
+          onSelectPage={(id) => { onSelect(id); setSelectedSectionId(null); }}
+          onSelectSection={(pid, sid) => { onSelect(pid); setSelectedSectionId(sid); }}
+          onMoveSection={onMoveSection}
+          onDuplicateSection={onDuplicateSection}
+          onRemoveSection={(pid, sid) => { onRemoveSection(pid, sid); setSelectedSectionId(null); }}
+        />
       </div>
 
       {/* ---------- Add Section drawer ---------- */}
@@ -689,45 +650,6 @@ const SECTION_STATUS_STYLE: Record<string, string> = {
   rejected: "bg-danger-soft text-danger",
   draft: "bg-panel text-muted",
 };
-
-function WireframeSectionBlock({
-  section, mobile, accentColor, selected, isFirst, isLast, onSelect, onMove, onDuplicate, onDelete,
-}: {
-  section: CanvasSection;
-  mobile: boolean;
-  accentColor?: string;
-  selected: boolean;
-  isFirst: boolean;
-  isLast: boolean;
-  onSelect: () => void;
-  onMove: (dir: -1 | 1) => void;
-  onDuplicate: () => void;
-  onDelete: () => void;
-}) {
-  // A section scheme tints the accent-driven parts of the wireframe preview.
-  const style = accentColor ? ({ "--color-accent": accentColor } as React.CSSProperties) : undefined;
-  return (
-    // w-full + shrink-0: each block owns a full-width row in the column and
-    // never collapses, so sections always stack cleanly top → bottom.
-    <div className={`group relative w-full shrink-0 ${selected ? "ring-2 ring-inset ring-accent" : ""}`} style={style} onClick={onSelect}>
-      <div className="pointer-events-none absolute left-0 right-0 top-0 z-10 flex items-center justify-between px-2 py-1 opacity-0 transition-opacity group-hover:opacity-100">
-        <span className="pointer-events-auto flex items-center gap-1.5 rounded-md bg-ink/80 px-2 py-0.5 text-[10px] font-medium text-white">
-          {section.name}
-          {section.global && <span className="rounded bg-white/20 px-1">global</span>}
-          <span className="rounded bg-white/20 px-1">{section.source}</span>
-        </span>
-        <span className="pointer-events-auto flex items-center gap-0.5 rounded-md bg-surface px-1 py-0.5 shadow-sm">
-          <button type="button" onClick={(e) => { e.stopPropagation(); onMove(-1); }} disabled={isFirst} title="Move up" className="px-1 text-faint hover:text-ink disabled:opacity-30">↑</button>
-          <button type="button" onClick={(e) => { e.stopPropagation(); onMove(1); }} disabled={isLast} title="Move down" className="px-1 text-faint hover:text-ink disabled:opacity-30">↓</button>
-          <button type="button" onClick={(e) => { e.stopPropagation(); onSelect(); }} title="Settings" className="px-1 text-faint hover:text-accent">✎</button>
-          <button type="button" onClick={(e) => { e.stopPropagation(); onDuplicate(); }} title="Duplicate" className="px-1 text-[11px] text-faint hover:text-ink">⧉</button>
-          <button type="button" onClick={(e) => { e.stopPropagation(); onDelete(); }} title="Delete" className="px-1 text-faint hover:text-danger">✕</button>
-        </span>
-      </div>
-      <SectionWireframe name={section.name} mobile={mobile} />
-    </div>
-  );
-}
 
 function SectionSettingsContent({
   section, schemes, onPatch, onDuplicate, onDelete, onClose,
@@ -974,83 +896,47 @@ function DesignTab({
   onApprove: () => void;
   busy: boolean;
 }) {
-  const [device, setDevice] = useState<Device>("desktop");
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null);
-  const theme = themeFromStyle(style);
-  const mobile = device === "mobile";
-  const sections = selectedPage?.sections ?? [];
-  const selected = sections.find((s) => s.id === selectedSectionId) ?? null;
+  // The selected section can live on any page (all pages render together).
+  const selPage = pages.find((p) => p.sections.some((s) => s.id === selectedSectionId)) ?? selectedPage;
+  const selected = selPage?.sections.find((s) => s.id === selectedSectionId) ?? null;
 
   return (
     <div className="flex min-h-full">
-      {/* Pages rail */}
-      <aside className="w-52 shrink-0 border-r border-line bg-surface p-3">
-        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-faint">Pages</p>
-        <div className="grid gap-1">
-          {pages.map((p) => (
-            <button key={p.id} type="button" onClick={() => { onSelect(p.id); setSelectedSectionId(null); }} className={`truncate rounded-lg px-2.5 py-1.5 text-left text-[13px] ${p.id === selectedPage?.id ? "bg-accent-soft text-accent" : "text-body hover:bg-panel"}`}>
-              {p.name}
-            </button>
-          ))}
-        </div>
-      </aside>
-
-      {/* Center: assembled styled page */}
-      <div className="flex min-w-0 flex-1 flex-col bg-panel/40">
+      <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-surface/70 px-4 py-2 backdrop-blur">
           <div>
-            <span className="text-[14px] font-semibold text-ink">Design — {selectedPage?.name}</span>
-            <p className="text-[11.5px] text-muted">Assembled from approved sections + the Style Guide tokens.</p>
+            <span className="text-[14px] font-semibold text-ink">Design — all pages</span>
+            <p className="text-[11.5px] text-muted">Real styled sections from the approved wireframe + Style Guide tokens.</p>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1 rounded-lg bg-panel p-1">
-              {(Object.keys(DEVICE_W) as Device[]).map((d) => (
-                <button key={d} type="button" onClick={() => setDevice(d)} className={`rounded px-2 py-0.5 text-[11px] capitalize ${device === d ? "bg-surface text-ink shadow-sm" : "text-muted"}`}>{d}</button>
-              ))}
-            </div>
-            <ApproveBar approved={approved} onApprove={onApprove} busy={busy} label="design" />
-          </div>
+          <ApproveBar approved={approved} onApprove={onApprove} busy={busy} label="design" />
         </div>
 
-        <div className="flex-1 overflow-auto p-8">
-          <div className="mx-auto overflow-hidden rounded-xl border border-line bg-surface shadow-sm" style={{ width: DEVICE_W[device], maxWidth: "100%" }}>
-            {sections.length === 0 ? (
-              <div className="px-6 py-24 text-center text-[13px] text-faint">Add sections in the Wireframe tab to compose this page.</div>
-            ) : (
-              sections.map((s, i) => {
-                const isSel = s.id === selectedSectionId;
-                const rejected = s.status === "rejected";
-                return (
-                  <div key={s.id} className={`group relative ${isSel ? "ring-2 ring-inset ring-accent" : ""} ${rejected ? "opacity-40" : ""}`} onClick={() => setSelectedSectionId(s.id)}>
-                    <div className="pointer-events-none absolute left-0 right-0 top-0 z-10 flex items-center justify-between px-2 py-1 opacity-0 transition-opacity group-hover:opacity-100">
-                      <span className="pointer-events-auto flex items-center gap-1.5 rounded-md bg-ink/80 px-2 py-0.5 text-[10px] font-medium text-white">
-                        {s.name}<span className="rounded bg-white/20 px-1">{s.source}</span>{s.status && <span className="rounded bg-white/20 px-1">{s.status}</span>}
-                      </span>
-                      <span className="pointer-events-auto flex items-center gap-0.5 rounded-md bg-surface px-1 py-0.5 shadow-sm">
-                        <button type="button" onClick={(e) => { e.stopPropagation(); onMoveSection(selectedPage!.id, s.id, -1); }} disabled={i === 0} className="px-1 text-faint hover:text-ink disabled:opacity-30">↑</button>
-                        <button type="button" onClick={(e) => { e.stopPropagation(); onMoveSection(selectedPage!.id, s.id, 1); }} disabled={i === sections.length - 1} className="px-1 text-faint hover:text-ink disabled:opacity-30">↓</button>
-                        <button type="button" onClick={(e) => { e.stopPropagation(); onPatchSection(selectedPage!.id, s.id, { status: "approved" }); }} title="Approve" className="px-1 text-faint hover:text-success">✓</button>
-                        <button type="button" onClick={(e) => { e.stopPropagation(); onPatchSection(selectedPage!.id, s.id, { status: "rejected" }); }} title="Reject" className="px-1 text-faint hover:text-danger">✕</button>
-                      </span>
-                    </div>
-                    <RenderSection name={s.name} note={s.note} theme={theme} mobile={mobile} />
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
+        <ProjectCanvas
+          pages={pages}
+          mode="design"
+          style={style}
+          schemes={style.colors}
+          selectedPageId={selectedPage?.id}
+          selectedSectionId={selectedSectionId}
+          onSelectPage={(id) => { onSelect(id); setSelectedSectionId(null); }}
+          onSelectSection={(pid, sid) => { onSelect(pid); setSelectedSectionId(sid); }}
+          onMoveSection={onMoveSection}
+          onDuplicateSection={onDuplicateSection}
+          onRemoveSection={(pid, sid) => { onRemoveSection(pid, sid); setSelectedSectionId(null); }}
+          onApproveSection={(pid, sid, status) => onPatchSection(pid, sid, { status })}
+        />
       </div>
 
       {/* Right: section settings drawer */}
       <Drawer open={Boolean(selected)} onClose={() => setSelectedSectionId(null)} title="Section settings" subtitle={selected ? `Type: ${sectionKind(selected.name)}` : undefined} width={340}>
-        {selected && (
+        {selected && selPage && (
           <SectionSettingsContent
             section={selected}
             schemes={style.colors}
-            onPatch={(patch) => onPatchSection(selectedPage!.id, selected.id, patch)}
-            onDuplicate={() => onDuplicateSection(selectedPage!.id, selected.id)}
-            onDelete={() => { onRemoveSection(selectedPage!.id, selected.id); setSelectedSectionId(null); }}
+            onPatch={(patch) => onPatchSection(selPage.id, selected.id, patch)}
+            onDuplicate={() => onDuplicateSection(selPage.id, selected.id)}
+            onDelete={() => { onRemoveSection(selPage.id, selected.id); setSelectedSectionId(null); }}
             onClose={() => setSelectedSectionId(null)}
           />
         )}
