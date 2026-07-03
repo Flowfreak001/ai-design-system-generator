@@ -440,6 +440,16 @@ function pageStatusOf(p: CanvasPage, sitemapApproved: boolean): PageStatus {
   return "in-progress";
 }
 
+// Clean line icon for the page-card header (home vs generic page).
+function PageIcon({ home }: { home: boolean }) {
+  const common = { width: 16, height: 16, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, className: "shrink-0 text-muted" };
+  return home ? (
+    <svg {...common}><path d="M3 10.5 12 3l9 7.5" /><path d="M5 9.5V21h14V9.5" /></svg>
+  ) : (
+    <svg {...common}><path d="M14 3H6.5A1.5 1.5 0 0 0 5 4.5v15A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5V8z" /><path d="M14 3v5h5" /></svg>
+  );
+}
+
 // Small monitor glyph shown only on framed Header/Footer rows (like the ref).
 function SectionFrameIcon() {
   return (
@@ -635,7 +645,7 @@ function SitemapPageCard({
     <div className="flex flex-col rounded-2xl border border-line bg-surface shadow-sm">
       {/* Card header */}
       <div className="flex items-center gap-2 border-b border-line px-3 py-2.5">
-        <span className="text-[13px]">{isHome ? "🏠" : "📄"}</span>
+        <PageIcon home={isHome} />
         {renaming ? (
           <input
             autoFocus defaultValue={page.name}
