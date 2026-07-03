@@ -142,7 +142,13 @@ export const SECTION_CATALOG: Partial<Record<SectionType, SectionCatalogEntry>> 
   // Single-variant sections (more variants are Phase 2 TODO).
   pricing: { label: "Pricing", variants: [V("cards", "Pricing Cards", "PricingCards", "pricing/PricingCards", ["saas", "platform"])] },
   testimonials: { label: "Testimonials", variants: [V("cards", "Testimonial Cards", "TestimonialCards", "testimonials/TestimonialCards", ["general", "agency", "local-service"])] },
-  gallery: { label: "Gallery", variants: [V("grid", "Gallery Grid", "GalleryGrid", "gallery/GalleryGrid", ["ecommerce", "agency", "construction"])] },
+  gallery: {
+    label: "Gallery",
+    variants: [
+      V("marquee", "Moving Showcase", "GalleryMarquee", "gallery/GalleryMarquee", ["agency", "creative", "portfolio", "ecommerce"], { exportNotes: "Two rows auto-scrolling horizontally in opposite directions; pause on hover; respects prefers-reduced-motion." }),
+      V("grid", "Gallery Grid", "GalleryGrid", "gallery/GalleryGrid", ["ecommerce", "agency", "construction"]),
+    ],
+  },
   directory: { label: "Directory", variants: [V("grid", "Listing Grid", "ListingGrid", "directory/ListingGrid", ["directory", "ecommerce"])] },
   dashboard: { label: "Dashboard", variants: [V("preview", "Dashboard Preview", "DashboardPreviewSection", "dashboard/DashboardPreviewSection", ["saas", "platform", "dashboard"])] },
   // TODO Phase 2: portfolio, blog, testimonials carousel, pricing comparison,

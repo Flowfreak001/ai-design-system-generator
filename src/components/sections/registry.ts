@@ -37,6 +37,7 @@ import FooterWithNewsletter from "./footer/FooterWithNewsletter";
 import PricingCards from "./pricing/PricingCards";
 import TestimonialCards from "./testimonials/TestimonialCards";
 import GalleryGrid from "./gallery/GalleryGrid";
+import GalleryMarquee from "./gallery/GalleryMarquee";
 import ListingGrid from "./directory/ListingGrid";
 import DashboardPreviewSection from "./dashboard/DashboardPreviewSection";
 // Elementor-grade marketing sections (folder index files, named exports).
@@ -71,7 +72,7 @@ const COMPONENTS: Partial<Record<SectionType, Record<string, SectionComponent>>>
   footer: { simple: SimpleFooter, "multi-column": MultiColumnFooter, newsletter: FooterWithNewsletter, saas: SaaSFooter },
   pricing: { cards: PricingCards },
   testimonials: { cards: TestimonialCards },
-  gallery: { grid: GalleryGrid },
+  gallery: { marquee: GalleryMarquee, grid: GalleryGrid },
   directory: { grid: ListingGrid },
   dashboard: { preview: DashboardPreviewSection },
 };
