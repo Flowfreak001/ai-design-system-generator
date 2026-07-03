@@ -415,7 +415,7 @@ export default async function ProjectWorkspacePage({
   );
 
   return (
-    <div className="mx-auto max-w-6xl px-5 sm:px-8 py-8">
+    <div className="px-5 py-8 sm:px-8">
       <nav aria-label="Breadcrumb" className="text-sm text-muted">
         <Link href="/projects" className="hover:text-ink">Projects</Link>
         <span className="mx-2 text-faint">/</span>

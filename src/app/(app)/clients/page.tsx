@@ -20,7 +20,7 @@ export default async function ClientsPage() {
   const active = clients.filter((c) => c.stage === "Active").length;
 
   return (
-    <div className="mx-auto max-w-6xl px-5 sm:px-8 py-8">
+    <div className="px-5 py-8 sm:px-8">
       <PageHeader
         title="Clients"
         description={`${clients.length} ${clients.length === 1 ? "client" : "clients"} · ${active} active`}

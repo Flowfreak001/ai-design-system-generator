@@ -38,7 +38,7 @@ export default async function ProjectsPage() {
   const inFlight = rows.filter((r) => r.derived !== "Exported").length;
 
   return (
-    <div className="mx-auto max-w-6xl px-5 py-8 sm:px-8">
+    <div className="px-5 py-8 sm:px-8">
       <PageHeader
         title="Projects"
         description={

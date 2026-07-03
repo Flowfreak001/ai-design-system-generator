@@ -68,7 +68,7 @@ export default async function DashboardPage() {
   const today = new Date().toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric" });
 
   return (
-    <div className="mx-auto max-w-6xl px-5 py-8 sm:px-8">
+    <div className="px-5 py-8 sm:px-8">
       <PageHeader
         title={`${greeting()}, ${user.name?.split(" ")[0] ?? "there"}`}
         description={today}

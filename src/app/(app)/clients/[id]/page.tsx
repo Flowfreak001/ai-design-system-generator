@@ -29,7 +29,7 @@ export default async function ClientDetailPage({
   if (!client) notFound();
 
   return (
-    <div className="mx-auto max-w-6xl px-5 sm:px-8 py-8">
+    <div className="px-5 py-8 sm:px-8">
       <nav aria-label="Breadcrumb" className="text-sm text-muted">
         <Link href="/clients" className="hover:text-ink">Clients</Link>
         <span className="mx-2 text-faint">/</span>
