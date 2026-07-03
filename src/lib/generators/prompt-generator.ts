@@ -2,6 +2,7 @@ import {
   type GeneratorContext,
   type MdArtifact,
   Assumptions,
+  visionBlock,
   inline,
   who,
   paletteOf,
@@ -76,6 +77,7 @@ ${animRules.map((r) => `- ${r}`).join("\n")}
 - Real content slots clearly marked where client material is still missing
   (see CONTENT.md → Missing content checklist).
 
+${visionBlock(ctx, ["componentStructure", "visualLayout"])}
 ${a.section()}
 `;
   return { name: "PROMPT_CLAUDE_CODE.md", content };

@@ -2,6 +2,7 @@ import {
   type GeneratorContext,
   type MdArtifact,
   Assumptions,
+  visionBlock,
   who,
   paletteOf,
   fontsOf,
@@ -83,6 +84,7 @@ ${
 - One source of truth for tokens; components never invent colors or radii.
 - Every interactive element: keyboard operable, focus-visible, ≥44px target.
 
+${visionBlock(ctx, ["componentStructure", "buttonStyles", "cardStyles", "formStyles"])}
 ${a.section()}
 `;
   return { name: "COMPONENTS.md", content };

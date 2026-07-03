@@ -8,6 +8,7 @@ import { startGeneration } from "@/lib/jobs";
 import { runWebsiteAnalysis } from "@/lib/analysis/run-analysis";
 import { runMdGeneration } from "@/lib/md-generation";
 import { runPreviewGeneration } from "@/lib/preview";
+import { runAiVisionAnalysis } from "@/lib/ai/ai-flow";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/db/client";
 import { z } from "zod";
@@ -74,6 +75,13 @@ export async function generateAction(projectId: string) {
   const user = await requireUser();
   if (!user.agencyId || !(await ownsProject(projectId, user.agencyId))) return;
   await startGeneration(projectId);
+  revalidatePath(`/projects/${projectId}`);
+}
+
+export async function runAiVisionAction(projectId: string) {
+  const user = await requireUser();
+  if (!user.agencyId || !(await ownsProject(projectId, user.agencyId))) return;
+  await runAiVisionAnalysis(projectId);
   revalidatePath(`/projects/${projectId}`);
 }
 

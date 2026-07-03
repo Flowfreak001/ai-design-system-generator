@@ -2,6 +2,7 @@ import {
   type GeneratorContext,
   type MdArtifact,
   Assumptions,
+  visionBlock,
   who,
   paletteOf,
   fontsOf,
@@ -130,6 +131,7 @@ ${probeBtn ? `- Text casing: ${probeBtn.textTransform && probeBtn.textTransform 
 - Implement components per COMPONENTS.md and motion per ANIMATION.md${transitions.length ? ` (site's measured timing samples: ${transitions.slice(0, 3).join("; ")})` : ""}.
 - Every page must pass: one h1, AA contrast, keyboard navigable, no layout shift on image load.
 
+${visionBlock(ctx, ["visualLayout", "typographyObservations", "colorUsage", "spacingObservations", "buttonStyles", "cardStyles"])}
 ${a.section()}
 `;
   return { name: "DESIGN.md", content };

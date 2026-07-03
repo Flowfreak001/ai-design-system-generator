@@ -2,6 +2,7 @@ import {
   type GeneratorContext,
   type MdArtifact,
   Assumptions,
+  visionBlock,
   bullets,
   who,
   analysisConfidenceNote,
@@ -69,6 +70,7 @@ ${bullets(anim?.recommendedAnimationRules ?? [
     "Honor prefers-reduced-motion everywhere",
   ])}
 
+${visionBlock(ctx, ["animationClues"])}
 ${a.section()}
 `;
   return { name: "ANIMATION.md", content };

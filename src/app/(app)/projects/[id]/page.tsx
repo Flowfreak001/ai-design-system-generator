@@ -11,6 +11,7 @@ import {
   generateMdAction,
   generatePreviewAction,
   saveScreenshotsAction,
+  runAiVisionAction,
 } from "../actions";
 import { TypeBadge } from "@/components/projects/status-badge";
 import { GeneratedFilesViewer } from "@/components/projects/generated-files-viewer";
@@ -38,6 +39,7 @@ const ANALYSIS_NAMES = [
   "RENDERED_STYLE_ANALYSIS.json",
   "SCROLL_ANIMATION_ANALYSIS.json",
   "MULTI_PAGE_WEBSITE_ANALYSIS.json",
+  "AI_SCREENSHOT_ANALYSIS.json",
 ];
 
 function Row({ label, value }: { label: string; value?: string | null }) {
@@ -90,6 +92,7 @@ export default async function ProjectWorkspacePage({
   const generateMd = generateMdAction.bind(null, id);
   const generatePreview = generatePreviewAction.bind(null, id);
   const analyze = analyzeWebsiteAction.bind(null, id);
+  const runAiVision = runAiVisionAction.bind(null, id);
   const updateReferences = updateReferencesAction.bind(null, id);
   const generateDelivery = generateAction.bind(null, id);
   const remove = deleteProjectAction.bind(null, id);
@@ -258,6 +261,26 @@ export default async function ProjectWorkspacePage({
         analyze={analyze}
       />
       <ScreenshotUpload projectId={id} initial={screenshots} save={saveScreenshotsAction} />
+      <div className="card flex flex-wrap items-center justify-between gap-4 p-5">
+        <div>
+          <p className="text-sm font-semibold text-ink">AI Vision analysis</p>
+          <p className="mt-0.5 max-w-xl text-[13px] text-muted">
+            {screenshots.length
+              ? "Analyze your section screenshots with OpenAI Vision — layout, hierarchy, and component structure. Computed styles stay the factual source; Vision adds visual interpretation."
+              : "Add or capture section screenshots first for AI Vision analysis."}
+          </p>
+        </div>
+        <ActionDialog
+          projectId={id}
+          trigger="button"
+          title="Run AI Vision Analysis"
+          description="Analyze section screenshots with OpenAI Vision."
+          confirmText="Run OpenAI Vision on the uploaded screenshots and save AI_SCREENSHOT_ANALYSIS.json? Runs server-side; needs OPENAI_API_KEY set (falls back cleanly if not)."
+          runName="AI Vision analysis"
+          action={runAiVision}
+          disabledNote={screenshots.length ? undefined : "Add section screenshots above to enable AI Vision analysis."}
+        />
+      </div>
     </div>
   );
 

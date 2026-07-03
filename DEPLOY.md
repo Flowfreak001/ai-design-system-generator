@@ -30,7 +30,21 @@ This app deploys to [Railway](https://railway.app) via Nixpacks. Config lives in
 | ---------------- | -------- | ------------------------------------------------------------ |
 | `DATABASE_URL`   | yes      | From the Railway Postgres plugin. Never hard-code it.        |
 | `REDIS_URL`      | no       | Optional. See "Queue" below.                                 |
-| `OPENAI_API_KEY` | no       | Reserved for the real AI agents (not used yet).              |
+| `OPENAI_API_KEY` | no       | Enables OpenAI **Vision** screenshot analysis. Server-side only; never exposed to the browser. Without it, the "Run AI Vision Analysis" button still works but returns a clearly-labelled fallback. |
+
+### OpenAI Vision (optional)
+
+The "Run AI Vision Analysis" action sends a project's section screenshots to
+OpenAI Vision (`gpt-4o-mini`) and saves `AI_SCREENSHOT_ANALYSIS.json`, which the
+MD generators use for visual/layout interpretation (computed styles from the
+Playwright probe always remain the factual source).
+
+- **Local dev:** add `OPENAI_API_KEY="sk-…"` to `.env`. Optional — everything
+  else works without it.
+- **Railway:** App service → **Variables** → add `OPENAI_API_KEY`. The key is
+  read server-side (via the REST API over `fetch`, no SDK dependency) and is
+  never sent to the frontend. If the key is absent the flow degrades to a
+  labelled fallback rather than failing.
 
 ## Queue / Redis
 

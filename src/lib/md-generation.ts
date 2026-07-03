@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db/client";
 import { toGenerationInput } from "@/lib/projects";
 import { MD_GENERATORS, type GeneratorContext } from "@/lib/generators";
 import type { AnimationAnalysis } from "@/lib/analysis/animation-extractor";
+import type { AiScreenshotAnalysis } from "@/lib/ai/types";
 import type {
   WebsiteAnalysis,
   VisualAnalysis,
@@ -37,6 +38,7 @@ async function loadContext(projectId: string): Promise<{ ctx: GeneratorContext; 
           "VISUAL_ANALYSIS.json",
           "DESIGN_TOKENS.json",
           "ANIMATION_ANALYSIS.json",
+          "AI_SCREENSHOT_ANALYSIS.json",
         ],
       },
     },
@@ -50,6 +52,7 @@ async function loadContext(projectId: string): Promise<{ ctx: GeneratorContext; 
     visual: safeParse<VisualAnalysis>(byName.get("VISUAL_ANALYSIS.json")),
     tokens: safeParse<TokensAnalysis>(byName.get("DESIGN_TOKENS.json")),
     animation: safeParse<AnimationAnalysis>(byName.get("ANIMATION_ANALYSIS.json")),
+    ai: safeParse<AiScreenshotAnalysis>(byName.get("AI_SCREENSHOT_ANALYSIS.json")),
   };
   return { ctx, analysisCount: jsonFiles.length };
 }

@@ -9,6 +9,7 @@ import type {
   VisualAnalysis,
   TokensAnalysis,
 } from "@/lib/analysis/site-analyzer";
+import type { AiScreenshotAnalysis } from "@/lib/ai/types";
 
 export type GeneratorContext = {
   input: GenerationInput;
@@ -16,9 +17,31 @@ export type GeneratorContext = {
   visual: VisualAnalysis | null;
   tokens: TokensAnalysis | null;
   animation: AnimationAnalysis | null;
+  /** OpenAI Vision screenshot analysis, when it has been run. */
+  ai: AiScreenshotAnalysis | null;
 };
 
 export type MdArtifact = { name: string; content: string };
+
+/** A compact, labelled block summarising OpenAI Vision findings for a set of
+ *  section types — reused across DESIGN/COMPONENTS/ANIMATION/CREATIVE. Returns
+ *  "" when no vision analysis exists so generators stay clean. */
+export function visionBlock(ctx: GeneratorContext, keys: (keyof import("@/lib/ai/types").VisionAnalysis)[]): string {
+  const ai = ctx.ai;
+  if (!ai || ai.source !== "openai_vision" || !ai.sections.length) return "";
+  const lines: string[] = [];
+  for (const s of ai.sections) {
+    const bits: string[] = [];
+    for (const k of keys) {
+      const v = s[k];
+      if (Array.isArray(v) && v.length) bits.push(...v.map((x) => `  - ${x}`));
+      else if (typeof v === "string" && v) bits.push(`  - ${v}`);
+    }
+    if (bits.length) lines.push(`**${s.label ?? s.sectionType}** (${s.pageType} · confidence ${s.confidence}):\n${bits.slice(0, 8).join("\n")}`);
+  }
+  if (!lines.length) return "";
+  return `\n## Detected from screenshot (OpenAI Vision)\n_Visual interpretation only — computed styles above remain the factual source._\n\n${lines.join("\n\n")}\n`;
+}
 
 // ---- helpers ---------------------------------------------------------------
 

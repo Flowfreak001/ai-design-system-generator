@@ -2,6 +2,7 @@ import {
   type GeneratorContext,
   type MdArtifact,
   Assumptions,
+  visionBlock,
   orNa,
   who,
   sectionsOf,
@@ -65,6 +66,7 @@ ${
 **Do:** one orchestrated moment per view, cohesive mood, purposeful motion, specific claims.
 **Don't:** stock-photo clutter, competing accent colors, decorative-only animation, vague superlatives.
 
+${visionBlock(ctx, ["visualLayout", "imageTreatment", "colorUsage"])}
 ${a.section()}
 `;
   return { name: "CREATIVE.md", content };
