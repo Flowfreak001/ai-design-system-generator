@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
 import {
   WEBSITE_TYPES,
   GOAL_OPTIONS,
@@ -351,9 +350,8 @@ export function ProjectWizard({
       <input type="hidden" name="keyItems" value={[...pages].join("\n")} />
       <input type="hidden" name="referenceLearn" value={[...learn].join("\n")} />
 
-      {/* Progress */}
-      <Progress value={(step / STEPS.length) * 100} aria-label={`Step ${step} of ${STEPS.length}`} />
-      <ol className="-mt-3 flex items-center gap-1" aria-label="Progress steps">
+      {/* Stepper — connectors fill with the accent color as steps complete. */}
+      <ol className="flex items-center gap-1" aria-label="Progress steps">
         {STEPS.map((s, i) => {
           const done = step > s.id;
           const active = step === s.id;
@@ -373,7 +371,12 @@ export function ProjectWizard({
                 <span>{done ? "✓" : s.id}</span>
                 <span className="hidden sm:inline">{s.label}</span>
               </button>
-              {i < STEPS.length - 1 && <span className="h-px flex-1 bg-line" aria-hidden="true" />}
+              {i < STEPS.length - 1 && (
+                <span
+                  className={`h-px flex-1 transition-colors duration-300 ${done ? "bg-accent" : "bg-line"}`}
+                  aria-hidden="true"
+                />
+              )}
             </li>
           );
         })}
