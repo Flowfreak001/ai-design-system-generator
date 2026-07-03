@@ -192,16 +192,16 @@ function PageFrame({
                   style={mode === "wireframe" && scheme ? ({ "--color-accent": scheme } as React.CSSProperties) : undefined}
                   className={`group relative w-full shrink-0 ${selected ? "z-10 ring-2 ring-inset ring-accent" : ""} ${s.status === "rejected" ? "opacity-40" : ""}`}
                 >
-                  <div className="pointer-events-none absolute left-0 right-0 top-0 z-10 flex items-center justify-between px-2 py-1 opacity-0 transition-opacity group-hover:opacity-100">
-                    <span className="pointer-events-auto flex items-center gap-1.5 rounded-md bg-ink/80 px-2 py-0.5 text-[10px] font-medium text-white">
-                      {s.name}<span className="rounded bg-white/20 px-1">{s.source}</span>{s.status && <span className="rounded bg-white/20 px-1">{s.status}</span>}
+                  <div className="pointer-events-none absolute left-0 right-0 top-0 z-10 flex items-center justify-between px-2 py-2 opacity-0 transition-opacity group-hover:opacity-100">
+                    <span className="pointer-events-auto flex items-center gap-1.5 rounded-lg bg-ink/85 px-2.5 py-1 text-[12px] font-medium text-white">
+                      {s.name}<span className="rounded bg-white/20 px-1.5 py-0.5 text-[11px]">{s.source}</span>{s.status && <span className="rounded bg-white/20 px-1.5 py-0.5 text-[11px]">{s.status}</span>}
                     </span>
-                    <span className="pointer-events-auto flex items-center gap-0.5 rounded-md bg-surface px-1 py-0.5 shadow-sm">
-                      <button type="button" onClick={(e) => { e.stopPropagation(); onMoveSection(page.id, s.id, -1); }} disabled={i === 0} className="px-1 text-faint hover:text-ink disabled:opacity-30">↑</button>
-                      <button type="button" onClick={(e) => { e.stopPropagation(); onMoveSection(page.id, s.id, 1); }} disabled={i === page.sections.length - 1} className="px-1 text-faint hover:text-ink disabled:opacity-30">↓</button>
-                      {onApproveSection && <button type="button" onClick={(e) => { e.stopPropagation(); onApproveSection(page.id, s.id, "approved"); }} title="Approve" className="px-1 text-faint hover:text-success">✓</button>}
-                      <button type="button" onClick={(e) => { e.stopPropagation(); onDuplicateSection(page.id, s.id); }} title="Duplicate" className="px-1 text-[11px] text-faint hover:text-ink">⧉</button>
-                      <button type="button" onClick={(e) => { e.stopPropagation(); onRemoveSection(page.id, s.id); }} title="Delete" className="px-1 text-faint hover:text-danger">✕</button>
+                    <span className="pointer-events-auto flex items-center gap-1 rounded-xl border border-line bg-surface px-1 py-1 shadow-lg">
+                      <button type="button" onClick={(e) => { e.stopPropagation(); onMoveSection(page.id, s.id, -1); }} disabled={i === 0} title="Move up" className="grid h-8 w-8 place-items-center rounded-lg text-[17px] text-body hover:bg-panel hover:text-ink disabled:opacity-25">↑</button>
+                      <button type="button" onClick={(e) => { e.stopPropagation(); onMoveSection(page.id, s.id, 1); }} disabled={i === page.sections.length - 1} title="Move down" className="grid h-8 w-8 place-items-center rounded-lg text-[17px] text-body hover:bg-panel hover:text-ink disabled:opacity-25">↓</button>
+                      {onApproveSection && <button type="button" onClick={(e) => { e.stopPropagation(); onApproveSection(page.id, s.id, "approved"); }} title="Approve" className="grid h-8 w-8 place-items-center rounded-lg text-[16px] text-body hover:bg-success-soft hover:text-success">✓</button>}
+                      <button type="button" onClick={(e) => { e.stopPropagation(); onDuplicateSection(page.id, s.id); }} title="Duplicate" className="grid h-8 w-8 place-items-center rounded-lg text-[15px] text-body hover:bg-panel hover:text-ink">⧉</button>
+                      <button type="button" onClick={(e) => { e.stopPropagation(); onRemoveSection(page.id, s.id); }} title="Delete" className="grid h-8 w-8 place-items-center rounded-lg text-[16px] text-body hover:bg-danger-soft hover:text-danger">✕</button>
                     </span>
                   </div>
                   {mode === "wireframe" ? (
