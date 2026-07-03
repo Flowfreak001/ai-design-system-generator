@@ -92,6 +92,7 @@ export const SECTION_CATALOG: Partial<Record<SectionType, SectionCatalogEntry>> 
       V("grid", "Feature Grid", "FeatureGrid", "features/FeatureGrid", ["saas", "platform", "agency"]),
       V("icon-cards", "Feature Cards With Icons", "FeatureCardsWithIcons", "features/marketing", ["saas", "platform", "agency", "software"]),
       V("tabs", "Feature Tabs", "FeatureTabs", "features/marketing", ["saas", "platform", "software"]),
+      V("accordion-visual", "Feature Accordion + Visual", "FeatureSplitAccordion", "features/FeatureSplitAccordion", ["saas", "platform", "builder", "agency"], { supportsAssetSwap: true }),
     ],
   },
   "booking-form": {

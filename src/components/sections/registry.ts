@@ -43,6 +43,7 @@ import DashboardPreviewSection from "./dashboard/DashboardPreviewSection";
 // Elementor-grade marketing sections (folder index files, named exports).
 import { AIPlatformHero, SplitVisualHero } from "./hero/marketing";
 import { FeatureCardsWithIcons, FeatureTabs } from "./features/marketing";
+import FeatureSplitAccordion from "./features/FeatureSplitAccordion";
 import { GradientCTA, TrialSignupCTA } from "./cta/marketing";
 import { SaaSFooter } from "./footer/marketing";
 import { LogoCloud, ReviewStats, TrustBadgeStrip } from "./social-proof";
@@ -57,7 +58,7 @@ const COMPONENTS: Partial<Record<SectionType, Record<string, SectionComponent>>>
   navbar: { simple: SimpleNavbar, "center-logo": CenterLogoNavbar, "with-cta": NavbarWithCTA },
   hero: { centered: CenteredHero, split: SplitHero, "split-visual": SplitVisualHero, image: HeroWithImage, booking: HeroWithBookingForm, saas: SaaSHero, "ai-platform": AIPlatformHero, local: LocalBusinessHero },
   services: { "cards-3": ServiceCards3, "grid-6": ServiceGrid6, "image-cards": ServiceImageCards },
-  features: { grid: FeatureGrid, "icon-cards": FeatureCardsWithIcons, tabs: FeatureTabs },
+  features: { grid: FeatureGrid, "icon-cards": FeatureCardsWithIcons, tabs: FeatureTabs, "accordion-visual": FeatureSplitAccordion },
   "social-proof": { "logo-cloud": LogoCloud, "review-stats": ReviewStats, "trust-badges": TrustBadgeStrip },
   workflow: { steps: StepByStepProcess, cards: HowItWorksCards, ai: AIWorkflowSection },
   showcase: { templates: TemplateGallery, "case-studies": CaseStudyCards },
