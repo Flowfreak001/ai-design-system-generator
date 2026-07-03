@@ -66,7 +66,19 @@ export const createProjectSchema = z.object({
   name: z.string().min(1, "Project name is required"),
   businessName: z.string().min(1, "Business name is required"),
   businessType: z.string().min(1, "Business type is required"),
-  goal: z.string().min(1, "Website goal is required"),
+  // Goal is now derived from selected goal cards; kept optional for
+  // programmatic/legacy callers (seed) and defaulted to "".
+  goal: optionalText.transform((v) => v ?? ""),
+  // Smart onboarding selections (all optional server-side; the wizard enforces
+  // the "at least one" rules client-side so seed/API creation stays flexible).
+  industry: optionalText,
+  websiteType: optionalText,
+  goals: listField,
+  features: listField,
+  referenceLearn: listField,
+  pageCount: optionalText,
+  pageNotes: optionalText,
+  mainReferenceUrl: optionalText,
   // Optional everything else (the scan detects real pages/sections):
   keyItems: listField,
   platformTarget: optionalText.transform((v) => v ?? ""),

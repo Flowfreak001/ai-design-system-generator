@@ -52,11 +52,28 @@ export async function getFileVersions(projectId: string, agencyId: string) {
 }
 
 export async function createProject(data: CreateProjectInput, agencyId?: string) {
+  // Fold the main reference URL into the reference list (deduped) so analysis
+  // picks it up, while also keeping it as a labeled primary reference.
+  const referenceUrls = Array.from(
+    new Set([data.mainReferenceUrl, ...data.referenceUrls].filter(Boolean) as string[]),
+  );
+  // Derive a human goal sentence from selected goal cards when no free-text goal
+  // is provided, so downstream generators that read `goal` still work.
+  const goal = data.goal || (data.goals.length ? data.goals.join(", ") : undefined);
+
   const brief: ProjectBrief = {
     businessType: data.businessType,
-    goal: data.goal,
+    industry: data.industry,
+    goal,
     targetAudience: data.targetAudience,
-    referenceUrls: data.referenceUrls,
+    websiteType: data.websiteType,
+    goals: data.goals,
+    features: data.features,
+    referenceLearn: data.referenceLearn,
+    pageCount: data.pageCount,
+    pageNotes: data.pageNotes,
+    mainReferenceUrl: data.mainReferenceUrl,
+    referenceUrls,
     existingWebsiteUrl: data.existingWebsiteUrl,
     pageUrls: data.pageUrls,
     competitorUrls: data.competitorUrls,
@@ -151,6 +168,9 @@ export function toGenerationInput(
       competitorUrls: brief.competitorUrls ?? [],
       pageUrls: brief.pageUrls ?? [],
       seoKeywords: brief.seoKeywords ?? [],
+      goals: brief.goals ?? [],
+      features: brief.features ?? [],
+      referenceLearn: brief.referenceLearn ?? [],
     },
     automation: autoRow ? (autoRow.data as AutomationBrief) : undefined,
   };

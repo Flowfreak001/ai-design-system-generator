@@ -6,8 +6,17 @@ import type { ProjectType } from "@/generated/prisma/enums";
 export type ProjectBrief = {
   // Step 1 — basics
   businessType?: string;
+  industry?: string;
   goal?: string;
   targetAudience?: string;
+  // Smart onboarding (goal + feature selection)
+  websiteType?: string;
+  goals: string[];
+  features: string[];
+  referenceLearn: string[];
+  pageCount?: string;
+  pageNotes?: string;
+  mainReferenceUrl?: string;
   // Step 2 — design references (all optional)
   referenceUrls: string[];
   existingWebsiteUrl?: string;
