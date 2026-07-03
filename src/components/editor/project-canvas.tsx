@@ -7,11 +7,19 @@
 // always render.
 
 import { useEffect, useRef, useState } from "react";
-import { SectionWireframe } from "./wireframe-block";
 import { renderSectionVariant } from "@/components/sections/variants";
 import { themeFromStyle, type SectionTheme } from "@/components/sections/theme";
 import { sectionKind } from "@/lib/sections";
 import type { CanvasPage, CanvasColor, CanvasSection, StyleGuideCanvas } from "@/lib/canvas";
+
+// Low-fidelity monochrome theme: the Wireframe stage renders the SAME variant
+// components as Design, but greyed out — so the wireframe reflects the chosen
+// layout / variant / asset side without brand colours or high fidelity.
+const WIREFRAME_THEME: SectionTheme = {
+  primary: "#c4c4c4", accent: "#cfcfcf", ink: "#9b9b9b", muted: "#bcbcbc",
+  bg: "#ffffff", surface: "#ededed", radius: 8,
+  headingFont: "Inter, system-ui, sans-serif", bodyFont: "Inter, system-ui, sans-serif",
+};
 
 const FRAME_W = { desktop: 820, tablet: 640, mobile: 380 } as const;
 type Device = keyof typeof FRAME_W;
@@ -233,11 +241,13 @@ function PageFrame({
                       <button type="button" onClick={(e) => { e.stopPropagation(); onRemoveSection(page.id, s.id); }} title="Delete" className="grid h-8 w-8 place-items-center rounded-lg text-[16px] text-body hover:bg-danger-soft hover:text-danger">✕</button>
                     </span>
                   </div>
-                  {mode === "wireframe" ? (
-                    <SectionWireframe name={s.name} mobile={mobile} />
-                  ) : (
-                    renderSectionVariant(sectionKind(s.name), s.variant, { name: s.name, note: s.note, theme, mobile, assetSide: s.asset === "left" ? "left" : "right" })
-                  )}
+                  {renderSectionVariant(sectionKind(s.name), s.variant, {
+                    name: s.name,
+                    note: s.note,
+                    theme: mode === "wireframe" ? WIREFRAME_THEME : theme,
+                    mobile,
+                    assetSide: s.asset === "left" ? "left" : "right",
+                  })}
                 </div>
               );
             })}
