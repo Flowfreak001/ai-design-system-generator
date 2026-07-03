@@ -61,13 +61,14 @@ export const StatBand = make((t, p) => (
 ));
 
 // 3 — Feature Split: image + checklist, two columns.
-export const FeatureSplit = make((t, p) => (
-  <Band t={t}><div className="mx-auto grid max-w-5xl items-center gap-10 sm:grid-cols-2">
-    <div><Eyebrow t={t}>Why us</Eyebrow><h2 className="text-[28px] font-semibold tracking-[-0.02em]" style={h(t)}>{p.title ?? "Built for the way you work"}</h2><p className="mt-3 text-[15px] leading-relaxed" style={b(t)}>{p.description ?? "A clear value statement, backed by a scannable list of concrete benefits."}</p>
-      <ul className="mt-5 grid gap-2.5">{["No code required", "Brand-consistent output", "Export-ready handoff"].map((it) => (<li key={it} className="flex items-center gap-3 text-[14px] font-medium" style={h(t)}><span className="grid h-6 w-6 place-items-center rounded-full text-[12px]" style={{ background: t.accentColor, color: "#fff" }}>✓</span>{it}</li>))}</ul>
-      <div className="mt-6"><Btn t={t} label="See how" /></div></div>
-    <Ph t={t} className="h-72" rounded="rounded-3xl" /></div></Band>
-));
+export const FeatureSplit = make((t, p) => {
+  const txt = <div><Eyebrow t={t}>Why us</Eyebrow><h2 className="text-[28px] font-semibold tracking-[-0.02em]" style={h(t)}>{p.title ?? "Built for the way you work"}</h2><p className="mt-3 text-[15px] leading-relaxed" style={b(t)}>{p.description ?? "A clear value statement, backed by a scannable list of concrete benefits."}</p>
+    <ul className="mt-5 grid gap-2.5">{["No code required", "Brand-consistent output", "Export-ready handoff"].map((it) => (<li key={it} className="flex items-center gap-3 text-[14px] font-medium" style={h(t)}><span className="grid h-6 w-6 place-items-center rounded-full text-[12px]" style={{ background: t.accentColor, color: "#fff" }}>✓</span>{it}</li>))}</ul>
+    <div className="mt-6"><Btn t={t} label="See how" /></div></div>;
+  const img = <Ph t={t} className="h-72" rounded="rounded-3xl" />;
+  const imgLeft = p.assetSide === "left";
+  return <Band t={t}><div className="mx-auto grid max-w-5xl items-center gap-10 sm:grid-cols-2">{imgLeft ? <>{img}{txt}</> : <>{txt}{img}</>}</div></Band>;
+});
 
 // 4 — Testimonial Spotlight: single large quote with avatar.
 export const TestimonialSpotlight = make((t, p) => (

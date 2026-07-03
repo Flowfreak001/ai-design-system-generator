@@ -54,12 +54,12 @@ type BlockFC = React.FC<SectionProps>;
 const make = (fn: (t: SectionTheme, p: SectionProps) => React.ReactNode): BlockFC => (p) => <>{fn(resolveTheme(p.theme), p)}</>;
 
 // ── BASIC ──────────────────────────────────────────────────────────────────
-export const ImageBox = make((t, p) => (
-  <Band t={t}><div className="mx-auto grid max-w-4xl items-center gap-8 sm:grid-cols-2">
-    <Ph t={t} className="h-56" />
-    <div><Chip t={t} /><h3 className="mt-4 text-[24px] font-semibold tracking-[-0.02em]" style={h(t)}>{p.title ?? "Image box heading"}</h3><p className="mt-2 text-[15px] leading-relaxed" style={b(t)}>{p.description ?? "Pair a strong visual with a clear, benefit-led message and a subtle link."}</p><div className="mt-4 text-[13.5px] font-semibold" style={{ color: t.accentColor }}>Learn more →</div></div>
-  </div></Band>
-));
+export const ImageBox = make((t, p) => {
+  const img = <Ph t={t} className="h-56" />;
+  const txt = <div><Chip t={t} /><h3 className="mt-4 text-[24px] font-semibold tracking-[-0.02em]" style={h(t)}>{p.title ?? "Image box heading"}</h3><p className="mt-2 text-[15px] leading-relaxed" style={b(t)}>{p.description ?? "Pair a strong visual with a clear, benefit-led message and a subtle link."}</p><div className="mt-4 text-[13.5px] font-semibold" style={{ color: t.accentColor }}>Learn more →</div></div>;
+  const imgRight = p.assetSide === "right";
+  return <Band t={t}><div className="mx-auto grid max-w-4xl items-center gap-8 sm:grid-cols-2">{imgRight ? <>{txt}{img}</> : <>{img}{txt}</>}</div></Band>;
+});
 export const IconBox = make((t, p) => (
   <Band t={t} tone="tint"><div className="mx-auto max-w-md text-center"><div className="mb-4 flex justify-center"><Chip t={t} solid /></div><h3 className="text-[22px] font-semibold tracking-[-0.02em]" style={h(t)}>{p.title ?? "Icon box heading"}</h3><p className="mt-2 text-[15px] leading-relaxed" style={b(t)}>{p.description ?? "A concise benefit statement anchored by a bold accent icon."}</p></div></Band>
 ));
@@ -134,9 +134,12 @@ export const ContactInfo = make((t, p) => (
   <Band t={t} tone="surface"><Head t={t} eyebrow="Contact" title={p.title ?? "Get in touch"} sub={p.description} />
     <div className="mx-auto grid max-w-3xl gap-4 sm:grid-cols-3">{[["Address", "123 Example St"], ["Phone", "+1 (000) 000-0000"], ["Email", "hello@brand.com"]].map(([l, v]) => (<div key={l} className="p-5" style={Elev(t)}><Chip t={t} /><p className="mt-3 text-[11.5px] font-semibold uppercase tracking-wider" style={{ color: t.accentColor }}>{l}</p><p className="mt-0.5 text-[14.5px] font-medium" style={h(t)}>{v}</p></div>))}</div></Band>
 ));
-export const LocationCard = make((t, p) => (
-  <Band t={t}><div className="mx-auto grid max-w-4xl items-center gap-8 sm:grid-cols-2"><Ph t={t} className="h-52" label="map" /><div><Eyebrow t={t}>Find us</Eyebrow><h3 className="text-[24px] font-semibold tracking-[-0.02em]" style={h(t)}>{p.title ?? "Visit our studio"}</h3><p className="mt-2 whitespace-pre-line text-[15px] leading-relaxed" style={b(t)}>{p.description ?? "123 Example Street, Suite 100\nCity, Country"}</p><div className="mt-4"><Btn t={t} label="Get directions" kind="ghost" /></div></div></div></Band>
-));
+export const LocationCard = make((t, p) => {
+  const map = <Ph t={t} className="h-52" label="map" />;
+  const info = <div><Eyebrow t={t}>Find us</Eyebrow><h3 className="text-[24px] font-semibold tracking-[-0.02em]" style={h(t)}>{p.title ?? "Visit our studio"}</h3><p className="mt-2 whitespace-pre-line text-[15px] leading-relaxed" style={b(t)}>{p.description ?? "123 Example Street, Suite 100\nCity, Country"}</p><div className="mt-4"><Btn t={t} label="Get directions" kind="ghost" /></div></div>;
+  const mapRight = p.assetSide === "right";
+  return <Band t={t}><div className="mx-auto grid max-w-4xl items-center gap-8 sm:grid-cols-2">{mapRight ? <>{info}{map}</> : <>{map}{info}</>}</div></Band>;
+});
 
 // ── MEDIA ──────────────────────────────────────────────────────────────────
 export const ImagePlaceholder = make((t, p) => (<Band t={t}><Ph t={t} className="mx-auto h-72 max-w-5xl" rounded="rounded-3xl" label={p.title ?? "image placeholder"} /></Band>));
