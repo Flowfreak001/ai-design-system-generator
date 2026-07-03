@@ -649,11 +649,11 @@ export function ProjectWizard({
       {/* Nav */}
       <div className="flex items-center justify-between">
         <Button type="button" variant="ghost" onClick={() => goTo(step - 1)} className={step === 1 ? "invisible" : ""}>
-          ← Back
+          Back
         </Button>
         {step < LAST ? (
           <Button type="button" onClick={() => goTo(step + 1)}>
-            Continue →
+            Continue
           </Button>
         ) : (
           <Button type="submit" size="lg" disabled={pending} className="disabled:opacity-50">

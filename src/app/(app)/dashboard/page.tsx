@@ -105,7 +105,7 @@ export default async function DashboardPage() {
               <p className="mt-0.5 text-[13px] text-muted">Projects with a recommended next step</p>
             </div>
             <Link href="/projects" className="text-[13px] font-medium text-accent hover:underline">
-              All projects →
+              All projects
             </Link>
           </div>
           {attention.length === 0 ? (
