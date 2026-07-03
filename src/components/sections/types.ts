@@ -100,6 +100,8 @@ export interface SectionProps {
   /** Editor-only render hints. */
   mobile?: boolean;
   assetSide?: "left" | "right";
+  /** Canvas-editable parts to hide (e.g. "icon", "eyebrow", "button"). */
+  hidden?: string[];
 }
 
 export type SectionComponent = ComponentType<SectionProps>;

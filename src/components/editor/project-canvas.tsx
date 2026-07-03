@@ -239,6 +239,7 @@ function PageFrame({
                     theme: mode === "wireframe" ? WIREFRAME_SECTION_THEME : theme,
                     mobile,
                     assetSide: s.asset === "left" ? "left" : "right",
+                    hidden: s.hidden,
                   })}
                 </div>
               );

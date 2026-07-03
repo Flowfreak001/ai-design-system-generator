@@ -10,6 +10,7 @@
 
 import type { SectionProps, SectionTheme } from "../types";
 import { resolveTheme, h, b, btnRadius } from "../section-theme";
+import { HiddenParts, useHidden } from "./parts";
 
 // ---- modern theme helpers (all derived from brand tokens) ----
 const tint = (t: SectionTheme, pct = 12) => `color-mix(in srgb, ${t.accentColor} ${pct}%, ${t.backgroundColor})`;
@@ -21,9 +22,10 @@ const Band: React.FC<{ t: SectionTheme; children: React.ReactNode; tone?: "bg" |
   const bg = tone === "surface" ? t.surfaceColor : tone === "tint" ? tint(t, 8) : tone === "dark" ? darkBg(t) : tone === "grad" ? grad(t) : t.backgroundColor;
   return <section className={pad} style={{ background: bg, fontFamily: t.bodyFont }}>{children}</section>;
 };
-const Eyebrow: React.FC<{ t: SectionTheme; children: React.ReactNode; onDark?: boolean }> = ({ t, children, onDark }) => (
-  <span className="mb-3 inline-block text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: onDark ? "#fff" : t.accentColor, opacity: onDark ? 0.8 : 1 }}>{children}</span>
-);
+const Eyebrow: React.FC<{ t: SectionTheme; children: React.ReactNode; onDark?: boolean }> = ({ t, children, onDark }) => {
+  if (useHidden("eyebrow")) return null;
+  return <span className="mb-3 inline-block text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: onDark ? "#fff" : t.accentColor, opacity: onDark ? 0.8 : 1 }}>{children}</span>;
+};
 const Head: React.FC<{ t: SectionTheme; title?: string; sub?: string; center?: boolean; eyebrow?: string; onDark?: boolean }> = ({ t, title, sub, center, eyebrow, onDark }) =>
   title || sub || eyebrow ? (
     <div className={center ? "mx-auto mb-10 max-w-2xl text-center" : "mb-10 max-w-2xl"}>
@@ -33,9 +35,10 @@ const Head: React.FC<{ t: SectionTheme; title?: string; sub?: string; center?: b
     </div>
   ) : null;
 // Accent icon chip (rounded square).
-const Chip: React.FC<{ t: SectionTheme; children?: React.ReactNode; solid?: boolean }> = ({ t, children, solid }) => (
-  <span className="grid h-11 w-11 place-items-center rounded-2xl text-[15px] font-semibold" style={solid ? { background: t.accentColor, color: "#fff" } : { background: tint(t, 16), color: t.accentColor, border: `1px solid ${tint(t, 30)}` }}>{children ?? "◆"}</span>
-);
+const Chip: React.FC<{ t: SectionTheme; children?: React.ReactNode; solid?: boolean }> = ({ t, children, solid }) => {
+  if (useHidden("icon")) return null;
+  return <span className="grid h-11 w-11 place-items-center rounded-2xl text-[15px] font-semibold" style={solid ? { background: t.accentColor, color: "#fff" } : { background: tint(t, 16), color: t.accentColor, border: `1px solid ${tint(t, 30)}` }}>{children ?? "◆"}</span>;
+};
 const Pill: React.FC<{ t: SectionTheme; children: React.ReactNode; onDark?: boolean }> = ({ t, children, onDark }) => (
   <span className="inline-flex items-center rounded-full px-3.5 py-1.5 text-[12.5px] font-medium" style={onDark ? { background: "rgba(255,255,255,0.1)", color: "#fff" } : { background: t.surfaceColor, color: t.textColor, border: `1px solid ${t.borderColor}` }}>{children}</span>
 );
@@ -45,13 +48,14 @@ const Ph: React.FC<{ t: SectionTheme; className?: string; label?: string; rounde
     <span className="text-[11px] font-medium uppercase tracking-wider" style={{ color: t.mutedTextColor, opacity: 0.6 }}>{label ?? "image"}</span>
   </div>
 );
-const Btn: React.FC<{ t: SectionTheme; label: string; kind?: "fill" | "ghost" }> = ({ t, label, kind = "fill" }) => (
-  <span className="inline-flex items-center gap-1.5 px-5 py-2.5 text-[13.5px] font-semibold" style={kind === "fill" ? { background: grad(t), color: "#fff", borderRadius: btnRadius(t) } : { color: t.accentColor, border: `1px solid ${tint(t, 40)}`, borderRadius: btnRadius(t) }}>{label}{kind === "fill" ? " →" : ""}</span>
-);
+const Btn: React.FC<{ t: SectionTheme; label: string; kind?: "fill" | "ghost" }> = ({ t, label, kind = "fill" }) => {
+  if (useHidden("button")) return null;
+  return <span className="inline-flex items-center gap-1.5 px-5 py-2.5 text-[13.5px] font-semibold" style={kind === "fill" ? { background: grad(t), color: "#fff", borderRadius: btnRadius(t) } : { color: t.accentColor, border: `1px solid ${tint(t, 40)}`, borderRadius: btnRadius(t) }}>{label}{kind === "fill" ? " →" : ""}</span>;
+};
 const Elev = (t: SectionTheme) => ({ background: t.backgroundColor, borderRadius: "20px", border: `1px solid ${t.borderColor}`, boxShadow: "0 1px 2px rgba(16,16,20,0.04), 0 12px 32px -12px rgba(16,16,20,0.12)" });
 
 type BlockFC = React.FC<SectionProps>;
-const make = (fn: (t: SectionTheme, p: SectionProps) => React.ReactNode): BlockFC => (p) => <>{fn(resolveTheme(p.theme), p)}</>;
+const make = (fn: (t: SectionTheme, p: SectionProps) => React.ReactNode): BlockFC => (p) => <HiddenParts.Provider value={new Set(p.hidden)}>{fn(resolveTheme(p.theme), p)}</HiddenParts.Provider>;
 
 // ── BASIC ──────────────────────────────────────────────────────────────────
 export const ImageBox = make((t, p) => {

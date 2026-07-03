@@ -29,7 +29,7 @@ export function renderSection(section: SectionProps) {
 export function renderSectionByKind(
   kind: string,
   variantId: string | undefined,
-  props: { name?: string; note?: string; theme?: SectionTheme; mobile?: boolean; assetSide?: "left" | "right" },
+  props: { name?: string; note?: string; theme?: SectionTheme; mobile?: boolean; assetSide?: "left" | "right"; hidden?: string[] },
 ) {
   const type = sectionTypeForKind(kind);
   const meta = resolveVariantMeta(type, variantId);
@@ -42,6 +42,7 @@ export function renderSectionByKind(
       theme={props.theme}
       mobile={props.mobile}
       assetSide={props.assetSide}
+      hidden={props.hidden}
     />
   );
 }

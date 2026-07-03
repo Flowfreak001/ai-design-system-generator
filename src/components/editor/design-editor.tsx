@@ -22,6 +22,7 @@ import { recommendElements } from "@/lib/element-library/recommendations";
 import { isReady } from "@/lib/element-library/registry";
 import { KIND_LABEL, KIND_BADGE } from "@/lib/element-library/categories";
 import { ELEMENT_ICONS } from "./element-icons";
+import { EDITABLE_PARTS } from "@/components/sections/blocks/parts";
 import type { ElementItem, ElementLibraryContext } from "@/lib/element-library/types";
 import { arrayMove } from "@dnd-kit/sortable";
 import type {
@@ -1384,6 +1385,26 @@ function SectionSettingsContent({
                   {side === "left" ? "←" : "→"}
                 </button>
               ))}
+            </div>
+          </div>
+        )}
+
+        {/* Elements — show/hide editable parts on the canvas (block sections). */}
+        {kind === "block" && (
+          <div>
+            <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wide text-faint">Elements</label>
+            <div className="grid gap-1">
+              {EDITABLE_PARTS.map((part) => {
+                const shown = !(section.hidden ?? []).includes(part.key);
+                return (
+                  <button key={part.key} type="button"
+                    onClick={() => { const cur = section.hidden ?? []; onPatch({ hidden: shown ? [...cur, part.key] : cur.filter((k) => k !== part.key) }); }}
+                    className="flex items-center justify-between rounded-lg border border-line px-3 py-2 text-[12.5px] hover:border-line-strong">
+                    <span className={shown ? "text-body" : "text-faint line-through"}>{part.label}</span>
+                    <span className={`text-[11px] font-medium ${shown ? "text-accent" : "text-faint"}`}>{shown ? "Visible" : "Hidden"}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}

@@ -27,6 +27,8 @@ export type CanvasSection = {
   scheme?: string;
   /** Asset placement hint (e.g. "left", "right", "background", "none"). */
   asset?: string;
+  /** Canvas-editable parts hidden on this section (e.g. "icon", "eyebrow", "button"). */
+  hidden?: string[];
 };
 
 /** Sitemap category tabs for the Visual Sitemap board. */

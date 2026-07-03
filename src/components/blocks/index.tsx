@@ -8,6 +8,7 @@
 
 import type { SectionProps, SectionTheme } from "../sections/types";
 import { resolveTheme, h, b, btnRadius } from "../sections/section-theme";
+import { HiddenParts, useHidden } from "../sections/blocks/parts";
 
 const tint = (t: SectionTheme, p = 12) => `color-mix(in srgb, ${t.accentColor} ${p}%, ${t.backgroundColor})`;
 const grad = (t: SectionTheme) => `linear-gradient(135deg, ${t.accentColor}, color-mix(in srgb, ${t.accentColor} 55%, #0b0b12))`;
@@ -16,9 +17,10 @@ const Elev = (t: SectionTheme) => ({ background: t.backgroundColor, borderRadius
 const Band: React.FC<{ t: SectionTheme; children: React.ReactNode; tone?: "bg" | "surface" | "tint" | "dark"; pad?: string }> = ({ t, children, tone = "bg", pad = "px-12 py-16" }) => (
   <section className={pad} style={{ background: tone === "surface" ? t.surfaceColor : tone === "tint" ? tint(t, 8) : tone === "dark" ? dark(t) : t.backgroundColor, fontFamily: t.bodyFont }}>{children}</section>
 );
-const Eyebrow: React.FC<{ t: SectionTheme; children: React.ReactNode; onDark?: boolean }> = ({ t, children, onDark }) => (
-  <span className="mb-3 inline-block text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: onDark ? "#fff" : t.accentColor, opacity: onDark ? 0.8 : 1 }}>{children}</span>
-);
+const Eyebrow: React.FC<{ t: SectionTheme; children: React.ReactNode; onDark?: boolean }> = ({ t, children, onDark }) => {
+  if (useHidden("eyebrow")) return null;
+  return <span className="mb-3 inline-block text-[11px] font-semibold uppercase tracking-[0.18em]" style={{ color: onDark ? "#fff" : t.accentColor, opacity: onDark ? 0.8 : 1 }}>{children}</span>;
+};
 const Head: React.FC<{ t: SectionTheme; eyebrow?: string; title?: string; sub?: string; center?: boolean; onDark?: boolean }> = ({ t, eyebrow, title, sub, center, onDark }) => (
   <div className={center ? "mx-auto mb-10 max-w-2xl text-center" : "mb-10 max-w-2xl"}>
     {eyebrow && <Eyebrow t={t} onDark={onDark}>{eyebrow}</Eyebrow>}
@@ -26,21 +28,23 @@ const Head: React.FC<{ t: SectionTheme; eyebrow?: string; title?: string; sub?: 
     {sub && <p className="mt-3 text-[15px] leading-relaxed" style={{ color: onDark ? "#fff" : t.mutedTextColor, opacity: onDark ? 0.75 : 1 }}>{sub}</p>}
   </div>
 );
-const Chip: React.FC<{ t: SectionTheme; children?: React.ReactNode }> = ({ t, children }) => (
-  <span className="grid h-11 w-11 place-items-center rounded-2xl text-[15px] font-semibold" style={{ background: tint(t, 16), color: t.accentColor, border: `1px solid ${tint(t, 30)}` }}>{children ?? "◆"}</span>
-);
+const Chip: React.FC<{ t: SectionTheme; children?: React.ReactNode }> = ({ t, children }) => {
+  if (useHidden("icon")) return null;
+  return <span className="grid h-11 w-11 place-items-center rounded-2xl text-[15px] font-semibold" style={{ background: tint(t, 16), color: t.accentColor, border: `1px solid ${tint(t, 30)}` }}>{children ?? "◆"}</span>;
+};
 const Pill: React.FC<{ t: SectionTheme; children: React.ReactNode }> = ({ t, children }) => (
   <span className="inline-flex items-center rounded-full px-3.5 py-1.5 text-[12.5px] font-medium" style={{ background: t.surfaceColor, color: t.textColor, border: `1px solid ${t.borderColor}` }}>{children}</span>
 );
 const Ph: React.FC<{ t: SectionTheme; className?: string; label?: string; rounded?: string }> = ({ t, className = "", label, rounded = "rounded-2xl" }) => (
   <div className={`grid place-items-center overflow-hidden ${rounded} ${className}`} style={{ background: `linear-gradient(135deg, ${t.surfaceColor}, ${tint(t, 6)})`, border: `1px dashed ${t.borderColor}` }}><span className="text-[11px] font-medium uppercase tracking-wider" style={{ color: t.mutedTextColor, opacity: 0.6 }}>{label ?? "image"}</span></div>
 );
-const Btn: React.FC<{ t: SectionTheme; label: string; kind?: "fill" | "ghost" }> = ({ t, label, kind = "fill" }) => (
-  <span className="inline-flex items-center gap-1.5 px-5 py-2.5 text-[13.5px] font-semibold" style={kind === "fill" ? { background: grad(t), color: "#fff", borderRadius: btnRadius(t) } : { color: t.accentColor, border: `1px solid ${tint(t, 40)}`, borderRadius: btnRadius(t) }}>{label}{kind === "fill" ? " →" : ""}</span>
-);
+const Btn: React.FC<{ t: SectionTheme; label: string; kind?: "fill" | "ghost" }> = ({ t, label, kind = "fill" }) => {
+  if (useHidden("button")) return null;
+  return <span className="inline-flex items-center gap-1.5 px-5 py-2.5 text-[13.5px] font-semibold" style={kind === "fill" ? { background: grad(t), color: "#fff", borderRadius: btnRadius(t) } : { color: t.accentColor, border: `1px solid ${tint(t, 40)}`, borderRadius: btnRadius(t) }}>{label}{kind === "fill" ? " →" : ""}</span>;
+};
 
 type BlockFC = React.FC<SectionProps>;
-const make = (fn: (t: SectionTheme, p: SectionProps) => React.ReactNode): BlockFC => (p) => <>{fn(resolveTheme(p.theme), p)}</>;
+const make = (fn: (t: SectionTheme, p: SectionProps) => React.ReactNode): BlockFC => (p) => <HiddenParts.Provider value={new Set(p.hidden)}>{fn(resolveTheme(p.theme), p)}</HiddenParts.Provider>;
 
 // 1 — Bento Grid: asymmetric feature mosaic.
 export const BentoGrid = make((t, p) => (
