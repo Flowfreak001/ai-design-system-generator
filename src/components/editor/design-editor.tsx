@@ -290,6 +290,9 @@ export function DesignEditor({
           <span className="hidden text-[12px] text-faint sm:inline">
             {saving ? "Saving…" : dirty ? "Unsaved changes" : "All changes saved"}
           </span>
+          <Button size="sm" variant="secondary" title="Section Reference Library — upload references, extract patterns" onClick={() => window.open(`/projects/${projectId}/references`, "_blank", "noreferrer")}>
+            🖼 References
+          </Button>
           <Button size="sm" variant="secondary" title="Open a full-page live preview (scroll animations work here)" onClick={() => window.open(`/preview/${projectId}?page=${selectedPageId}`, "_blank", "noreferrer")}>
             👁 Live preview
           </Button>

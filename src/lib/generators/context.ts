@@ -11,6 +11,7 @@ import type {
 } from "@/lib/analysis/site-analyzer";
 import type { AiScreenshotAnalysis } from "@/lib/ai/types";
 import type { SitemapCanvas } from "@/lib/canvas";
+import type { ReferenceLibrary } from "@/lib/references/types";
 
 /** Elementor-grade design quality bar injected into every builder prompt so the
  *  generated site reaches modern SaaS/marketing polish (not generic filler). */
@@ -36,6 +37,8 @@ export type GeneratorContext = {
   /** The user's edited Design Editor sitemap/wireframe — the source of truth
    *  for page + section structure when present. */
   canvas: SitemapCanvas | null;
+  /** Approved section reference patterns (reference-inspired design direction). */
+  references: ReferenceLibrary | null;
 };
 
 export type MdArtifact = { name: string; content: string };

@@ -71,6 +71,21 @@ export function generateReactExportPlanMd(ctx: GeneratorContext): MdArtifact {
       ],
     },
     componentDir: "src/components/sections/",
+    // Reference-inspired design patterns (from the Section Reference Library).
+    // Build ORIGINAL sections in this direction — never copy the reference.
+    referencePatterns: (ctx.references?.patterns ?? []).filter((p) => p.approved).map((p) => ({
+      id: p.id,
+      name: p.name,
+      sectionType: p.sectionType,
+      layoutPattern: p.layoutPattern,
+      interactionPattern: p.interactionPattern,
+      componentName: p.matchedComponent?.componentName ?? p.customSpec?.suggestedComponentName ?? null,
+      needsNewComponent: Boolean(p.customSpec?.needsNewComponent),
+      customSpec: p.customSpec ?? null,
+      styleTags: p.styleTags,
+      originalityRules: p.similarityRules,
+      imageRule: "Use grey placeholders; every asset carries an aiPrompt; never reuse reference photos/logos/text.",
+    })),
     pages,
     exportNotes: [
       "Build each page from its `sections` array, in order.",

@@ -41,6 +41,7 @@ async function loadContext(projectId: string): Promise<{ ctx: GeneratorContext; 
           "ANIMATION_ANALYSIS.json",
           "AI_SCREENSHOT_ANALYSIS.json",
           "SITEMAP_CANVAS.json",
+          "SECTION_REFERENCE_LIBRARY.json",
         ],
       },
     },
@@ -56,6 +57,7 @@ async function loadContext(projectId: string): Promise<{ ctx: GeneratorContext; 
     animation: safeParse<AnimationAnalysis>(byName.get("ANIMATION_ANALYSIS.json")),
     ai: safeParse<AiScreenshotAnalysis>(byName.get("AI_SCREENSHOT_ANALYSIS.json")),
     canvas: safeParse<SitemapCanvas>(byName.get("SITEMAP_CANVAS.json")),
+    references: safeParse<import("@/lib/references/types").ReferenceLibrary>(byName.get("SECTION_REFERENCE_LIBRARY.json")),
   };
   return { ctx, analysisCount: jsonFiles.length };
 }
