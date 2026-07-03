@@ -147,6 +147,7 @@ export function DashboardShell({
   // Section Reference Library is project-scoped; resolve it to the open project.
   const projectId = pathname.match(/^\/projects\/([^/]+)/)?.[1] ?? null;
   const projectIdActive = projectId && projectId !== "new" ? projectId : null;
+  const onReferences = /^\/projects\/[^/]+\/references/.test(pathname);
   const initials = (user.name ?? user.email)
     .split(/[\s@.]+/)
     .slice(0, 2)
@@ -200,7 +201,8 @@ export function DashboardShell({
                   </span>
                 );
               }
-              const active = pathname.startsWith(item.href!);
+              // The references route is owned by the Library item, not Projects.
+              const active = pathname.startsWith(item.href!) && !(item.href === "/projects" && onReferences);
               return (
                 <Link key={item.label} href={item.href!} aria-current={active ? "page" : undefined} className={navItemCls(active, false, isCollapsed)}>
                   {!isCollapsed && active && <span aria-hidden="true" className="absolute -left-3 h-4 w-[3px] rounded-full bg-accent" />}
