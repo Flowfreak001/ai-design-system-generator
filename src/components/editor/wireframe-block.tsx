@@ -8,7 +8,7 @@
 // Section kind + inference live in the pure lib module so server generators can
 // share them; re-exported here for the wireframe renderer's convenience.
 export { sectionKind, type SectionKind } from "@/lib/sections";
-import { sectionKind } from "@/lib/sections";
+import { sectionKind, type SectionKind } from "@/lib/sections";
 
 const bar = (w: string, h = "h-2.5", extra = "") => <div className={`${h} ${w} rounded bg-line ${extra}`} />;
 /** Grey placeholder box. Accepts an optional key for list rendering. */
@@ -20,9 +20,24 @@ function Card({ children }: { children: React.ReactNode }) {
   return <div className="flex flex-col gap-2 rounded-lg border border-line bg-surface p-3">{children}</div>;
 }
 
-/** Render a section's low-fi wireframe. `cols` collapses on mobile. */
+// Guaranteed minimum height per section type so a block can never collapse
+// (which would let it visually run into the next one). Real document flow.
+const MIN_H: Record<string, string> = {
+  navbar: "min-h-[56px]", hero: "min-h-[240px]", features: "min-h-[220px]",
+  services: "min-h-[240px]", form: "min-h-[220px]", pricing: "min-h-[260px]",
+  faq: "min-h-[200px]", testimonials: "min-h-[220px]", gallery: "min-h-[200px]",
+  cta: "min-h-[180px]", footer: "min-h-[160px]", directory: "min-h-[240px]",
+  dashboard: "min-h-[240px]", generic: "min-h-[180px]",
+};
+
+/** Render a section's low-fi wireframe. Wrapped in a full-width, min-height
+ *  block so sections always stack cleanly in the page column. */
 export function SectionWireframe({ name, mobile }: { name: string; mobile?: boolean }) {
   const kind = sectionKind(name);
+  return <div className={`w-full ${MIN_H[kind] ?? "min-h-[160px]"}`}>{renderKind(kind, mobile)}</div>;
+}
+
+function renderKind(kind: SectionKind, mobile?: boolean): React.ReactElement {
   const cols = mobile ? 1 : 3;
 
   switch (kind) {

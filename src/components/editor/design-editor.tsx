@@ -540,7 +540,9 @@ function WireframeEditor({
                 <Button size="sm" onClick={() => onAutoWireframe(pageId)}>✦ Auto-generate wireframe</Button>
               </div>
             ) : (
-              <div className="divide-y divide-line">
+              // Normal document flow: a vertical column, one block per section,
+              // top → bottom. No absolute positioning for section blocks.
+              <div className="flex flex-col divide-y divide-line">
                 {sections.map((s, i) => (
                   <WireframeSectionBlock
                     key={s.id}
@@ -705,7 +707,9 @@ function WireframeSectionBlock({
   // A section scheme tints the accent-driven parts of the wireframe preview.
   const style = accentColor ? ({ "--color-accent": accentColor } as React.CSSProperties) : undefined;
   return (
-    <div className={`group relative ${selected ? "ring-2 ring-inset ring-accent" : ""}`} style={style} onClick={onSelect}>
+    // w-full + shrink-0: each block owns a full-width row in the column and
+    // never collapses, so sections always stack cleanly top → bottom.
+    <div className={`group relative w-full shrink-0 ${selected ? "ring-2 ring-inset ring-accent" : ""}`} style={style} onClick={onSelect}>
       <div className="pointer-events-none absolute left-0 right-0 top-0 z-10 flex items-center justify-between px-2 py-1 opacity-0 transition-opacity group-hover:opacity-100">
         <span className="pointer-events-auto flex items-center gap-1.5 rounded-md bg-ink/80 px-2 py-0.5 text-[10px] font-medium text-white">
           {section.name}
