@@ -58,7 +58,10 @@ export function ProjectCanvas({
   return (
     <div className="relative flex h-full min-h-0 flex-col bg-panel/40">
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-auto p-8">
-        <div style={{ transform: `scale(${zoom})`, transformOrigin: "top left" }} className="flex w-max items-start gap-10">
+        {/* CSS `zoom` (not transform:scale) so the scroll area matches the
+            visual size — normal document scroll/pan, no phantom empty space
+            and no erratic zoom feel. Buttons control the zoom factor. */}
+        <div style={{ zoom } as React.CSSProperties} className="flex w-max items-start gap-10">
           {pages.map((p) => (
             <PageFrame
               key={p.id}
