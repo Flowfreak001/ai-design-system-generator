@@ -47,13 +47,14 @@ export function ReferenceLibraryClient({ projectId, projectName, initialPatterns
   const [layoutTags, setLayoutTags] = useState<string[]>([]);
   const [interactionTags, setInteractionTags] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
+  const [showMore, setShowMore] = useState(false);
   const [draft, setDraft] = useState<SectionPattern | null>(null);
   const [busy, start] = useTransition();
   const [err, setErr] = useState("");
   const [genSpec, setGenSpec] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
 
-  const closeAdd = () => { setAddOpen(false); setDraft(null); setErr(""); };
+  const closeAdd = () => { setAddOpen(false); setDraft(null); setErr(""); setShowMore(false); };
 
   // Filters
   const [q, setQ] = useState("");
@@ -198,25 +199,11 @@ export function ReferenceLibraryClient({ projectId, projectName, initialPatterns
                     <input type="file" accept="image/*" className="hidden" onChange={(e) => onFile(e.target.files?.[0])} />
                   </label>
 
-                  <div className="mt-3 grid grid-cols-2 gap-2">
+                  {/* Essentials — image + type + purpose is all the AI needs. */}
+                  <div className="mt-3">
                     <Field label="Section type">
                       <Select value={sectionType} onChange={(e) => setSectionType(e.target.value as ReferenceSectionType)}>
                         {SECTION_TYPE_OPTIONS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-                      </Select>
-                    </Field>
-                    <Field label="Website type">
-                      <Select value={websiteType} onChange={(e) => setWebsiteType(e.target.value)}>
-                        <option value="">Select…</option>
-                        {WEBSITE_TYPE_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
-                      </Select>
-                    </Field>
-                    {websiteType === "Custom" ? (
-                      <input value={websiteTypeCustom} onChange={(e) => setWebsiteTypeCustom(e.target.value)} placeholder="Describe the website type…" className="col-span-2 w-full rounded-lg border border-line px-2.5 py-1.5 text-[13px]" />
-                    ) : null}
-                    <Field label="Industry">
-                      <Select value={industry} onChange={(e) => setIndustry(e.target.value)}>
-                        <option value="">Select…</option>
-                        {INDUSTRY_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
                       </Select>
                     </Field>
                   </div>
@@ -225,29 +212,60 @@ export function ReferenceLibraryClient({ projectId, projectName, initialPatterns
                   <PurposePicker value={primaryPurpose} onSelect={(o) => setPrimaryPurpose(o)} placeholder="Search or select purpose…" />
                   <p className="mt-1 text-[11px] text-faint">Choose what this section is mainly trying to achieve. This helps AI reuse the reference correctly.</p>
 
-                  <label className="mt-3 block text-[11px] font-medium uppercase tracking-wide text-faint">Secondary purposes <span className="text-faint/70">(optional)</span></label>
-                  {secondaryPurposes.length > 0 && (
-                    <div className="mt-1.5 flex flex-wrap gap-1.5">
-                      {secondaryPurposes.map((s) => (
-                        <span key={s} className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-1 text-[11.5px] font-medium text-white">
-                          {s}
-                          <button type="button" aria-label={`Remove ${s}`} onClick={() => setSecondaryPurposes((cur) => cur.filter((x) => x !== s))}>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" /></svg>
-                          </button>
-                        </span>
-                      ))}
+                  {/* Everything else is optional — hidden by default to keep it simple. */}
+                  <button type="button" onClick={() => setShowMore((s) => !s)}
+                    className="mt-4 flex w-full items-center justify-between rounded-lg bg-panel px-2.5 py-2 text-[12px] font-medium text-body hover:text-ink">
+                    <span>More details <span className="font-normal text-faint">(optional — website, industry, style tags)</span></span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true" className={`text-faint transition-transform ${showMore ? "rotate-180" : ""}`}>
+                      <path d="m6 9 6 6 6-6" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  </button>
+
+                  {showMore && (
+                    <div className="mt-3">
+                      <div className="grid grid-cols-2 gap-2">
+                        <Field label="Website type">
+                          <Select value={websiteType} onChange={(e) => setWebsiteType(e.target.value)}>
+                            <option value="">Select…</option>
+                            {WEBSITE_TYPE_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+                          </Select>
+                        </Field>
+                        <Field label="Industry">
+                          <Select value={industry} onChange={(e) => setIndustry(e.target.value)}>
+                            <option value="">Select…</option>
+                            {INDUSTRY_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}
+                          </Select>
+                        </Field>
+                        {websiteType === "Custom" ? (
+                          <input value={websiteTypeCustom} onChange={(e) => setWebsiteTypeCustom(e.target.value)} placeholder="Describe the website type…" className="col-span-2 w-full rounded-lg border border-line px-2.5 py-1.5 text-[13px]" />
+                        ) : null}
+                      </div>
+
+                      <label className="mt-3 block text-[11px] font-medium uppercase tracking-wide text-faint">Secondary purposes <span className="text-faint/70">(optional)</span></label>
+                      {secondaryPurposes.length > 0 && (
+                        <div className="mt-1.5 flex flex-wrap gap-1.5">
+                          {secondaryPurposes.map((s) => (
+                            <span key={s} className="inline-flex items-center gap-1 rounded-full bg-accent px-2.5 py-1 text-[11.5px] font-medium text-white">
+                              {s}
+                              <button type="button" aria-label={`Remove ${s}`} onClick={() => setSecondaryPurposes((cur) => cur.filter((x) => x !== s))}>
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m6 6 12 12M18 6 6 18" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" /></svg>
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      <PurposePicker multi values={secondaryPurposes} disabledValue={primaryPurpose}
+                        onSelect={(o) => setSecondaryPurposes((cur) => (cur.includes(o) ? cur.filter((x) => x !== o) : [...cur, o]))}
+                        placeholder="Add supporting purposes…" />
+
+                      <TagGroup title="Visual style" tags={VISUAL_STYLE_TAGS} selected={styleTags} onToggle={toggle(setStyleTags)} />
+                      <TagGroup title="Layout style" tags={LAYOUT_TAGS} selected={layoutTags} onToggle={toggle(setLayoutTags)} />
+                      <TagGroup title="Interaction style" tags={INTERACTION_TAGS} selected={interactionTags} onToggle={toggle(setInteractionTags)} />
+
+                      <label className="mt-4 block text-[11px] font-medium uppercase tracking-wide text-faint">What do you like about it?</label>
+                      <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} className="mt-1 w-full rounded-lg border border-line px-2.5 py-1.5 text-[13px]" placeholder="Example: I like the split layout, accordion interaction, large image area, strong headline hierarchy, and clean CTA placement." />
                     </div>
                   )}
-                  <PurposePicker multi values={secondaryPurposes} disabledValue={primaryPurpose}
-                    onSelect={(o) => setSecondaryPurposes((cur) => (cur.includes(o) ? cur.filter((x) => x !== o) : [...cur, o]))}
-                    placeholder="Add supporting purposes…" />
-
-                  <TagGroup title="Visual style" tags={VISUAL_STYLE_TAGS} selected={styleTags} onToggle={toggle(setStyleTags)} />
-                  <TagGroup title="Layout style" tags={LAYOUT_TAGS} selected={layoutTags} onToggle={toggle(setLayoutTags)} />
-                  <TagGroup title="Interaction style" tags={INTERACTION_TAGS} selected={interactionTags} onToggle={toggle(setInteractionTags)} />
-
-                  <label className="mt-4 block text-[11px] font-medium uppercase tracking-wide text-faint">What do you like about it?</label>
-                  <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} className="mt-1 w-full rounded-lg border border-line px-2.5 py-1.5 text-[13px]" placeholder="Example: I like the split layout, accordion interaction, large image area, strong headline hierarchy, and clean CTA placement." />
                 </div>
 
                 {/* Bottom-anchored action */}
