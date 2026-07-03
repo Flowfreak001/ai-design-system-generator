@@ -54,11 +54,22 @@ function matchNums(css: string, re: RegExp): number[] {
 }
 
 export function extractStyleMetrics(css: string): StyleMetrics {
-  // Breakpoints
-  const breakpoints = [...new Set(matchNums(css, MEDIA_RE))]
+  // Breakpoints — collapse near-duplicates (e.g. 575.98px max-width vs 576px
+  // min-width both round to a ~1px pair) so the reported list is clean.
+  const rawBreaks = [...new Set(matchNums(css, MEDIA_RE))]
     .filter((v) => v >= 320 && v <= 1920)
-    .sort((a, b) => a - b)
-    .slice(0, 6);
+    .sort((a, b) => a - b);
+  const breakpoints: number[] = [];
+  for (const v of rawBreaks) {
+    const prev = breakpoints[breakpoints.length - 1];
+    if (prev !== undefined && v - prev <= 2) {
+      // Merge the off-by-one pair; keep the rounder (typically even) value.
+      breakpoints[breakpoints.length - 1] = v % 2 === 0 ? v : prev;
+    } else {
+      breakpoints.push(v);
+    }
+  }
+  breakpoints.splice(6);
 
   // Container width: most common max-width in the content band
   const widths = matchNums(css, MAXW_RE).filter((v) => v >= 720 && v <= 1600);

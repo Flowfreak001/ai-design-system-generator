@@ -68,7 +68,7 @@ export type RenderedProbeResult = {
   /** Real rendered copy from the live page, so previews can show the site's
    *  actual headings/nav/CTA text rather than reconstructed placeholders. */
   content: {
-    headings: { text: string; sizePx: number }[];
+    headings: { text: string; sizePx: number; blurb?: string }[];
     navItems: string[];
     ctaText?: string;
     bodySample?: string;
@@ -278,7 +278,21 @@ export async function runRenderedProbe(url: string, onProgress?: ProbeProgress):
       const headingSizes = new Set<number>();
       let headingWeight = 0;
       let headingFamily = "";
-      const headingTexts: { text: string; sizePx: number }[] = [];
+      const headingTexts: { text: string; sizePx: number; blurb?: string }[] = [];
+      // The real paragraph that follows a (sub)heading — used for card copy.
+      const blurbOf = (h: Element): string | undefined => {
+        let el: Element | null = h.nextElementSibling;
+        for (let i = 0; i < 3 && el; i++, el = el.nextElementSibling) {
+          if (/^(p|div|span|li)$/i.test(el.tagName)) {
+            const t = (el as HTMLElement).innerText?.trim().replace(/\s+/g, " ") ?? "";
+            if (t.length >= 25 && t.length <= 240 && !/[{}<>]|@type/.test(t)) return t;
+          }
+        }
+        // Try a paragraph inside the heading's parent container.
+        const p = h.parentElement?.querySelector("p");
+        const pt = (p as HTMLElement | null)?.innerText?.trim().replace(/\s+/g, " ") ?? "";
+        return pt.length >= 25 && pt.length <= 240 ? pt : undefined;
+      };
       const transformTally = new Map<string, number>();
       const headingColorTally = new Map<string, number>(); // text-length-weighted
       for (const h of hs) {
@@ -292,7 +306,7 @@ export async function runRenderedProbe(url: string, onProgress?: ProbeProgress):
           transformTally.set(cs.textTransform, (transformTally.get(cs.textTransform) ?? 0) + 1);
           if (text.length > 2) headingColorTally.set(cs.color, (headingColorTally.get(cs.color) ?? 0) + Math.min(text.length, 100));
         }
-        if (text.length > 2 && text.length < 120) headingTexts.push({ text, sizePx: px });
+        if (text.length > 2 && text.length < 120) headingTexts.push({ text, sizePx: px, blurb: blurbOf(h) });
       }
       const headingColor = [...headingColorTally.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
 

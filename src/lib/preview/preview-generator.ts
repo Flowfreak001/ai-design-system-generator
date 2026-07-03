@@ -37,7 +37,7 @@ export function generatePreviewHtml(data: PreviewData): string {
     renderedProbe?: {
       palette?: { value: string; weight: number; role: string }[];
       button?: Record<string, unknown> | null;
-      content?: { headings?: { text: string; sizePx: number }[]; navItems?: string[]; ctaText?: string; bodySample?: string };
+      content?: { headings?: { text: string; sizePx: number; blurb?: string }[]; navItems?: string[]; ctaText?: string; bodySample?: string };
       headingTransform?: string;
     };
   })?.renderedProbe;
@@ -184,12 +184,17 @@ export function generatePreviewHtml(data: PreviewData): string {
   // Card titles: real sub-headings (h3-scale) from the live page when present.
   const liveCardTitles = liveHeadings.filter((h) => h.sizePx <= 30).map((h) => h.text).slice(0, 3);
   const cardTitles = liveCardTitles.length ? liveCardTitles : services;
-  const cardCopy = (i: number) =>
-    keywords[i]
+  // Real per-module blurb captured under each live sub-heading, keyed by title;
+  // falls back to distinct derived copy so cards never read identically.
+  const blurbByTitle = new Map<string, string>();
+  for (const h of live?.headings ?? []) if (h.blurb) blurbByTitle.set(h.text, h.blurb);
+  const cardCopy = (title: string, i: number) =>
+    blurbByTitle.get(title) ??
+    (keywords[i]
       ? `Positioned around “${keywords[i]}” — copy from the brief's SEO focus.`
       : brief.goal?.trim()
-        ? `Supports the core goal: ${brief.goal.trim().replace(/\.$/, "").toLowerCase()}.`
-        : `Copy to be written for ${brief.targetAudience?.trim() || "the target audience"}.`;
+        ? `“${title}” supports the goal: ${brief.goal.trim().replace(/\.$/, "").toLowerCase()}.`
+        : `Copy for “${title}”, written for ${brief.targetAudience?.trim() || "the target audience"}.`);
 
   // ---- Named type ramp (getdesign.md-style roles) --------------------------
   // Display/title sizes come from the measured type scale; body/label/button
@@ -218,7 +223,7 @@ export function generatePreviewHtml(data: PreviewData): string {
       role: `${displaySlug}-${px}`,
       source: liveText ? "text + size measured from live headings" : "size measured from rendered h1/h2",
       px,
-      w: px >= 22 ? Math.max(headingW, 600) : 400,
+      w: px >= 22 ? headingW : 400,
       lh: lhFor(px),
       ls: "0",
       upper: headingTransform === "uppercase",
@@ -228,8 +233,8 @@ export function generatePreviewHtml(data: PreviewData): string {
   if (!typeRamp.length) {
     assumed.push("No heading sizes measurable — a default display ramp is shown.");
     typeRamp.push(
-      { role: `${displaySlug}-56`, source: "assumed — no headings measurable", px: 56, w: Math.max(headingW, 600), lh: 1.05, ls: "0", upper: headingTransform === "uppercase", text: heroHeadline },
-      { role: `${displaySlug}-24`, source: "assumed — no headings measurable", px: 24, w: Math.max(headingW, 600), lh: 1.3, ls: "0", upper: false, text: services[0] },
+      { role: `${displaySlug}-56`, source: "assumed — no headings measurable", px: 56, w: headingW, lh: 1.05, ls: "0", upper: headingTransform === "uppercase", text: heroHeadline },
+      { role: `${displaySlug}-24`, source: "assumed — no headings measurable", px: 24, w: headingW, lh: 1.3, ls: "0", upper: false, text: services[0] },
     );
   }
   const displayRoles = new Set(typeRamp.map((r) => r.role));
@@ -264,8 +269,8 @@ export function generatePreviewHtml(data: PreviewData): string {
 
   sections.push({
     kicker: "Typography scale",
-    title: `${displayFont === bodyFont ? bodyFont : `${displayFont} display, ${bodyFont} body`} · ${Math.max(headingW, 600)} / 400 contrast`,
-    intro: `Display at weight ${Math.max(headingW, 600)}${m?.headingWeight ? " (measured)" : " (assumed)"}, body at ${bodyPx}px / ${lh}${m?.bodyFontSizePx ? " (measured)" : " (assumed)"}${headingTransform === "uppercase" ? "; headings render uppercase (measured)" : ""}. ${headingInkMeasured ? `Headings render in ${displayInk} and body in ${ink} — both measured from the live text.` : `Text renders in ${ink} (measured body color).`} Spec reads size / weight / line-height / letter-spacing.`,
+    title: `${displayFont === bodyFont ? bodyFont : `${displayFont} display, ${bodyFont} body`} · ${headingW} / 400 contrast`,
+    intro: `Display at weight ${headingW}${m?.headingWeight ? " (measured)" : " (assumed)"}, body at ${bodyPx}px / ${lh}${m?.bodyFontSizePx ? " (measured)" : " (assumed)"}${headingTransform === "uppercase" ? "; headings render uppercase (measured)" : ""}. ${headingInkMeasured ? `Headings render in ${displayInk} and body in ${ink} — both measured from the live text.` : `Text renders in ${ink} (measured body color).`} Spec reads size / weight / line-height / letter-spacing.`,
     body: typeRamp.map((r) => `
       <div class="typerow">
         <div class="tmeta"><div class="trole">${esc(r.role)}</div><div class="tspec">${r.px}px / ${r.w} / ${r.lh} / ${esc(r.ls)}</div><div class="tsrc">${esc(r.source)}</div></div>
@@ -296,7 +301,7 @@ export function generatePreviewHtml(data: PreviewData): string {
       intro: `${liveCardTitles.length ? `Module titles are real sub-headings rendered on ${host ?? "the reference site"}` : "Module names come from the brief's services and key pages"}; titles set in ${displayFont}${m?.spacingBase ? `, ${m.spacingBase}px spacing rhythm (measured)` : ""}.`,
       body: `<div class="cards">${cardTitles.map((s, i) => `
       <div class="pcard"><div class="ph" style="background:linear-gradient(150deg, ${esc(accents[i % Math.max(accents.length, 1)] ?? mix(bg, ink, 0.2))}, ${esc(mix(bg, ink, 0.05))})"></div>
-      <div class="pd"><div class="tag">${esc(input.brief.businessType ?? "offer")} · 0${i + 1}</div><h3>${esc(s)}</h3><p>${esc(cardCopy(i))}</p></div></div>`).join("")}
+      <div class="pd"><div class="tag">${esc(input.brief.businessType ?? "offer")} · 0${i + 1}</div><h3>${esc(s)}</h3><p>${esc(cardCopy(s, i))}</p></div></div>`).join("")}
     </div>`,
     });
   }
@@ -356,7 +361,7 @@ ${fontLink ? `<link rel="preconnect" href="https://fonts.googleapis.com" /><link
   .wrap { max-width:${m?.containerWidth ? Math.min(m.containerWidth, 1240) : 1100}px; margin:0 auto; padding:56px 32px; }
   section { margin-bottom:88px; }
   .kicker { font:600 11px/1 ui-monospace,monospace; letter-spacing:.22em; text-transform:uppercase; color:var(--muted); margin-bottom:18px; }
-  .display { color:var(--display-ink); font-family:'${esc(displayFont)}', '${esc(bodyFont)}', sans-serif; font-weight:${Math.max(headingW, 600)}; text-transform:${headingTransform}; letter-spacing:-.01em; font-size:clamp(28px,4.6vw,54px); line-height:1.02; margin-bottom:16px; }
+  .display { color:var(--display-ink); font-family:'${esc(displayFont)}', '${esc(bodyFont)}', sans-serif; font-weight:${headingW}; text-transform:${headingTransform}; letter-spacing:-.01em; font-size:clamp(28px,4.6vw,54px); line-height:1.02; margin-bottom:16px; }
   .intro { color:var(--muted); max-width:62ch; margin-bottom:34px; }
   .stripe { display:flex; height:12px; margin-bottom:22px; }
   .swatches { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:16px; }
@@ -386,14 +391,14 @@ ${fontLink ? `<link rel="preconnect" href="https://fonts.googleapis.com" /><link
   .pcard .ph { height:170px; }
   .pcard .pd { padding:20px; }
   .pcard .tag { font:600 10px/1 ui-monospace,monospace; letter-spacing:.18em; text-transform:uppercase; color:var(--muted); }
-  .pcard h3 { color:var(--display-ink); font-family:'${esc(displayFont)}','${esc(bodyFont)}',sans-serif; text-transform:${headingTransform}; font-size:20px; margin:10px 0 8px; font-weight:${Math.max(headingW, 600)}; }
+  .pcard h3 { color:var(--display-ink); font-family:'${esc(displayFont)}','${esc(bodyFont)}',sans-serif; text-transform:${headingTransform}; font-size:20px; margin:10px 0 8px; font-weight:${headingW}; }
   .pcard p { color:var(--muted); font-size:14px; }
   .hero { border:1px solid var(--line); background:linear-gradient(160deg, ${mix(bg, accent, 0.25)}, var(--bg) 65%); padding:64px 40px; }
-  .hero h3 { color:var(--display-ink); font-family:'${esc(displayFont)}','${esc(bodyFont)}',sans-serif; text-transform:${headingTransform}; font-size:clamp(26px,4vw,44px); line-height:1.04; max-width:22ch; margin-bottom:14px; font-weight:${Math.max(headingW, 600)}; }
+  .hero h3 { color:var(--display-ink); font-family:'${esc(displayFont)}','${esc(bodyFont)}',sans-serif; text-transform:${headingTransform}; font-size:clamp(26px,4vw,44px); line-height:1.04; max-width:22ch; margin-bottom:14px; font-weight:${headingW}; }
   .hero p { color:var(--muted); max-width:52ch; margin-bottom:26px; }
   .cells { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); border-top:1px solid var(--line); border-left:1px solid var(--line); }
   .cell { border-right:1px solid var(--line); border-bottom:1px solid var(--line); padding:26px 20px; background:var(--surface); }
-  .cell .v { font-family:'${esc(displayFont)}','${esc(bodyFont)}',sans-serif; font-size:38px; font-weight:${Math.max(headingW, 600)}; line-height:1; }
+  .cell .v { font-family:'${esc(displayFont)}','${esc(bodyFont)}',sans-serif; font-size:38px; font-weight:${headingW}; line-height:1; }
   .cell .l { font:600 10px/1.6 ui-monospace,monospace; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); margin-top:10px; }
   ul.motion { list-style:none; display:grid; gap:10px; padding:0; }
   ul.motion li { border-left:2px solid var(--accent); padding:4px 0 4px 16px; color:var(--muted); font-size:14px; }
@@ -406,7 +411,7 @@ ${fontLink ? `<link rel="preconnect" href="https://fonts.googleapis.com" /><link
   .assume { border:1px solid var(--line); background:var(--surface); color:var(--muted); font-size:13px; padding:14px 18px; margin-bottom:56px; }
   .assume b { color:var(--ink); }
   header.top { display:flex; justify-content:space-between; align-items:baseline; border-bottom:1px solid var(--line); padding-bottom:22px; margin-bottom:64px; flex-wrap:wrap; gap:8px; }
-  header.top .brand { color:var(--display-ink); font-family:'${esc(displayFont)}','${esc(bodyFont)}',sans-serif; font-weight:${Math.max(headingW, 700)}; text-transform:${headingTransform}; font-size:20px; letter-spacing:.04em; }
+  header.top .brand { color:var(--display-ink); font-family:'${esc(displayFont)}','${esc(bodyFont)}',sans-serif; font-weight:${headingW}; text-transform:${headingTransform}; font-size:20px; letter-spacing:.04em; }
   header.top .src { font:500 11px/1 ui-monospace,monospace; color:var(--muted); }
   footer { border-top:1px solid var(--line); padding-top:18px; color:var(--muted); font-size:12px; }
 </style>

@@ -31,7 +31,7 @@ export function generateComponentPreviewHtml(data: PreviewData): string {
   const probe = (tokens as unknown as {
     renderedProbe?: {
       button?: Record<string, unknown> | null;
-      content?: { headings?: { text: string; sizePx: number }[]; navItems?: string[]; ctaText?: string; bodySample?: string; faq?: { q: string; a: string }[]; faqSourceUrl?: string };
+      content?: { headings?: { text: string; sizePx: number; blurb?: string }[]; navItems?: string[]; ctaText?: string; bodySample?: string; faq?: { q: string; a: string }[]; faqSourceUrl?: string };
       components?: { input?: InputSpec; card?: CardSpec; nav?: NavSpec };
       headingTransform?: string;
     };
@@ -180,7 +180,7 @@ ${fontLink ? `<link rel="preconnect" href="https://fonts.googleapis.com" /><link
   .btn.ghost { background:transparent; color:var(--muted); }
   .btn[disabled] { opacity:.45; cursor:not-allowed; }
   .nav { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px 16px; ${nav?.heightPx ? `min-height:${Math.min(nav.heightPx, 96)}px;` : ""} ${nav?.background ? `background:${esc(nav.background)}; border-radius:calc(var(--radius) - 4px); padding:8px 16px; margin:-6px; ` : ""} }
-  .nav strong { font-family:'${esc(displayFont)}','${esc(bodyFont)}',sans-serif; font-weight:${Math.max(headingW, 600)}; ${nav?.background && lum(nav.background) < 0.5 ? "color:#fff;" : ""} }
+  .nav strong { font-family:'${esc(displayFont)}','${esc(bodyFont)}',sans-serif; font-weight:${headingW}; ${nav?.background && lum(nav.background) < 0.5 ? "color:#fff;" : ""} }
   .nav .links { display:flex; flex-wrap:wrap; gap:8px 16px; }
   .nav a { font-size:14px; color:${esc(navLinkColor)}; text-decoration:none; }
   .nav a.active { color:var(--accent); font-weight:600; }
@@ -192,13 +192,13 @@ ${fontLink ? `<link rel="preconnect" href="https://fonts.googleapis.com" /><link
   .forms { display:grid; gap:16px; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); }
   @media (max-width:560px){ body { padding:20px 14px; } .block { padding:16px; } .card { max-width:100%; } }
   .form-card { background:${esc(cardFill)}; border:${esc(cardCss.border)}; border-radius:${esc(cardCss.radius)}; padding:${cardCss.padding + 4}px; }
-  .form-card h4 { color:var(--display-ink); font-family:'${esc(displayFont)}','${esc(bodyFont)}',sans-serif; font-weight:${Math.max(headingW, 600)}; font-size:16px; margin-bottom:12px; }
+  .form-card h4 { color:var(--display-ink); font-family:'${esc(displayFont)}','${esc(bodyFont)}',sans-serif; font-weight:${headingW}; font-size:16px; margin-bottom:12px; }
   .form-card .btn { margin-top:14px; width:100%; }
   .form-card .alt { margin-top:10px; text-align:center; font-size:12px; color:var(--muted); }
   .badge { display:inline-block; padding:3px 10px; border-radius:99px; font:600 11px/1.6 ui-monospace,monospace; text-transform:uppercase; letter-spacing:.06em; }
   .card { background:${esc(cardFill)}; border:${esc(cardCss.border)}; border-radius:${esc(cardCss.radius)}; box-shadow:${esc(cardCss.shadow)}; padding:${cardCss.padding}px; max-width:300px; transition:transform ${btnMs}ms ease, box-shadow ${btnMs}ms ease; }
   .card:hover { transform:translateY(-3px); }
-  .card strong { color:var(--display-ink); font-family:'${esc(displayFont)}','${esc(bodyFont)}',sans-serif; font-weight:${Math.max(headingW, 600)}; }
+  .card strong { color:var(--display-ink); font-family:'${esc(displayFont)}','${esc(bodyFont)}',sans-serif; font-weight:${headingW}; }
   .faq summary { cursor:pointer; font-weight:600; font-size:14px; padding:10px 0; }
   .faq p { color:var(--muted); font-size:14px; padding-bottom:10px; }
   @media (prefers-reduced-motion: reduce){ .card,.btn{transition:none} }
