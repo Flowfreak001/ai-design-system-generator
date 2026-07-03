@@ -10,6 +10,7 @@ import {
   updateReferencesAction,
   generateMdAction,
   generatePreviewAction,
+  saveScreenshotsAction,
 } from "../actions";
 import { TypeBadge } from "@/components/projects/status-badge";
 import { GeneratedFilesViewer } from "@/components/projects/generated-files-viewer";
@@ -21,6 +22,9 @@ import { AgentRunTimeline } from "@/components/projects/agent-run-timeline";
 import { WorkspaceTabs } from "@/components/projects/workspace-tabs";
 import { ActionDialog } from "@/components/projects/action-dialog";
 import { ReferencesEditor } from "@/components/projects/references-editor";
+import { ScreenshotUpload } from "@/components/projects/screenshot-upload";
+import { prisma } from "@/lib/db/client";
+import type { Screenshot } from "@/app/(app)/projects/actions";
 import { Button } from "@/components/ui/button";
 import { FadeUp } from "@/components/ui/motion";
 
@@ -55,6 +59,8 @@ export default async function ProjectWorkspacePage({
   if (!user.agencyId) notFound();
   const project = await getProject(id, user.agencyId);
   if (!project) notFound();
+  const screenshotInput = await prisma.projectInput.findFirst({ where: { projectId: id, category: "screenshots" } });
+  const screenshots = ((screenshotInput?.data as { shots?: Screenshot[] } | null)?.shots ?? []) as Screenshot[];
 
   const versions = await getFileVersions(id, user.agencyId);
   const gen = toGenerationInput(project);
@@ -242,14 +248,17 @@ export default async function ProjectWorkspacePage({
   );
 
   const references = (
-    <ReferencesEditor
-      projectId={id}
-      existingWebsiteUrl={b.existingWebsiteUrl ?? undefined}
-      referenceUrls={b.referenceUrls}
-      competitorUrls={b.competitorUrls}
-      save={updateReferences}
-      analyze={analyze}
-    />
+    <div className="grid gap-4">
+      <ReferencesEditor
+        projectId={id}
+        existingWebsiteUrl={b.existingWebsiteUrl ?? undefined}
+        referenceUrls={b.referenceUrls}
+        competitorUrls={b.competitorUrls}
+        save={updateReferences}
+        analyze={analyze}
+      />
+      <ScreenshotUpload projectId={id} initial={screenshots} save={saveScreenshotsAction} />
+    </div>
   );
 
   const analysis = (

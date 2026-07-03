@@ -91,6 +91,31 @@ export async function generatePreviewAction(projectId: string) {
   revalidatePath(`/projects/${projectId}`);
 }
 
+export type Screenshot = { id: string; name: string; dataUrl: string; note?: string };
+
+/** Save reference screenshots (already resized/compressed to data URLs on the
+ *  client) into the project's "screenshots" input. Bounded so the row stays
+ *  reasonable; upload-to-storage can replace this later without UI changes. */
+export async function saveScreenshotsAction(
+  projectId: string,
+  shots: Screenshot[],
+): Promise<{ error?: string }> {
+  const user = await requireUser();
+  if (!user.agencyId || !(await ownsProject(projectId, user.agencyId))) return { error: "Not found" };
+  const clean = shots
+    .filter((s) => typeof s.dataUrl === "string" && s.dataUrl.startsWith("data:image/") && s.dataUrl.length < 900_000)
+    .slice(0, 12)
+    .map((s) => ({ id: s.id, name: String(s.name).slice(0, 80), dataUrl: s.dataUrl, note: s.note?.slice(0, 200) }));
+  const existing = await prisma.projectInput.findFirst({ where: { projectId, category: "screenshots" } });
+  if (existing) {
+    await prisma.projectInput.update({ where: { id: existing.id }, data: { data: { shots: clean } } });
+  } else {
+    await prisma.projectInput.create({ data: { projectId, category: "screenshots", data: { shots: clean } } });
+  }
+  revalidatePath(`/projects/${projectId}`);
+  return {};
+}
+
 const urlListSchema = z.array(z.string().url("Each reference must be a valid URL (https://…)")).max(10);
 
 /** Update the brief's reference/existing/competitor URLs so analysis can be
@@ -125,6 +150,15 @@ export async function analyzeWebsiteAction(projectId: string) {
   const user = await requireUser();
   if (!user.agencyId || !(await ownsProject(projectId, user.agencyId))) return;
   await runWebsiteAnalysis(projectId);
+  // Each analyze run produces fresh data — flow it straight into the MD files
+  // and preview when they already exist, so downstream never shows stale output.
+  const existing = await prisma.generatedFile.findMany({
+    where: { projectId, name: { in: ["DESIGN.md", "preview.html"] } },
+    select: { name: true },
+  });
+  const names = new Set(existing.map((f) => f.name));
+  if (names.has("DESIGN.md")) await runMdGeneration(projectId);
+  if (names.has("preview.html")) await runPreviewGeneration(projectId);
   revalidatePath(`/projects/${projectId}`);
 }
 

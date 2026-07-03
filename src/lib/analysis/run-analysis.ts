@@ -215,7 +215,9 @@ export async function runWebsiteAnalysis(projectId: string) {
     const pages = allPageUrls.length
       ? await scanPages(allPageUrls, async (t, d) => { await step(t, d); })
       : [];
-    const multiPage = buildMultiPageAnalysis(projectId, pages, probe);
+    const shotInput = project.inputs.find((i) => i.category === "screenshots");
+    const screenshotCount = ((shotInput?.data as { shots?: unknown[] } | null)?.shots ?? []).length;
+    const multiPage = buildMultiPageAnalysis(projectId, pages, probe, screenshotCount);
     // Make the evidence available to the preview + MD generators (flows via
     // DESIGN_TOKENS.json), so sections are rendered/generated from detection.
     (tokens as unknown as Record<string, unknown>).multiPage = {

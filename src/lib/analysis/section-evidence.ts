@@ -75,6 +75,7 @@ export function buildMultiPageAnalysis(
   projectId: string,
   pages: PageStructure[],
   primaryProbe: RenderedProbeResult | null,
+  screenshotCount = 0,
 ): MultiPageAnalysis {
   const okPages = pages.filter((p) => p.ok);
   const homepage = pages.find((p) => p.pageType === "homepage") ?? pages[0];
@@ -154,7 +155,7 @@ export function buildMultiPageAnalysis(
   const signals = {
     homepageScanned,
     innerPagesScanned,
-    sectionScreenshots: 0, // screenshot upload not wired yet
+    sectionScreenshots: screenshotCount,
     renderedStylesExtracted: Boolean(primaryProbe),
     animationChecked: Boolean(primaryProbe && (primaryProbe.scrollFindings.length || primaryProbe.stickyFindings.length)),
     mobileChecked: false,
@@ -164,7 +165,7 @@ export function buildMultiPageAnalysis(
   score += Math.min(innerPagesScanned, 4) * 10; // up to 40
   if (signals.renderedStylesExtracted) score += 15;
   if (signals.animationChecked) score += 5;
-  score += Math.min(signals.sectionScreenshots, 5); // up to 5 (future)
+  score += Math.min(signals.sectionScreenshots * 3, 15); // uploaded screenshots
   score = Math.min(score, 100);
 
   let level: Accuracy["level"] = "Low";
