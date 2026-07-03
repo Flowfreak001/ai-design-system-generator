@@ -336,6 +336,7 @@ export function ProjectWizard({
     return null;
   };
 
+  // NAVIGATION ONLY — never creates the project or calls the server action.
   const goTo = (next: number) => {
     if (next > step) {
       // Validate every step from current up to (but not including) the target.
@@ -350,29 +351,38 @@ export function ProjectWizard({
     }
     setStepError(null);
     if (next !== step && next <= step) setMissing([]);
+    if (process.env.NODE_ENV !== "production") console.debug(`[wizard] step change ${step} → ${next}`);
     setStep(next);
   };
 
-  // Guard against early creation: the project is created ONLY from the final
-  // Review step. Enter-key submits from any earlier field, or any programmatic
-  // submit, are cancelled and turned into a "go to next step" instead.
-  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    if (step !== LAST) {
-      e.preventDefault();
-      goTo(step + 1);
-      return;
-    }
-    // On the Review step, re-validate the whole flow before allowing creation.
+  const goToNextStep = () => {
+    if (process.env.NODE_ENV !== "production") console.debug("[wizard] Continue clicked");
+    goTo(step + 1);
+  };
+
+  // CREATION ONLY — the single path that inserts into the database. Guarded so
+  // it can run only from the final Review step, after full validation.
+  const createProjectFromReview = () => {
+    if (process.env.NODE_ENV !== "production") console.debug("[wizard] Final create clicked");
+    if (step !== LAST) return; // guard: never create from any other step
     for (let s = 1; s < LAST; s++) {
       const err = validateStep(s);
       if (err) {
-        e.preventDefault();
         setStep(s);
         setStepError(err);
         return;
       }
     }
+    if (!formRef.current) return;
+    const fd = new FormData(formRef.current);
+    if (process.env.NODE_ENV !== "production") console.debug("[wizard] dispatching createProject");
+    formAction(fd); // useActionState dispatch → createProjectAction (redirects on success)
   };
+
+  // The form itself never submits/creates: no `action` prop, and any native
+  // submit (e.g. Enter key) is cancelled here. Creation happens only via the
+  // final button's onClick → createProjectFromReview().
+  const blockNativeSubmit = (e: React.FormEvent<HTMLFormElement>) => e.preventDefault();
 
   const panel = (n: number) =>
     n === step ? "animate-in fade-in slide-in-from-bottom-2 duration-300" : "hidden";
@@ -385,7 +395,7 @@ export function ProjectWizard({
   });
 
   return (
-    <form ref={formRef} action={formAction} onSubmit={onSubmit} className="grid gap-6">
+    <form ref={formRef} onSubmit={blockNativeSubmit} className="grid gap-6">
       {/* Hidden inputs carrying card/chip selections (newline-joined → listField). */}
       <input type="hidden" name="type" value="WEBSITE_APP" />
       <input type="hidden" name="websiteType" value={websiteType} />
@@ -739,11 +749,11 @@ export function ProjectWizard({
           Back
         </Button>
         {step < LAST ? (
-          <Button type="button" onClick={() => goTo(step + 1)}>
+          <Button type="button" onClick={goToNextStep}>
             Continue
           </Button>
         ) : (
-          <Button type="submit" size="lg" disabled={pending} className="disabled:opacity-50">
+          <Button type="button" size="lg" onClick={createProjectFromReview} disabled={pending} className="disabled:opacity-50">
             {pending ? "Creating…" : "Create Design Workspace"}
           </Button>
         )}
