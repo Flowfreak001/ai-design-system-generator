@@ -468,7 +468,7 @@ export function ProjectWizard({
                 value={industry}
                 onChange={(e) => setIndustry(e.target.value)}
                 aria-invalid={missing.includes("industry") || undefined}
-                className={`${inputCls} cursor-pointer ${missing.includes("industry") ? "border-danger" : ""}`}
+                className={`${inputCls} cursor-pointer pr-10 ${missing.includes("industry") ? "border-danger" : ""}`}
               >
                 <option value="" disabled>
                   Select an industry…
