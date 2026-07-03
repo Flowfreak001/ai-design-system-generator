@@ -290,7 +290,9 @@ export function DesignEditor({
           <span className="hidden text-[12px] text-faint sm:inline">
             {saving ? "Saving…" : dirty ? "Unsaved changes" : "All changes saved"}
           </span>
-          <Button size="sm" variant="secondary" disabled title="Coming soon">Share</Button>
+          <Button size="sm" variant="secondary" title="Open a full-page live preview (scroll animations work here)" onClick={() => window.open(`/preview/${projectId}?page=${selectedPageId}`, "_blank", "noreferrer")}>
+            👁 Live preview
+          </Button>
           <Button size="sm" variant="secondary" disabled title="Coming soon">Export</Button>
           <Button size="sm" onClick={save} disabled={saving || !dirty}>{saving ? "Saving…" : "Save"}</Button>
         </div>

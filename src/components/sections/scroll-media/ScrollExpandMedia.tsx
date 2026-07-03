@@ -33,16 +33,11 @@ export default function ScrollExpandMedia({ theme, eyebrow, title, subtitle }: S
     const media = mediaRef.current;
     if (!wrap || !media) return;
 
-    const apply = (p: number, minW: number, minH: number) => {
-      media.style.width = `${minW + (100 - minW) * p}%`;
-      media.style.height = `${minH + (100 - minH) * p}vh`;
-      media.style.borderRadius = `${(1 - p) * 28}px`;
-      media.style.transform = `scale(${0.9 + 0.1 * p})`;
+    const inner = innerRef.current;
+    const setStage = (p: number) => {
       const active = p < 0.34 ? 0 : p < 0.67 ? 1 : 2;
       stageRefs.forEach((s, i) => { if (s.current) s.current.style.opacity = i === active ? "1" : "0"; });
     };
-
-    const inner = innerRef.current;
 
     // Nearest scrollable ancestor (the editor canvas) or the window.
     const scrollParent = (() => {
@@ -53,35 +48,38 @@ export default function ScrollExpandMedia({ theme, eyebrow, title, subtitle }: S
       }
       return null;
     })();
-
-    // A nested scroll container means we're inside the editor's stacked, zoomed
-    // canvas (a planning board — not a single scroll viewport), where the
-    // scroll-scrub can't read as intended. There, render a tidy STATIC card (no
-    // runway/gap). A real page scrolls the window (no such ancestor) → animate.
     const reduce = typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+    // A nested scroll container = we're in the editor's stacked, zoomed canvas
+    // (a planning board, not a single scroll viewport). There, render a tidy
+    // STATIC card (no runway/gap). A real page scrolls the window → animate.
     if (scrollParent || reduce) {
-      // Collapse the tall runway and show a clean centered card.
       wrap.style.height = "auto";
       if (inner) { inner.style.position = "static"; inner.style.height = "auto"; inner.style.paddingTop = "72px"; inner.style.paddingBottom = "72px"; }
-      media.style.width = "62%";
-      media.style.height = "440px";
-      media.style.borderRadius = "20px";
+      media.style.width = reduce ? "92%" : "62%";
+      media.style.height = reduce ? "78vh" : "440px";
+      media.style.borderRadius = reduce ? "12px" : "20px";
       media.style.transform = "none";
-      stageRefs.forEach((s, i) => { if (s.current) s.current.style.opacity = i === 0 ? "1" : "0"; });
+      setStage(reduce ? 1 : 0);
       return;
     }
 
-    // Real page: the section scrolls the window. Progress = how far the section
-    // top has moved above the viewport top, over its pinned scroll distance.
+    // Real page: window scroll. Media starts small (~100px) and zooms to fill the
+    // whole viewport (width×height) as the section is scrolled through.
     let raf = 0;
     const clamp = (n: number) => Math.min(1, Math.max(0, n));
     const update = () => {
       const wr = wrap.getBoundingClientRect();
-      const total = wr.height - window.innerHeight; // pinned scroll distance
+      const vw = window.innerWidth, vh = window.innerHeight;
+      const total = wr.height - vh; // pinned scroll distance
       const p = total > 0 ? clamp(-wr.top / total) : 0;
-      const mobile = window.innerWidth < 640;
-      apply(p, mobile ? 82 : 56, mobile ? 44 : 55);
+      const minW = vw < 640 ? 180 : 100; // small starting card
+      const minH = vw < 640 ? 180 : 100;
+      media.style.width = `${Math.round(minW + (vw - minW) * p)}px`;
+      media.style.height = `${Math.round(minH + (vh - minH) * p)}px`;
+      media.style.borderRadius = `${(1 - p) * 24}px`;
+      media.style.transform = "none";
+      setStage(p);
     };
     const onScroll = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(update); };
     window.addEventListener("scroll", onScroll, { passive: true });
@@ -99,7 +97,7 @@ export default function ScrollExpandMedia({ theme, eyebrow, title, subtitle }: S
           {title || "From glaciers in Austria to rooftops in New York & ten-foot swells in Nias. Every brief: a global playground where presence becomes story."}
           {subtitle ? ` ${subtitle}` : ""}
         </p>
-        <div ref={mediaRef} className="relative z-10 overflow-hidden shadow-2xl" style={{ width: "56%", height: "55vh", borderRadius: 28, willChange: "width, height" }}>
+        <div ref={mediaRef} className="relative z-10 overflow-hidden shadow-2xl" style={{ width: 100, height: 100, borderRadius: 24, willChange: "width, height" }}>
           {stages.map((g, i) => (
             <div key={i} ref={stageRefs[i]} className="absolute inset-0 transition-opacity duration-500" style={{ background: g, opacity: i === 0 ? 1 : 0 }} />
           ))}

@@ -165,6 +165,7 @@ export const SECTION_CATEGORIES: { category: string; items: string[] }[] = [
   { category: "FAQ", items: ["FAQ"] },
   { category: "Testimonials / reviews", items: ["Testimonials", "Reviews"] },
   { category: "Gallery / portfolio", items: ["Gallery", "Portfolio", "Case Studies"] },
+  { category: "Scroll / motion", items: ["Sticky Media", "Journey"] },
   { category: "Ecommerce", items: ["Product Grid", "Product Detail", "Cart", "Checkout"] },
   { category: "Directory / listing", items: ["Listings", "Search Filters", "Map / Location", "Category Grid"] },
   { category: "Dashboard / SaaS", items: ["Dashboard Preview", "Integrations", "Feature Grid"] },
