@@ -53,6 +53,7 @@ export default async function EditorPage({ params }: { params: Promise<{ id: str
       projectName={project.name}
       initialSitemap={sitemap}
       initialStyle={style}
+      features={b.features ?? []}
       approvals={{
         sitemap: Boolean(b.sitemapApproved),
         wireframe: Boolean(b.wireframeApproved),

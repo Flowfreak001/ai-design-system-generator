@@ -50,6 +50,56 @@ export function componentNameForKind(kind: SectionKind): string {
 
 export const componentNameForSection = (name: string) => componentNameForKind(sectionKind(name));
 
+/**
+ * Suggest a starter section list for a page, from the page type + the features
+ * the user selected at onboarding. Used to auto-create the wireframe from the
+ * sitemap. These are AI-suggested (the user edits/approves) — not a hardcoded
+ * fixed structure: the middle sections come from the selected features.
+ */
+export function suggestSectionsForPage(pageName: string, features: string[] = []): string[] {
+  const p = pageName.toLowerCase();
+  const has = (re: RegExp) => features.some((f) => re.test(f.toLowerCase()));
+  const out: string[] = ["Navbar"];
+
+  const featureSections = () => {
+    const mid: string[] = [];
+    if (has(/service|feature/)) mid.push("Services");
+    if (has(/booking|calendar/)) mid.push("Booking Form");
+    if (has(/pricing/)) mid.push("Pricing");
+    if (has(/gallery|portfolio/)) mid.push("Gallery");
+    if (has(/testimonial|review/)) mid.push("Testimonials");
+    if (has(/faq/)) mid.push("FAQ");
+    if (has(/contact|quote|enquir/)) mid.push("Contact Form");
+    return mid;
+  };
+
+  if (/^home|homepage/.test(p) || p === "home") {
+    out.push("Hero", ...featureSections(), "CTA");
+  } else if (/about/.test(p)) {
+    out.push("Hero", "About", has(/testimonial|review/) ? "Testimonials" : "Stats", "CTA");
+  } else if (/contact/.test(p)) {
+    out.push("Contact Form", "Map / Location");
+  } else if (/service/.test(p)) {
+    out.push("Hero", "Services", ...(has(/pricing/) ? ["Pricing"] : []), ...(has(/faq/) ? ["FAQ"] : []), "CTA");
+  } else if (/pricing/.test(p)) {
+    out.push("Pricing", "FAQ", "CTA");
+  } else if (/faq/.test(p)) {
+    out.push("FAQ");
+  } else if (/blog/.test(p)) {
+    out.push("Blog List");
+  } else if (/portfolio|case|gallery/.test(p)) {
+    out.push("Gallery");
+  } else if (/booking|reserv|appointment/.test(p)) {
+    out.push("Hero", "Booking Form", "FAQ");
+  } else {
+    out.push("Hero", "Services", "CTA");
+  }
+
+  out.push("Footer");
+  // De-dupe while preserving order.
+  return out.filter((s, i, arr) => arr.indexOf(s) === i);
+}
+
 /** Section library grouped by category (used by the Add-Section drawer). */
 export const SECTION_CATEGORIES: { category: string; items: string[] }[] = [
   { category: "Global sections", items: ["Navbar", "Footer", "Announcement Bar"] },

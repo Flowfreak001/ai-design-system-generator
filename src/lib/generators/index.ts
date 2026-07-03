@@ -11,6 +11,7 @@ import { generateBrandGuidelinesMd } from "./brand-guidelines-generator";
 import { generateStyleDirectionMd } from "./style-direction-generator";
 import { generateCodexPromptMd } from "./codex-prompt-generator";
 import { generateReactExportPlanMd } from "./react-export-plan-generator";
+import { generateReplitPromptMd, generateLovablePromptMd } from "./builder-prompt-generators";
 import { generateDesignMd } from "./design-generator";
 import { generateCreativeMd } from "./creative-generator";
 import { generateContentMd } from "./content-generator";
@@ -40,6 +41,8 @@ export const DESIGN_GENERATORS: Gen[] = [
   { agent: "SEO Specialist", run: generateSeoMd },
   { agent: "Prompt Engineer", run: generatePromptMd },
   { agent: "Codex Prompt Engineer", run: generateCodexPromptMd },
+  { agent: "Replit Prompt Engineer", run: generateReplitPromptMd },
+  { agent: "Lovable Prompt Engineer", run: generateLovablePromptMd },
   { agent: "Export Planner", run: generateReactExportPlanMd },
 ];
 

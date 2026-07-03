@@ -12,7 +12,7 @@ import { SectionWireframe, sectionKind } from "./wireframe-block";
 import { Drawer, Popover } from "./overlays";
 import { themeFromStyle } from "@/components/sections/theme";
 import { RenderSection } from "@/components/sections/registry";
-import { SECTION_CATEGORIES } from "@/lib/sections";
+import { SECTION_CATEGORIES, suggestSectionsForPage } from "@/lib/sections";
 import { arrayMove } from "@dnd-kit/sortable";
 import { SitemapFlow } from "./sitemap-flow";
 import type {
@@ -70,6 +70,7 @@ export function DesignEditor({
   projectName,
   initialSitemap,
   initialStyle,
+  features = [],
   approvals: initialApprovals,
   saveSitemap,
   saveStyle,
@@ -79,6 +80,7 @@ export function DesignEditor({
   projectName: string;
   initialSitemap: SitemapCanvas;
   initialStyle: StyleGuideCanvas;
+  features?: string[];
   approvals: Approvals;
   saveSitemap: (projectId: string, canvas: SitemapCanvas) => Promise<{ error?: string }>;
   saveStyle: (projectId: string, canvas: StyleGuideCanvas) => Promise<{ error?: string }>;
@@ -197,6 +199,16 @@ export function DesignEditor({
       if (i < 0 || j < 0 || j >= pg.sections.length) return pg;
       return { ...pg, sections: arrayMove(pg.sections, i, j) };
     });
+  // Auto-create the wireframe for a page: seed AI-suggested sections (from the
+  // page type + selected features) for any that aren't already present.
+  const autoWireframe = (pageId: string) =>
+    patchPage(pageId, (pg) => {
+      const existing = new Set(pg.sections.map((s) => s.name.toLowerCase()));
+      const suggested = suggestSectionsForPage(pg.name, features)
+        .filter((name) => !existing.has(name.toLowerCase()))
+        .map((name) => ({ id: uid("s"), name, source: "AI-suggested" as const }));
+      return { ...pg, sections: [...pg.sections, ...suggested] };
+    });
   const duplicateSection = (pageId: string, sid: string) =>
     patchPage(pageId, (pg) => {
       const i = pg.sections.findIndex((s) => s.id === sid);
@@ -286,6 +298,7 @@ export function DesignEditor({
               onPatchSection={patchSection}
               onMoveSection={moveSection}
               onDuplicateSection={duplicateSection}
+              onAutoWireframe={autoWireframe}
               approved={approvals.wireframe}
               onApprove={() => approve("wireframe")}
               busy={saving}
@@ -402,7 +415,7 @@ type Device = keyof typeof DEVICE_W;
 
 function WireframeEditor({
   pages, selectedPage, schemes, onSelect, onAddPage, onRenamePage, onRemovePage, onDuplicatePage, onCyclePageSource, onPatchPageMeta,
-  onAddSection, onRemoveSection, onPatchSection, onMoveSection, onDuplicateSection, approved, onApprove, busy,
+  onAddSection, onRemoveSection, onPatchSection, onMoveSection, onDuplicateSection, onAutoWireframe, approved, onApprove, busy,
 }: {
   pages: CanvasPage[];
   selectedPage?: CanvasPage;
@@ -419,6 +432,7 @@ function WireframeEditor({
   onPatchSection: (pageId: string, sid: string, patch: Partial<CanvasSection>) => void;
   onMoveSection: (pageId: string, sid: string, dir: -1 | 1) => void;
   onDuplicateSection: (pageId: string, sid: string) => void;
+  onAutoWireframe: (pageId: string) => void;
   approved: boolean;
   onApprove: () => void;
   busy: boolean;
@@ -502,6 +516,9 @@ function WireframeEditor({
               ))}
             </div>
             <span className="hidden text-[11px] text-faint sm:inline">100%</span>
+            <Button size="sm" variant="secondary" onClick={() => onAutoWireframe(pageId)} title="Seed sections from the page type + selected features">
+              ✦ Auto-generate
+            </Button>
             <ApproveBar approved={approved} onApprove={onApprove} busy={busy} label="wireframe" />
           </div>
         </div>
@@ -516,8 +533,11 @@ function WireframeEditor({
             </div>
 
             {sections.length === 0 ? (
-              <div className="px-6 py-20 text-center text-[13px] text-faint">
-                Empty page — click <span className="font-medium text-body">Add section</span>. Only what you add or the crawl detected is rendered; nothing is forced.
+              <div className="grid place-items-center gap-3 px-6 py-16 text-center">
+                <p className="text-[13px] text-faint">
+                  Empty page. <span className="font-medium text-body">Auto-generate</span> a starter wireframe from the page type + your selected features, or add sections manually.
+                </p>
+                <Button size="sm" onClick={() => onAutoWireframe(pageId)}>✦ Auto-generate wireframe</Button>
               </div>
             ) : (
               <div className="divide-y divide-line">
