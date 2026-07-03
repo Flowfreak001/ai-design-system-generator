@@ -12,10 +12,11 @@ import { sectionKind } from "./wireframe-block";
 import { Drawer, Popover } from "./overlays";
 import { ProjectCanvas } from "./project-canvas";
 import { SECTION_CATEGORIES, suggestSectionsForPage } from "@/lib/sections";
-import { getSectionVariants, sectionTypeForKind, getBestVariantId } from "@/components/sections/registry";
+import { getSectionVariants, sectionTypeForKind, getBestVariantId, getSectionComponent } from "@/components/sections/registry";
 import { createSectionTheme } from "@/components/sections/section-theme";
-import type { SectionTheme, SectionComponent } from "@/components/sections/types";
+import type { SectionTheme, SectionComponent, SectionType } from "@/components/sections/types";
 import type { SectionContext } from "@/lib/sections";
+import type { SectionPattern } from "@/lib/references/types";
 import { arrayMove } from "@dnd-kit/sortable";
 import type {
   SitemapCanvas,
@@ -74,6 +75,7 @@ export function DesignEditor({
   initialStyle,
   features = [],
   siteContext = {},
+  referencePatterns = [],
   approvals: initialApprovals,
   saveSitemap,
   saveStyle,
@@ -85,6 +87,7 @@ export function DesignEditor({
   initialStyle: StyleGuideCanvas;
   features?: string[];
   siteContext?: SectionContext;
+  referencePatterns?: SectionPattern[];
   approvals: Approvals;
   saveSitemap: (projectId: string, canvas: SitemapCanvas) => Promise<{ error?: string }>;
   saveStyle: (projectId: string, canvas: StyleGuideCanvas) => Promise<{ error?: string }>;
@@ -318,6 +321,7 @@ export function DesignEditor({
               pages={pages}
               schemes={style.colors}
               previewTheme={createSectionTheme(style)}
+              referencePatterns={referencePatterns}
               onAddPage={addPageInCategory}
               onRemovePage={removePage}
               onRenamePage={renamePage}
@@ -344,6 +348,7 @@ export function DesignEditor({
               pages={pages}
               selectedPage={selectedPage}
               style={style}
+              referencePatterns={referencePatterns}
               onSelect={setSelectedPageId}
               onAddPage={addPage}
               onRenamePage={renamePage}
@@ -477,13 +482,14 @@ function SectionFrameIcon() {
 }
 
 function SitemapEditor({
-  pages, schemes, previewTheme, onAddPage, onRemovePage, onRenamePage, onDuplicatePage, onPatchPageMeta,
+  pages, schemes, previewTheme, referencePatterns, onAddPage, onRemovePage, onRenamePage, onDuplicatePage, onPatchPageMeta,
   onAddSection, onRemoveSection, onPatchSection, onMoveSection, onDuplicateSection,
   onGeneratePage, onGenerateAll, onApplyGlobal, onMarkApproved, onOpenWireframe, approved, onApprove, busy,
 }: {
   pages: CanvasPage[];
   schemes: CanvasColor[];
   previewTheme: SectionTheme;
+  referencePatterns: SectionPattern[];
   onAddPage: (category: PageCategory, parentId?: string) => void;
   onRemovePage: (id: string) => void;
   onRenamePage: (id: string, name: string) => void;
@@ -617,7 +623,7 @@ function SitemapEditor({
       </div>
 
       {/* Add section drawer for the chosen page */}
-      <AddSectionDrawer open={Boolean(addForPage)} previewTheme={previewTheme} onClose={() => setAddForPage(null)} onAdd={(name, keepOpen, variant) => { if (addForPage) onAddSection(addForPage, name, variant); if (!keepOpen) setAddForPage(null); }} />
+      <AddSectionDrawer open={Boolean(addForPage)} previewTheme={previewTheme} patterns={referencePatterns} onClose={() => setAddForPage(null)} onAdd={(name, keepOpen, variant) => { if (addForPage) onAddSection(addForPage, name, variant); if (!keepOpen) setAddForPage(null); }} />
 
       {/* Section edit drawer */}
       <Drawer open={Boolean(editSection)} onClose={() => setEditing(null)} title="Section" subtitle={editSection ? `Type: ${sectionKind(editSection.name)}` : undefined} width={340}>
@@ -754,12 +760,13 @@ function SitemapPageMenu({ onGenerate, onAddChild, onDuplicate, onRename, onDele
 // ----------------------------------------- Wireframe (real page canvas)
 
 function WireframeEditor({
-  pages, selectedPage, style, onSelect, onAddPage, onRenamePage, onRemovePage, onDuplicatePage, onCyclePageSource, onPatchPageMeta,
+  pages, selectedPage, style, referencePatterns, onSelect, onAddPage, onRenamePage, onRemovePage, onDuplicatePage, onCyclePageSource, onPatchPageMeta,
   onAddSection, onRemoveSection, onPatchSection, onMoveSection, onDuplicateSection, onAutoWireframe, approved, onApprove, busy,
 }: {
   pages: CanvasPage[];
   selectedPage?: CanvasPage;
   style: StyleGuideCanvas;
+  referencePatterns: SectionPattern[];
   onSelect: (id: string) => void;
   onAddPage: () => void;
   onRenamePage: (id: string, name: string) => void;
@@ -843,7 +850,7 @@ function WireframeEditor({
       </div>
 
       {/* ---------- Add Section drawer ---------- */}
-      <AddSectionDrawer open={addOpen} previewTheme={createSectionTheme(style)} onClose={() => setAddOpen(false)} onAdd={addSectionFromLibrary} />
+      <AddSectionDrawer open={addOpen} previewTheme={createSectionTheme(style)} patterns={referencePatterns} onClose={() => setAddOpen(false)} onAdd={addSectionFromLibrary} />
 
       {/* ---------- Section Settings drawer ---------- */}
       <Drawer
@@ -886,7 +893,18 @@ function VariantThumbPreview({ Comp, theme, label, onClick }: { Comp: SectionCom
   );
 }
 
-function AddSectionDrawer({ open, previewTheme, onClose, onAdd }: { open: boolean; previewTheme: SectionTheme; onClose: () => void; onAdd: (name: string, keepOpen: boolean, variant?: string) => void }) {
+// A representative section name per SectionType — its sectionKind() maps back to
+// the same type, so a reference pattern's chosen variant renders correctly.
+const NAME_FOR_TYPE: Record<string, string> = {
+  navbar: "Navbar", hero: "Hero", features: "Features", services: "Services",
+  "social-proof": "Social Proof", workflow: "Product Workflow", showcase: "Showcase",
+  "use-cases": "Use Cases", comparison: "Comparison", integrations: "Integrations",
+  "booking-form": "Booking Form", "contact-form": "Contact Form", "quote-form": "Quote Form",
+  pricing: "Pricing", testimonials: "Testimonials", faq: "FAQ", cta: "CTA", footer: "Footer",
+  gallery: "Gallery", dashboard: "Dashboard Preview", directory: "Listings", "scroll-media": "Sticky Media",
+};
+
+function AddSectionDrawer({ open, previewTheme, patterns = [], onClose, onAdd }: { open: boolean; previewTheme: SectionTheme; patterns?: SectionPattern[]; onClose: () => void; onAdd: (name: string, keepOpen: boolean, variant?: string) => void }) {
   const [q, setQ] = useState("");
   const [multi, setMulti] = useState(false);
   const [expanded, setExpanded] = useState<string | null>(null);
@@ -895,6 +913,14 @@ function AddSectionDrawer({ open, previewTheme, onClose, onAdd }: { open: boolea
     ...g,
     items: g.items.filter((i) => !query || i.toLowerCase().includes(query)),
   })).filter((g) => g.items.length);
+  const refs = patterns.filter((p) => !query || p.name.toLowerCase().includes(query) || p.sectionType.includes(query) || p.styleTags.some((t) => t.toLowerCase().includes(query)));
+
+  // Insert a saved reference pattern as a section with its matched variant.
+  const addPattern = (p: SectionPattern) => {
+    const type = p.matchedComponent?.type ?? sectionTypeForKind(sectionKind(p.sectionType));
+    const name = NAME_FOR_TYPE[type] ?? "Content Block";
+    onAdd(name, multi, p.matchedComponent?.variantId);
+  };
 
   return (
     <Drawer open={open} onClose={onClose} title="Add section" subtitle="Expand a section to preview its layouts, then click to add" width={360}>
@@ -911,6 +937,30 @@ function AddSectionDrawer({ open, previewTheme, onClose, onAdd }: { open: boolea
         )}
       </div>
       <div className="p-3">
+        {/* From the project's Section Reference Library */}
+        {refs.length > 0 && (
+          <div className="mb-3">
+            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-accent">🖼 From your Reference Library</p>
+            <div className="grid gap-2">
+              {refs.map((p) => {
+                const type = (p.matchedComponent?.type ?? sectionTypeForKind(sectionKind(p.sectionType))) as SectionType;
+                const Comp = getSectionComponent(type, p.matchedComponent?.variantId);
+                return (
+                  <button key={p.id} type="button" onClick={() => addPattern(p)} className="group overflow-hidden rounded-lg border border-line text-left transition-colors hover:border-accent">
+                    <div className="pointer-events-none overflow-hidden bg-surface" style={{ height: 96 }}>
+                      {Comp ? <div style={{ width: 1100, zoom: 0.26 } as React.CSSProperties}><Comp theme={previewTheme} /></div>
+                        : <div className="grid h-full place-items-center text-[11px] text-faint">{p.customSpec?.suggestedComponentName ?? "Custom section"} · needs build</div>}
+                    </div>
+                    <div className="flex items-center justify-between border-t border-line px-2.5 py-1.5">
+                      <span className="truncate text-[11.5px] font-medium text-body">{p.name}</span>
+                      <span className="shrink-0 text-[11px] font-medium text-accent opacity-0 transition-opacity group-hover:opacity-100">＋ Add</span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
         {groups.map((g) => (
           <div key={g.category} className="mb-3">
             <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-faint">{g.category}</p>

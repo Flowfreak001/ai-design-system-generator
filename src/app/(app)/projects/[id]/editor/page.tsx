@@ -10,6 +10,7 @@ import {
   type SitemapCanvas,
   type StyleGuideCanvas,
 } from "@/lib/canvas";
+import { SECTION_REFERENCE_LIBRARY_FILE, type ReferenceLibrary } from "@/lib/references/types";
 import {
   saveSitemapCanvasAction,
   saveStyleGuideCanvasAction,
@@ -47,12 +48,17 @@ export default async function EditorPage({ params }: { params: Promise<{ id: str
     parse<StyleGuideCanvas>(STYLE_GUIDE_CANVAS_FILE) ??
     deriveStyleGuideCanvas(tokens, { primaryColor: b.primaryColor, secondaryColor: b.secondaryColor });
 
+  // Approved section reference patterns — insertable directly from the editor.
+  const refLib = parse<ReferenceLibrary>(SECTION_REFERENCE_LIBRARY_FILE);
+  const referencePatterns = (refLib?.patterns ?? []).filter((p) => p.approved);
+
   return (
     <DesignEditor
       projectId={id}
       projectName={project.name}
       initialSitemap={sitemap}
       initialStyle={style}
+      referencePatterns={referencePatterns}
       features={b.features ?? []}
       siteContext={{ websiteType: b.websiteType, industry: b.industry, businessType: b.businessType, goals: b.goals }}
       approvals={{
