@@ -42,6 +42,7 @@ import ListingGrid from "./directory/ListingGrid";
 import DashboardPreviewSection from "./dashboard/DashboardPreviewSection";
 // Elementor-grade marketing sections (folder index files, named exports).
 import { AIPlatformHero, SplitVisualHero } from "./hero/marketing";
+import BuilderHero from "./hero/BuilderHero";
 import { FeatureCardsWithIcons, FeatureTabs } from "./features/marketing";
 import FeatureSplitAccordion from "./features/FeatureSplitAccordion";
 import { GradientCTA, TrialSignupCTA } from "./cta/marketing";
@@ -56,7 +57,7 @@ import { IntegrationLogoCloud } from "./integrations";
 /** SectionType → variant id → component. Keys mirror catalog.ts ids. */
 const COMPONENTS: Partial<Record<SectionType, Record<string, SectionComponent>>> = {
   navbar: { simple: SimpleNavbar, "center-logo": CenterLogoNavbar, "with-cta": NavbarWithCTA },
-  hero: { centered: CenteredHero, split: SplitHero, "split-visual": SplitVisualHero, image: HeroWithImage, booking: HeroWithBookingForm, saas: SaaSHero, "ai-platform": AIPlatformHero, local: LocalBusinessHero },
+  hero: { centered: CenteredHero, split: SplitHero, "split-visual": SplitVisualHero, image: HeroWithImage, booking: HeroWithBookingForm, saas: SaaSHero, "ai-platform": AIPlatformHero, builder: BuilderHero, local: LocalBusinessHero },
   services: { "cards-3": ServiceCards3, "grid-6": ServiceGrid6, "image-cards": ServiceImageCards },
   features: { grid: FeatureGrid, "icon-cards": FeatureCardsWithIcons, tabs: FeatureTabs, "accordion-visual": FeatureSplitAccordion },
   "social-proof": { "logo-cloud": LogoCloud, "review-stats": ReviewStats, "trust-badges": TrustBadgeStrip },

@@ -32,6 +32,7 @@ export const SECTION_CATALOG: Partial<Record<SectionType, SectionCatalogEntry>> 
       V("booking", "Hero With Booking Form", "HeroWithBookingForm", "hero/HeroWithBookingForm", ["booking", "car-rental", "parking", "taxi", "healthcare"], { supportsAssetSwap: true }),
       V("saas", "SaaS Product Hero", "SaaSHero", "hero/SaaSHero", ["saas", "platform", "dashboard"]),
       V("ai-platform", "AI Platform Hero", "AIPlatformHero", "hero/marketing", ["saas", "platform", "ai", "software"]),
+      V("builder", "Builder Hero + Editor Mockup", "BuilderHero", "hero/BuilderHero", ["saas", "platform", "builder", "software", "agency"], { supportsAssetSwap: true }),
       V("local", "Local Business Hero", "LocalBusinessHero", "hero/LocalBusinessHero", ["local-service", "construction", "maintenance", "healthcare"], { supportsAssetSwap: true }),
     ],
   },
