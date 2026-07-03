@@ -294,10 +294,19 @@ export function DesignEditor({
             {saving ? "Saving…" : dirty ? "Unsaved changes" : "All changes saved"}
           </span>
           <Button size="sm" variant="secondary" title="Section Reference Library — upload references, extract patterns" onClick={() => window.open(`/projects/${projectId}/references`, "_blank", "noreferrer")}>
-            🖼 References
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="-ml-0.5">
+              <rect x="3.5" y="4.5" width="17" height="15" rx="2.5" stroke="currentColor" strokeWidth="1.7" />
+              <circle cx="9" cy="10" r="1.6" stroke="currentColor" strokeWidth="1.7" />
+              <path d="m4.5 17 4.2-4.2a1.5 1.5 0 0 1 2.1 0L15 16.5m-1.5-1.5 1.7-1.7a1.5 1.5 0 0 1 2.1 0l2.2 2.2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            References
           </Button>
           <Button size="sm" variant="secondary" title="Open a full-page live preview (scroll animations work here)" onClick={() => window.open(`/preview/${projectId}?page=${selectedPageId}`, "_blank", "noreferrer")}>
-            👁 Live preview
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="-ml-0.5">
+              <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+              <circle cx="12" cy="12" r="2.7" stroke="currentColor" strokeWidth="1.7" />
+            </svg>
+            Live preview
           </Button>
           <Button size="sm" variant="secondary" disabled title="Coming soon">Export</Button>
           <Button size="sm" onClick={save} disabled={saving || !dirty}>{saving ? "Saving…" : "Save"}</Button>
