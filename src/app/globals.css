@@ -102,7 +102,10 @@ h4 {
   font-variant-numeric: tabular-nums;
 }
 
-:where(a, button, input, textarea, select, [tabindex]):focus-visible {
+/* Form fields show a 1px accent border on focus (see Input/Textarea/select),
+   so they are intentionally excluded here — only non-bordered controls get the
+   accent outline for accessibility. */
+:where(a, button, [tabindex]):focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
   border-radius: 4px;
