@@ -116,16 +116,21 @@ export async function runWebsiteAnalysis(projectId: string) {
 
   const input = toGenerationInput(project);
   const isUrl = (r: string) => /^https?:\/\//i.test(r);
-  // Primary page (design-token source): the client's own site first.
+  // Primary page (design-token source): the primary reference the user chose at
+  // onboarding wins — that is the site they explicitly asked us to learn from.
+  const mainRef = input.brief.mainReferenceUrl?.trim();
   const url =
+    (mainRef && isUrl(mainRef) ? mainRef : null) ||
     input.brief.existingWebsiteUrl?.trim() ||
     input.brief.pageUrls.find(isUrl) ||
     input.brief.referenceUrls.find(isUrl) ||
     project.business?.website ||
     input.brief.brandRefs.find(isUrl) ||
     null;
-  // All the client's pages to scan for the real section/component inventory.
+  // All pages to scan for the real section/component inventory — primary
+  // reference first, then any extra/existing pages.
   const allPageUrls = [
+    ...(mainRef && isUrl(mainRef) ? [mainRef] : []),
     ...(input.brief.existingWebsiteUrl?.trim() ? [input.brief.existingWebsiteUrl.trim()] : []),
     ...input.brief.pageUrls.filter(isUrl),
     ...input.brief.referenceUrls.filter(isUrl),
