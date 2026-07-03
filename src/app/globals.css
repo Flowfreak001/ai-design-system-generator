@@ -241,3 +241,17 @@ h4 {
     @apply font-sans;
   }
 }
+
+/* Global dropdown affordance (UNLAYERED on purpose so it wins over `px-*`
+   utilities): replace the native chevron with a consistent SVG and always keep
+   a clear gap between the value text and the icon. Every native <select> gets
+   this unless it opts out with `appearance-auto`. */
+select:not([multiple]):not([size]):not(.appearance-auto) {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='m6 9 6 6 6-6' stroke='%236B7280' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.625rem center;
+  /* Reserve room for the chevron + a gap so long labels never touch it. */
+  padding-right: 2rem;
+}

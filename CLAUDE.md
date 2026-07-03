@@ -116,6 +116,11 @@ WorkflowRun/Approval are schema-ready but not yet surfaced in UI.
   `strokeWidth ~1.7`, rendered at 15px, with `className="-ml-0.5"` before a text
   label; icon-only buttons need an `aria-label`. Keeps the UI consistent and
   theme-aware.
+- **Dropdowns get a consistent chevron + gap automatically.** A global
+  `globals.css` base rule styles every native `<select>` with a custom SVG
+  chevron and `padding-right: 2rem` so the value text never touches the icon.
+  Don't add per-select chevrons or right padding; opt out only with
+  `appearance-auto` on the rare native-styled select.
 
 ### Design system (UI)
 
