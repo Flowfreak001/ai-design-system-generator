@@ -101,6 +101,7 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
 
 const CRUMBS: [RegExp, string[]][] = [
   [/^\/dashboard/, ["Dashboard"]],
+  [/^\/library/, ["Library"]],
   [/^\/clients\/new/, ["Clients", "Add client"]],
   [/^\/clients\/[^/]+/, ["Clients", "Client"]],
   [/^\/clients/, ["Clients"]],
@@ -170,16 +171,10 @@ export function DashboardShell({
               // Project-scoped Library link — points at the open project's
               // Section Reference Library, disabled when no project is open.
               if (item.dynamic === "references") {
-                if (!projectIdActive) {
-                  return (
-                    <span key={item.label} className={`mt-1 ${navItemCls(false, true, isCollapsed)}`} aria-disabled="true" title="Open a project to use its Section Reference Library">
-                      {ICONS[item.icon]}
-                      {item.label}
-                    </span>
-                  );
-                }
-                const href = `/projects/${projectIdActive}/references`;
-                const active = pathname === href;
+                // Inside a project → that project's library; otherwise the
+                // global library hub so it's reachable from the dashboard.
+                const href = projectIdActive ? `/projects/${projectIdActive}/references` : "/library";
+                const active = onReferences || pathname.startsWith("/library");
                 return (
                   <Link key={item.label} href={href} aria-current={active ? "page" : undefined} className={`mt-1 ${navItemCls(active, false, isCollapsed)}`}>
                     {!isCollapsed && active && <span aria-hidden="true" className="absolute -left-3 h-4 w-[3px] rounded-full bg-accent" />}
