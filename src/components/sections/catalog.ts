@@ -202,6 +202,10 @@ export const SECTION_CATALOG: Partial<Record<SectionType, SectionCatalogEntry>> 
       V("metric-cards", "Metric Cards", "MetricCards", "../blocks", ["saas", "agency"]),
       V("logo-strip", "Logo Strip", "LogoStrip", "../blocks", ["saas", "agency", "general"]),
       V("capability-tags", "Capability Tags", "CapabilityTags", "../blocks", ["agency", "creative", "professional-service"]),
+      V("marquee-testimonials", "Marquee Testimonials", "MarqueeTestimonials", "../blocks", ["general", "saas", "agency"], { exportNotes: "Auto-scrolling row of quote cards; pause on hover; render static when prefers-reduced-motion." }),
+      // Site-wide GLOBAL bands (components/globals), rendered as block variants.
+      V("announcement-bar", "Announcement Bar", "AnnouncementBar", "../globals", ["general", "ecommerce", "saas"]),
+      V("cookie-banner", "Cookie Consent Banner", "CookieBanner", "../globals", ["general", "ecommerce"]),
     ],
   },
   // TODO Phase 2: portfolio, blog, testimonials carousel, pricing comparison,

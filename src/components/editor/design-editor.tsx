@@ -929,12 +929,13 @@ const NAME_FOR_TYPE: Record<string, string> = {
   gallery: "Gallery", dashboard: "Dashboard Preview", directory: "Listings", "scroll-media": "Sticky Media",
 };
 
-type DrawerTab = "recommended" | "sections" | "blocks" | "atomic" | "references";
+type DrawerTab = "recommended" | "sections" | "blocks" | "atomic" | "globals" | "references";
 const DRAWER_TABS: { id: DrawerTab; label: string }[] = [
   { id: "recommended", label: "Recommended" },
   { id: "sections", label: "Sections" },
   { id: "blocks", label: "Blocks" },
   { id: "atomic", label: "Elements" },
+  { id: "globals", label: "Globals" },
   { id: "references", label: "References" },
 ];
 
@@ -953,6 +954,7 @@ function AddSectionDrawer({ open, previewTheme, patterns = [], recommendCtx = {}
   const recommended = recommendElements(recommendCtx, 6).filter((e) => !query || e.name.toLowerCase().includes(query));
   const blockGroups = groupElements(searchElements({ text: query, kind: "block" }));
   const atomicGroups = groupElements(searchElements({ text: query, kind: "atomic" }));
+  const globalItems = searchElements({ text: query, kind: "global" });
 
   // Insert a saved reference pattern as a section with its matched variant.
   const addPattern = (p: SectionPattern) => {
@@ -1038,6 +1040,15 @@ function AddSectionDrawer({ open, previewTheme, patterns = [], recommendCtx = {}
           <>
             <p className="mb-2 rounded-lg bg-panel px-2.5 py-1.5 text-[11.5px] text-muted">Atomic elements help build custom sections. Insertion into a section is coming soon.</p>
             <ElementGroupList groups={atomicGroups} onAdd={addItem} />
+          </>
+        )}
+
+        {tab === "globals" && (
+          <>
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-faint">Site-wide globals</p>
+            {globalItems.length > 0 ? (
+              <div className="grid grid-cols-2 gap-2">{globalItems.map((e) => <ElementCard key={e.id} item={e} onAdd={() => addItem(e)} />)}</div>
+            ) : <p className="px-1 text-[12.5px] text-faint">No globals match your search.</p>}
           </>
         )}
 

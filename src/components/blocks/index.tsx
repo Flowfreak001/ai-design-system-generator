@@ -115,6 +115,26 @@ export const LogoStrip = make((t, p) => (
     <div className="mx-auto grid max-w-4xl grid-cols-2 items-center gap-6 sm:grid-cols-5">{[0, 1, 2, 3, 4].map((i) => (<div key={i} className="h-8 rounded-md" style={{ background: t.borderColor, opacity: 0.7 }} />))}</div></Band>
 ));
 
+// 11 — Marquee Testimonials: an auto-scrolling row of quote cards (Magic UI
+// marquee pattern, normalized; pause on hover; reduced-motion renders static).
+export const MarqueeTestimonials = make((t, p) => (
+  <Band t={t} tone="surface" pad="px-0 py-16">
+    <div className="px-12"><Head t={t} eyebrow="Loved by teams" title={p.title ?? "What people say"} sub={p.description} center /></div>
+    <div className="group relative overflow-hidden [mask-image:linear-gradient(90deg,transparent,#000_8%,#000_92%,transparent)]">
+      <div className="flex w-max gap-4 pl-4 motion-safe:animate-[bmarquee_28s_linear_infinite] group-hover:[animation-play-state:paused]">
+        {[...Array(8)].map((_, i) => (
+          <figure key={i} className="w-[280px] shrink-0 p-5" style={Elev(t)}>
+            <div className="mb-3 flex gap-1 text-[13px]" style={{ color: t.accentColor }}>{"★★★★★"}</div>
+            <blockquote className="text-[14px] leading-relaxed" style={h(t)}>“A concise, credible testimonial slot — swap in real quotes at export.”</blockquote>
+            <figcaption className="mt-4 flex items-center gap-2.5"><span className="h-8 w-8 rounded-full" style={{ background: `linear-gradient(135deg, ${t.surfaceColor}, ${tint(t, 12)})`, border: `1px dashed ${t.borderColor}` }} /><span className="text-[12.5px] font-medium" style={h(t)}>Name · Role</span></figcaption>
+          </figure>
+        ))}
+      </div>
+      <style>{"@keyframes bmarquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}"}</style>
+    </div>
+  </Band>
+));
+
 // 10 — Capability Tags: pill cluster of skills/services.
 export const CapabilityTags = make((t, p) => (
   <Band t={t} tone="dark"><Head t={t} eyebrow="What we do" title={p.title ?? "Capabilities that fit together"} sub={p.description} onDark />

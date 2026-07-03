@@ -62,8 +62,9 @@ import {
 } from "./blocks";
 import {
   BentoGrid, StatBand, FeatureSplit, TestimonialSpotlight, PricingHighlight,
-  ComparisonRow, NewsletterInline, MetricCards, LogoStrip, CapabilityTags,
+  ComparisonRow, NewsletterInline, MetricCards, LogoStrip, CapabilityTags, MarqueeTestimonials,
 } from "@/components/blocks";
+import { AnnouncementBar, CookieBanner } from "@/components/globals";
 
 /** SectionType → variant id → component. Keys mirror catalog.ts ids. */
 const COMPONENTS: Partial<Record<SectionType, Record<string, SectionComponent>>> = {
@@ -102,6 +103,7 @@ const COMPONENTS: Partial<Record<SectionType, Record<string, SectionComponent>>>
     "testimonial-spotlight": TestimonialSpotlight, "pricing-highlight": PricingHighlight,
     "comparison-row": ComparisonRow, "newsletter-inline": NewsletterInline,
     "metric-cards": MetricCards, "logo-strip": LogoStrip, "capability-tags": CapabilityTags,
+    "marquee-testimonials": MarqueeTestimonials, "announcement-bar": AnnouncementBar, "cookie-banner": CookieBanner,
   },
 };
 

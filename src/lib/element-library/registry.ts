@@ -135,6 +135,15 @@ const BLOCKS: ElementItem[] = [
   el({ id: "blk-metriccards", name: "Metric Cards", kind: "block", category: "Marketing", group: "Marketing", icon: "stats", description: "KPI result cards.", goals: ["Build trust"] }),
   el({ id: "blk-logostrip", name: "Logo Strip", kind: "block", category: "Marketing", group: "Marketing", icon: "logos", description: "Understated partner/client logo strip.", goals: ["Build trust"] }),
   el({ id: "blk-captags", name: "Capability Tags", kind: "block", category: "Content", group: "Content", icon: "list", description: "A dark pill cluster of skills/services.", styleTags: ["dark"] }),
+  el({ id: "blk-marqueetesti", name: "Marquee Testimonials", kind: "block", category: "Social Proof", group: "Interactive", icon: "marquee", description: "Auto-scrolling row of quote cards (pause on hover).", goals: ["Build trust"], interactionTags: ["marquee"] }),
+];
+
+// ── GLOBALS — site-wide bands reused across pages (kind: "global"). ──
+const GLOBALS: ElementItem[] = [
+  el({ id: "glb-navbar", name: "Navbar", kind: "global", category: "Global", group: "Utility", icon: "navbar", description: "Site-wide navigation bar.", sectionType: "navbar", insertName: "Navbar", status: "ready" }),
+  el({ id: "glb-footer", name: "Footer", kind: "global", category: "Global", group: "Utility", icon: "footer", description: "Site-wide footer.", sectionType: "footer", insertName: "Footer", status: "ready" }),
+  el({ id: "glb-announce", name: "Announcement Bar", kind: "global", category: "Global", group: "Utility", icon: "badge", description: "Thin site-wide promo/announcement strip.", sectionType: "block", variant: "announcement-bar", insertName: "Announcement Bar", componentName: "AnnouncementBar", status: "ready" }),
+  el({ id: "glb-cookie", name: "Cookie Consent Banner", kind: "global", category: "Global", group: "Utility", icon: "badge", description: "Cookie consent band with accept/decline.", sectionType: "block", variant: "cookie-banner", insertName: "Cookie Consent Banner", componentName: "CookieBanner", status: "ready" }),
 ];
 
 // ── 3. FULL SECTIONS ──────────────────────────────────────────────────────
@@ -191,7 +200,6 @@ const SECTIONS: ElementItem[] = [
   S("sec-util-process", "Process / How It Works", "Utility", "Utility", { icon: "process", sectionType: "features", insertName: "How It Works" }),
   S("sec-util-footer", "Footer", "Utility", "Utility", { icon: "footer", sectionType: "footer", insertName: "Footer" }),
   S("sec-util-navbar", "Navbar", "Utility", "Utility", { icon: "navbar", sectionType: "navbar", insertName: "Navbar" }),
-  S("sec-util-announce", "Announcement Bar", "Utility", "Utility", { icon: "badge", insertName: "Announcement Bar" }),
 ];
 
 // Block display name → the "block" section variant that renders it. Flipping
@@ -210,6 +218,7 @@ const BLOCK_VARIANT: Record<string, string> = {
   "Testimonial Spotlight": "testimonial-spotlight", "Pricing Highlight": "pricing-highlight",
   "Comparison Row": "comparison-row", "Newsletter Inline": "newsletter-inline",
   "Metric Cards": "metric-cards", "Logo Strip": "logo-strip", "Capability Tags": "capability-tags",
+  "Marquee Testimonials": "marquee-testimonials",
 };
 // Atomic primitives now have real components (components/atomic). They stay
 // insert-"coming-soon" (in-section nesting is Phase 2) but carry a componentName.
@@ -233,7 +242,7 @@ for (const item of BLOCKS) {
   }
 }
 
-export const ELEMENT_LIBRARY: ElementItem[] = [...SECTIONS, ...BLOCKS, ...ATOMIC];
+export const ELEMENT_LIBRARY: ElementItem[] = [...SECTIONS, ...GLOBALS, ...BLOCKS, ...ATOMIC];
 
 export const getElementsByKind = (kind: ElementKind): ElementItem[] => ELEMENT_LIBRARY.filter((e) => e.kind === kind);
 export const findElement = (id: string): ElementItem | undefined => ELEMENT_LIBRARY.find((e) => e.id === id);

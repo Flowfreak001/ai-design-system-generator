@@ -21,7 +21,9 @@ export const BLOCK_INSERT_NAMES = new Set<string>([
   // Phase 1 batch (components/blocks)
   "Bento Grid", "Stat Band", "Feature Split", "Testimonial Spotlight",
   "Pricing Highlight", "Comparison Row", "Newsletter Inline", "Metric Cards",
-  "Logo Strip", "Capability Tags",
+  "Logo Strip", "Capability Tags", "Marquee Testimonials",
+  // Globals (rendered as block bands)
+  "Announcement Bar", "Cookie Consent Banner",
 ]);
 
 /** Infer the layout kind from a free-text section name. */
