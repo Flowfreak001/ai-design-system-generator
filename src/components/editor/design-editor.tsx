@@ -458,52 +458,26 @@ function WireframeEditor({
 
   return (
     <div className="flex min-h-full">
-      {/* ---------- Left sidebar ---------- */}
-      <aside className="flex w-60 shrink-0 flex-col border-r border-line bg-surface">
-        <div className="flex items-center justify-between border-b border-line px-3 py-2">
-          <span className="text-[11px] font-semibold uppercase tracking-wide text-faint">Pages</span>
-          <button type="button" onClick={onAddPage} title="Add page" className="rounded-md px-1.5 text-[13px] text-accent hover:bg-accent-soft">＋</button>
-        </div>
-        <div className="grid gap-1 overflow-y-auto p-2">
-          {pages.map((p) => {
-            const active = p.id === pageId;
-            return (
-              <div key={p.id} className={`flex items-center gap-1 rounded-lg border px-1.5 py-1.5 ${active ? "border-accent bg-accent-soft/40" : "border-transparent hover:bg-panel"}`}>
-                <button type="button" onClick={() => { onSelect(p.id); setSelectedSectionId(null); }} className="flex min-w-0 flex-1 items-center justify-between gap-2 text-left">
-                  <span className="min-w-0">
-                    <span className={`block truncate text-[13px] font-medium ${active ? "text-accent" : "text-ink"}`}>{p.name}</span>
-                    <span className="text-[11px] text-faint">{p.sections.length} section{p.sections.length === 1 ? "" : "s"}</span>
-                  </span>
-                  <span className={`rounded-full px-1.5 py-0.5 text-[9.5px] font-medium ${p.sections.length ? "bg-success-soft text-success" : "bg-panel text-muted"}`}>
-                    {p.sections.length ? "ready" : "empty"}
-                  </span>
-                </button>
-                <PageMenu
-                  page={p}
-                  otherPages={pages.filter((x) => x.id !== p.id)}
-                  onRename={(name) => onRenamePage(p.id, name)}
-                  onDuplicate={() => onDuplicatePage(p.id)}
-                  onDelete={() => onRemovePage(p.id)}
-                  onCycleSource={() => onCyclePageSource(p.id)}
-                  onPatchMeta={(patch) => onPatchPageMeta(p.id, patch)}
-                />
-              </div>
-            );
-          })}
-        </div>
-        <div className="mt-auto border-t border-line p-3">
-          <Button size="sm" onClick={() => setAddOpen(true)} className="w-full">＋ Add section</Button>
-        </div>
-      </aside>
-
       {/* ---------- Center: full-project canvas (all pages) ---------- */}
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line bg-surface/70 px-4 py-2 backdrop-blur">
           <div className="flex items-center gap-2">
+            <PagesPopover
+              pages={pages}
+              activeId={pageId}
+              onSelect={(id) => { onSelect(id); setSelectedSectionId(null); }}
+              onAddPage={onAddPage}
+              onRenamePage={onRenamePage}
+              onDuplicatePage={onDuplicatePage}
+              onRemovePage={onRemovePage}
+              onCyclePageSource={onCyclePageSource}
+              onPatchPageMeta={onPatchPageMeta}
+            />
             <span className="text-[14px] font-semibold text-ink">Wireframe — all pages</span>
             <span className="text-[11.5px] text-muted">Selected: {selectedPage.name}</span>
           </div>
           <div className="flex items-center gap-2">
+            <Button size="sm" variant="secondary" onClick={() => setAddOpen(true)}>＋ Add section</Button>
             <Button size="sm" variant="secondary" onClick={() => onAutoWireframe(pageId)} title="Seed the selected page's sections from its type + features">
               ✦ Auto-generate
             </Button>
@@ -597,6 +571,75 @@ function AddSectionDrawer({ open, onClose, onAdd }: { open: boolean; onClose: ()
         {groups.length === 0 && <p className="px-1 text-[13px] text-faint">No matches. Use “Add custom”.</p>}
       </div>
     </Drawer>
+  );
+}
+
+// Pages are no longer a permanent sidebar — a circular button opens the full
+// pages list as a popup (select / add / rename / duplicate / delete a page).
+function PagesPopover({
+  pages, activeId, onSelect, onAddPage, onRenamePage, onDuplicatePage, onRemovePage, onCyclePageSource, onPatchPageMeta,
+}: {
+  pages: CanvasPage[];
+  activeId: string;
+  onSelect: (id: string) => void;
+  onAddPage: () => void;
+  onRenamePage: (id: string, name: string) => void;
+  onDuplicatePage: (id: string) => void;
+  onRemovePage: (id: string) => void;
+  onCyclePageSource: (id: string) => void;
+  onPatchPageMeta: (id: string, patch: Partial<CanvasPage>) => void;
+}) {
+  const active = pages.find((p) => p.id === activeId);
+  return (
+    <Popover
+      align="left"
+      width={300}
+      trigger={() => (
+        <span
+          title="Pages"
+          className="grid h-9 w-9 place-items-center rounded-full border border-line bg-surface text-[18px] font-medium text-accent shadow-sm hover:bg-accent-soft"
+        >
+          ＋
+        </span>
+      )}
+    >
+      {(close) => (
+        <div className="grid gap-2">
+          <div className="flex items-center justify-between px-1">
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-faint">Pages · {pages.length}</span>
+            <button type="button" onClick={() => onAddPage()} className="rounded-md px-1.5 text-[13px] text-accent hover:bg-accent-soft" title="Add page">＋ Add</button>
+          </div>
+          <div className="grid max-h-80 gap-1 overflow-y-auto">
+            {pages.map((p) => {
+              const isActive = p.id === activeId;
+              return (
+                <div key={p.id} className={`flex items-center gap-1 rounded-lg border px-1.5 py-1.5 ${isActive ? "border-accent bg-accent-soft/40" : "border-transparent hover:bg-panel"}`}>
+                  <button type="button" onClick={() => { onSelect(p.id); close(); }} className="flex min-w-0 flex-1 items-center justify-between gap-2 text-left">
+                    <span className="min-w-0">
+                      <span className={`block truncate text-[13px] font-medium ${isActive ? "text-accent" : "text-ink"}`}>{p.name}</span>
+                      <span className="text-[11px] text-faint">{p.sections.length} section{p.sections.length === 1 ? "" : "s"}</span>
+                    </span>
+                    <span className={`rounded-full px-1.5 py-0.5 text-[9.5px] font-medium ${p.sections.length ? "bg-success-soft text-success" : "bg-panel text-muted"}`}>
+                      {p.sections.length ? "ready" : "empty"}
+                    </span>
+                  </button>
+                  <PageMenu
+                    page={p}
+                    otherPages={pages.filter((x) => x.id !== p.id)}
+                    onRename={(name) => onRenamePage(p.id, name)}
+                    onDuplicate={() => onDuplicatePage(p.id)}
+                    onDelete={() => onRemovePage(p.id)}
+                    onCycleSource={() => onCyclePageSource(p.id)}
+                    onPatchMeta={(patch) => onPatchPageMeta(p.id, patch)}
+                  />
+                </div>
+              );
+            })}
+          </div>
+          {active && <p className="px-1 text-[11px] text-faint">Editing: <span className="text-body">{active.name}</span></p>}
+        </div>
+      )}
+    </Popover>
   );
 }
 
