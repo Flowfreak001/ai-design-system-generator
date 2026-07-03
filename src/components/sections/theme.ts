@@ -54,4 +54,6 @@ export type SectionProps = {
   note?: string;
   theme: SectionTheme;
   mobile?: boolean;
+  /** Which side the image/asset sits on in split layouts (default "right"). */
+  assetSide?: "left" | "right";
 };

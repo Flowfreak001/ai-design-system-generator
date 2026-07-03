@@ -236,7 +236,7 @@ function PageFrame({
                   {mode === "wireframe" ? (
                     <SectionWireframe name={s.name} mobile={mobile} />
                   ) : (
-                    renderSectionVariant(sectionKind(s.name), s.variant, { name: s.name, note: s.note, theme, mobile })
+                    renderSectionVariant(sectionKind(s.name), s.variant, { name: s.name, note: s.note, theme, mobile, assetSide: s.asset === "left" ? "left" : "right" })
                   )}
                 </div>
               );

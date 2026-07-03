@@ -17,6 +17,16 @@ const card = (t: SectionTheme) => ({ background: t.surface, borderRadius: t.radi
 
 export type SectionVariant = { id: string; label: string; Component: (p: SectionProps) => React.ReactElement };
 
+// Two-column row that swaps the content/asset order based on assetSide.
+function Row({ content, asset, side, mobile }: { content: React.ReactNode; asset: React.ReactNode; side?: "left" | "right"; mobile?: boolean }) {
+  const assetLeft = side === "left";
+  return (
+    <div className={`grid items-center gap-8 ${mobile ? "" : "grid-cols-2"}`}>
+      {assetLeft ? <>{asset}{content}</> : <>{content}{asset}</>}
+    </div>
+  );
+}
+
 // ------------------------------------------------------------------ HERO
 function CenteredHero({ theme: t, title, note }: SectionProps) {
   return (
@@ -31,54 +41,74 @@ function CenteredHero({ theme: t, title, note }: SectionProps) {
   );
 }
 
-function SplitHero({ theme: t, title, note, mobile }: SectionProps) {
+function SplitHero({ theme: t, title, note, mobile, assetSide }: SectionProps) {
   return (
-    <section className={`grid items-center gap-8 px-8 py-14 ${mobile ? "" : "grid-cols-2"}`} style={{ background: t.bg }}>
-      <div>
-        <h1 className="text-[30px] font-bold leading-tight" style={H(t)}>{title || "A clear, benefit-led headline"}</h1>
-        <p className="mt-3 text-[14px] leading-relaxed" style={B(t)}>{note || "Explain the value in one or two sentences."}</p>
-        <div className="mt-5 flex gap-3">
-          <span className="px-4 py-2 text-[13px] font-medium" style={fill(t)}>Primary CTA</span>
-          <span className="px-4 py-2 text-[13px] font-medium" style={outline(t)}>Secondary</span>
-        </div>
-      </div>
-      <div className="h-52 w-full" style={card(t)} />
+    <section className="px-8 py-14" style={{ background: t.bg }}>
+      <Row
+        mobile={mobile}
+        side={assetSide}
+        content={
+          <div>
+            <h1 className="text-[30px] font-bold leading-tight" style={H(t)}>{title || "A clear, benefit-led headline"}</h1>
+            <p className="mt-3 text-[14px] leading-relaxed" style={B(t)}>{note || "Explain the value in one or two sentences."}</p>
+            <div className="mt-5 flex gap-3">
+              <span className="px-4 py-2 text-[13px] font-medium" style={fill(t)}>Primary CTA</span>
+              <span className="px-4 py-2 text-[13px] font-medium" style={outline(t)}>Secondary</span>
+            </div>
+          </div>
+        }
+        asset={<div className="h-52 w-full" style={card(t)} />}
+      />
     </section>
   );
 }
 
-function ImageRightHero({ theme: t, title, note, mobile }: SectionProps) {
+function ImageRightHero({ theme: t, title, note, mobile, assetSide }: SectionProps) {
   return (
-    <section className={`grid items-center gap-10 px-8 py-14 ${mobile ? "" : "grid-cols-[1fr_1.2fr]"}`} style={{ background: t.surface }}>
-      <div>
-        <span className="inline-block rounded-full px-3 py-1 text-[11px] font-semibold" style={{ background: t.bg, color: t.accent }}>New</span>
-        <h1 className="mt-3 text-[30px] font-bold leading-tight" style={H(t)}>{title || "Headline paired with a strong visual"}</h1>
-        <p className="mt-3 text-[14px] leading-relaxed" style={B(t)}>{note || "Describe the outcome the visitor gets."}</p>
-        <span className="mt-5 inline-block px-5 py-2.5 text-[13px] font-medium" style={fill(t)}>Get started</span>
-      </div>
-      <div className="h-64 w-full" style={{ background: t.bg, borderRadius: t.radius, border: `1px solid ${t.surface}` }} />
+    <section className="px-8 py-14" style={{ background: t.surface }}>
+      <Row
+        mobile={mobile}
+        side={assetSide}
+        content={
+          <div>
+            <span className="inline-block rounded-full px-3 py-1 text-[11px] font-semibold" style={{ background: t.bg, color: t.accent }}>New</span>
+            <h1 className="mt-3 text-[30px] font-bold leading-tight" style={H(t)}>{title || "Headline paired with a strong visual"}</h1>
+            <p className="mt-3 text-[14px] leading-relaxed" style={B(t)}>{note || "Describe the outcome the visitor gets."}</p>
+            <span className="mt-5 inline-block px-5 py-2.5 text-[13px] font-medium" style={fill(t)}>Get started</span>
+          </div>
+        }
+        asset={<div className="h-64 w-full" style={{ background: t.bg, borderRadius: t.radius, border: `1px solid ${t.surface}` }} />}
+      />
     </section>
   );
 }
 
-function BookingHero({ theme: t, title, note, mobile }: SectionProps) {
+function BookingHero({ theme: t, title, note, mobile, assetSide }: SectionProps) {
   return (
-    <section className={`grid items-center gap-8 px-8 py-14 ${mobile ? "" : "grid-cols-2"}`} style={{ background: t.bg }}>
-      <div>
-        <h1 className="text-[30px] font-bold leading-tight" style={H(t)}>{title || "Book your appointment in minutes"}</h1>
-        <p className="mt-3 text-[14px] leading-relaxed" style={B(t)}>{note || "Fast, reliable, and available when you need us."}</p>
-        <div className="mt-5 flex flex-wrap gap-2 text-[12px]" style={B(t)}>
-          <span className="rounded-full px-3 py-1" style={card(t)}>★ 4.9 rated</span>
-          <span className="rounded-full px-3 py-1" style={card(t)}>Same-day slots</span>
-        </div>
-      </div>
-      <div className="p-5" style={{ background: t.surface, borderRadius: t.radius }}>
-        <p className="text-[13px] font-semibold" style={H(t)}>Request a booking</p>
-        {["Service", "Preferred date", "Phone"].map((f) => (
-          <div key={f} className="mt-3"><label className="text-[11.5px]" style={B(t)}>{f}</label><div className="mt-1 h-9 w-full" style={{ background: t.bg, borderRadius: t.radius }} /></div>
-        ))}
-        <span className="mt-4 inline-block w-full px-4 py-2.5 text-center text-[13px] font-medium" style={fill(t)}>Check availability</span>
-      </div>
+    <section className="px-8 py-14" style={{ background: t.bg }}>
+      <Row
+        mobile={mobile}
+        side={assetSide}
+        content={
+          <div>
+            <h1 className="text-[30px] font-bold leading-tight" style={H(t)}>{title || "Book your appointment in minutes"}</h1>
+            <p className="mt-3 text-[14px] leading-relaxed" style={B(t)}>{note || "Fast, reliable, and available when you need us."}</p>
+            <div className="mt-5 flex flex-wrap gap-2 text-[12px]" style={B(t)}>
+              <span className="rounded-full px-3 py-1" style={card(t)}>★ 4.9 rated</span>
+              <span className="rounded-full px-3 py-1" style={card(t)}>Same-day slots</span>
+            </div>
+          </div>
+        }
+        asset={
+          <div className="p-5" style={{ background: t.surface, borderRadius: t.radius }}>
+            <p className="text-[13px] font-semibold" style={H(t)}>Request a booking</p>
+            {["Service", "Preferred date", "Phone"].map((f) => (
+              <div key={f} className="mt-3"><label className="text-[11.5px]" style={B(t)}>{f}</label><div className="mt-1 h-9 w-full" style={{ background: t.bg, borderRadius: t.radius }} /></div>
+            ))}
+            <span className="mt-4 inline-block w-full px-4 py-2.5 text-center text-[13px] font-medium" style={fill(t)}>Check availability</span>
+          </div>
+        }
+      />
     </section>
   );
 }
@@ -97,20 +127,26 @@ function SaaSHero({ theme: t, title, note }: SectionProps) {
   );
 }
 
-function LocalBusinessHero({ theme: t, title, note, mobile }: SectionProps) {
+function LocalBusinessHero({ theme: t, title, note, mobile, assetSide }: SectionProps) {
   return (
-    <section className={`grid items-stretch gap-8 px-8 py-14 ${mobile ? "" : "grid-cols-[1.1fr_1fr]"}`} style={{ background: t.bg }}>
-      <div>
-        <h1 className="text-[28px] font-bold leading-tight" style={H(t)}>{title || "Trusted local experts near you"}</h1>
-        <p className="mt-3 text-[14px] leading-relaxed" style={B(t)}>{note || "Serving the area for over 10 years with honest pricing."}</p>
-        <div className="mt-5 grid gap-2 text-[12.5px]" style={B(t)}>
-          <span>📍 123 Main Street, Your City</span>
-          <span>🕘 Mon–Sat · 8am – 6pm</span>
-          <span>📞 (555) 123-4567</span>
-        </div>
-        <span className="mt-5 inline-block px-5 py-2.5 text-[13px] font-medium" style={fill(t)}>Call now</span>
-      </div>
-      <div className="min-h-44 w-full" style={{ background: t.surface, borderRadius: t.radius }} />
+    <section className="px-8 py-14" style={{ background: t.bg }}>
+      <Row
+        mobile={mobile}
+        side={assetSide}
+        content={
+          <div>
+            <h1 className="text-[28px] font-bold leading-tight" style={H(t)}>{title || "Trusted local experts near you"}</h1>
+            <p className="mt-3 text-[14px] leading-relaxed" style={B(t)}>{note || "Serving the area for over 10 years with honest pricing."}</p>
+            <div className="mt-5 grid gap-2 text-[12.5px]" style={B(t)}>
+              <span>📍 123 Main Street, Your City</span>
+              <span>🕘 Mon–Sat · 8am – 6pm</span>
+              <span>📞 (555) 123-4567</span>
+            </div>
+            <span className="mt-5 inline-block px-5 py-2.5 text-[13px] font-medium" style={fill(t)}>Call now</span>
+          </div>
+        }
+        asset={<div className="min-h-44 w-full self-stretch" style={{ background: t.surface, borderRadius: t.radius }} />}
+      />
     </section>
   );
 }
@@ -170,25 +206,33 @@ function ServiceImageCards({ theme: t, title, mobile }: SectionProps) {
   );
 }
 
-function ServiceSplitList({ theme: t, title, note, mobile }: SectionProps) {
+function ServiceSplitList({ theme: t, title, note, mobile, assetSide }: SectionProps) {
   return (
-    <section className={`grid gap-10 px-8 py-14 ${mobile ? "" : "grid-cols-[1fr_1.4fr]"}`} style={{ background: t.bg }}>
-      <div>
-        <h2 className="text-[24px] font-bold leading-tight" style={H(t)}>{title || "Everything we do"}</h2>
-        <p className="mt-3 text-[13.5px]" style={B(t)}>{note || "A focused set of services, done well."}</p>
-        <span className="mt-4 inline-block px-4 py-2 text-[13px] font-medium" style={outline(t)}>See all</span>
-      </div>
-      <div className="grid gap-3">
-        {[0, 1, 2, 3].map((i) => (
-          <div key={i} className="flex items-start gap-3 p-4" style={card(t)}>
-            <div className="mt-0.5 h-7 w-7 shrink-0 rounded-full" style={{ background: t.accent }} />
-            <div>
-              <p className="text-[13.5px] font-semibold" style={H(t)}>Service {i + 1}</p>
-              <p className="mt-0.5 text-[12.5px]" style={B(t)}>One line describing this specific service.</p>
-            </div>
+    <section className="px-8 py-14" style={{ background: t.bg }}>
+      <Row
+        mobile={mobile}
+        side={assetSide}
+        content={
+          <div>
+            <h2 className="text-[24px] font-bold leading-tight" style={H(t)}>{title || "Everything we do"}</h2>
+            <p className="mt-3 text-[13.5px]" style={B(t)}>{note || "A focused set of services, done well."}</p>
+            <span className="mt-4 inline-block px-4 py-2 text-[13px] font-medium" style={outline(t)}>See all</span>
           </div>
-        ))}
-      </div>
+        }
+        asset={
+          <div className="grid gap-3">
+            {[0, 1, 2, 3].map((i) => (
+              <div key={i} className="flex items-start gap-3 p-4" style={card(t)}>
+                <div className="mt-0.5 h-7 w-7 shrink-0 rounded-full" style={{ background: t.accent }} />
+                <div>
+                  <p className="text-[13.5px] font-semibold" style={H(t)}>Service {i + 1}</p>
+                  <p className="mt-0.5 text-[12.5px]" style={B(t)}>One line describing this specific service.</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        }
+      />
     </section>
   );
 }
@@ -226,25 +270,33 @@ function FAQTwoColumn({ theme: t, title, mobile }: SectionProps) {
   );
 }
 
-function FAQWithCTA({ theme: t, title, note, mobile }: SectionProps) {
+function FAQWithCTA({ theme: t, title, note, mobile, assetSide }: SectionProps) {
   return (
-    <section className={`grid gap-8 px-8 py-14 ${mobile ? "" : "grid-cols-[1.4fr_1fr]"}`} style={{ background: t.bg }}>
-      <div>
-        <h2 className="text-[22px] font-bold" style={H(t)}>{title || "Frequently asked questions"}</h2>
-        <div className="mt-5 grid gap-2.5">
-          {[0, 1, 2].map((i) => (
-            <div key={i} className="flex items-center justify-between px-4 py-3" style={card(t)}>
-              <span className="text-[13px] font-medium" style={H(t)}>A common question {i + 1}?</span>
-              <span style={{ color: t.accent }}>＋</span>
+    <section className="px-8 py-14" style={{ background: t.bg }}>
+      <Row
+        mobile={mobile}
+        side={assetSide}
+        content={
+          <div>
+            <h2 className="text-[22px] font-bold" style={H(t)}>{title || "Frequently asked questions"}</h2>
+            <div className="mt-5 grid gap-2.5">
+              {[0, 1, 2].map((i) => (
+                <div key={i} className="flex items-center justify-between px-4 py-3" style={card(t)}>
+                  <span className="text-[13px] font-medium" style={H(t)}>A common question {i + 1}?</span>
+                  <span style={{ color: t.accent }}>＋</span>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </div>
-      <div className="flex flex-col justify-center p-6 text-center" style={{ background: t.primary, borderRadius: t.radius }}>
-        <p className="text-[16px] font-bold" style={{ color: "#fff", fontFamily: t.headingFont }}>Still have questions?</p>
-        <p className="mt-1.5 text-[12.5px]" style={{ color: "rgba(255,255,255,0.8)" }}>{note || "Our team is happy to help."}</p>
-        <span className="mt-4 inline-block px-4 py-2.5 text-[13px] font-medium" style={fill(t)}>Contact us</span>
-      </div>
+          </div>
+        }
+        asset={
+          <div className="flex flex-col justify-center p-6 text-center" style={{ background: t.primary, borderRadius: t.radius }}>
+            <p className="text-[16px] font-bold" style={{ color: "#fff", fontFamily: t.headingFont }}>Still have questions?</p>
+            <p className="mt-1.5 text-[12.5px]" style={{ color: "rgba(255,255,255,0.8)" }}>{note || "Our team is happy to help."}</p>
+            <span className="mt-4 inline-block px-4 py-2.5 text-[13px] font-medium" style={fill(t)}>Contact us</span>
+          </div>
+        }
+      />
     </section>
   );
 }

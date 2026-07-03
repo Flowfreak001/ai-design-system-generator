@@ -62,7 +62,6 @@ function SourceTag({ source, onClick }: { source: CanvasSource; onClick?: () => 
 const uid = (p = "n") =>
   typeof crypto !== "undefined" && crypto.randomUUID ? `${p}-${crypto.randomUUID().slice(0, 8)}` : `${p}-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 
-const ASSET_PLACEMENTS = ["none", "left", "right", "background", "top"];
 
 export function DesignEditor({
   projectId,
@@ -695,6 +694,53 @@ const SECTION_STATUS_STYLE: Record<string, string> = {
   draft: "bg-panel text-muted",
 };
 
+// Which variants (per kind) are image/aside splits that support left/right swap.
+const ASSET_SPLIT_VARIANTS: Partial<Record<string, string[]>> = {
+  hero: ["split", "image-right", "booking", "local"],
+  services: ["split-list"],
+  faq: ["with-cta"],
+};
+
+function VariantThumb({ id }: { id: string }) {
+  const two = /split|image|booking|local|with-cta/.test(id);
+  const grid = /grid|cards/.test(id);
+  const list = /accordion|two-column/.test(id);
+  const banner = /banner/.test(id);
+  return (
+    <div className="grid h-9 w-12 shrink-0 place-items-center rounded-md bg-panel p-1.5">
+      {two ? (
+        <div className="flex h-full w-full gap-1"><div className="w-1/2 rounded bg-line" /><div className="w-1/2 rounded bg-line/50" /></div>
+      ) : grid ? (
+        <div className="grid h-full w-full grid-cols-3 gap-0.5">{[0, 1, 2, 3, 4, 5].map((i) => <div key={i} className="rounded bg-line" />)}</div>
+      ) : list ? (
+        <div className="flex h-full w-full flex-col gap-0.5">{[0, 1, 2].map((i) => <div key={i} className="h-1/3 rounded bg-line/70" />)}</div>
+      ) : banner ? (
+        <div className="h-full w-full rounded bg-line" />
+      ) : (
+        <div className="mx-auto flex h-full w-2/3 flex-col justify-center gap-1"><div className="h-1.5 rounded bg-line" /><div className="h-1.5 rounded bg-line/50" /></div>
+      )}
+    </div>
+  );
+}
+
+/** Deterministic copy suggestion per section kind (stands in for AI). */
+function suggestCopy(kind: string, name: string): string {
+  const map: Record<string, string> = {
+    hero: "Lead with the core benefit and who it's for; add a primary CTA and a supporting line.",
+    services: "Summarise the 3–6 services offered, each with a one-line outcome the client gets.",
+    features: "Highlight the standout features as short benefit statements, not raw specs.",
+    faq: "Answer the top objections and logistics questions buyers ask before committing.",
+    cta: "One decisive nudge to act now, with a clear next step and low-friction button.",
+    footer: "Group navigation, contact details, and legal links; keep it scannable.",
+    testimonials: "Use specific, results-focused quotes with a real name and role.",
+    pricing: "Show tiers with the value each unlocks; make the recommended plan obvious.",
+    form: "Ask only for what you need; reassure on privacy and set response expectations.",
+    booking: "Make booking effortless: service, time, and contact — confirm availability fast.",
+    gallery: "Curate the strongest visuals that prove quality and range of work.",
+  };
+  return map[kind] ?? `Describe what the ${name} section should communicate to the visitor.`;
+}
+
 function SectionSettingsContent({
   section, schemes, onPatch, onDuplicate, onDelete, onClose,
 }: {
@@ -705,64 +751,105 @@ function SectionSettingsContent({
   onDelete: () => void;
   onClose: () => void;
 }) {
+  const kind = sectionKind(section.name);
   const status = section.status ?? "draft";
   const activeScheme = schemes.find((c) => c.name === section.scheme);
+  const variants = variantMetaForKind(kind);
+  const activeId = section.variant ?? variants[0]?.id;
+  const activeVariant = variants.find((v) => v.id === activeId) ?? variants[0];
+  const supportsAsset = (ASSET_SPLIT_VARIANTS[kind] ?? []).includes(activeId ?? "");
+  const assetSide: "left" | "right" = section.asset === "left" ? "left" : "right";
+  const generate = () => onPatch({ note: suggestCopy(kind, section.name) });
+
   return (
     <div className="flex h-full flex-col">
-      <div className="grid gap-3 overflow-y-auto p-4 text-[13px]">
+      <div className="grid gap-4 overflow-y-auto p-4 text-[13px]">
+        {/* Make a global section toggle */}
+        <button
+          type="button"
+          onClick={() => onPatch({ global: !section.global })}
+          className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-[13px] font-semibold transition-colors ${section.global ? "border-accent bg-accent-soft/40 text-accent" : "border-line text-body hover:bg-panel"}`}
+        >
+          <span>✦</span> {section.global ? "Global section ✓" : "Make a global section"}
+        </button>
+
         <Field label="Name">
-          <input value={section.name} onChange={(e) => onPatch({ name: e.target.value })} className="w-full rounded-lg border border-line px-2.5 py-1.5" />
+          <input value={section.name} onChange={(e) => onPatch({ name: e.target.value })} className="w-full rounded-lg bg-panel px-3 py-2.5 text-[14px] font-medium text-ink outline-none focus:ring-1 focus:ring-accent" />
         </Field>
-        <Field label="Section type (inferred)">
-          <div className="rounded-lg bg-panel px-2.5 py-1.5 text-[12.5px] capitalize text-body">{sectionKind(section.name)}</div>
-        </Field>
-        <Field label="Description / copy direction">
-          <textarea value={section.note ?? ""} onChange={(e) => onPatch({ note: e.target.value })} rows={3} className="w-full rounded-lg border border-line px-2.5 py-1.5" placeholder="What this section should communicate…" />
-        </Field>
-        <Field label="Source">
-          <div className="flex items-center gap-2">
-            <SourceTag source={section.source} onClick={() => onPatch({ source: nextSource(section.source) })} />
-            <span className="text-[11px] text-faint">click to change</span>
+
+        {/* Description with Prompt button */}
+        <div>
+          <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-faint">Description</label>
+          <div className="relative">
+            <textarea value={section.note ?? ""} onChange={(e) => onPatch({ note: e.target.value })} rows={4} className="w-full rounded-lg bg-panel px-3 py-2.5 pb-10 text-[14px] leading-relaxed text-ink outline-none focus:ring-1 focus:ring-accent" placeholder="What this section should communicate…" />
+            <button type="button" onClick={generate} className="absolute bottom-2 right-2 flex items-center gap-1 rounded-md border border-line bg-surface px-2.5 py-1 text-[12px] font-medium text-accent shadow-sm hover:bg-accent-soft">
+              Prompt <span className="text-[11px]">✦</span>
+            </button>
           </div>
-        </Field>
+        </div>
+
+        <div className="h-px bg-line" />
+
+        {/* Layout / design variant — click to change */}
+        {variants.length > 0 && activeVariant && (
+          <Popover width={260} trigger={() => (
+            <span className="flex w-full items-center justify-between rounded-xl border border-line px-3 py-3 hover:border-line-strong">
+              <span className="flex items-center gap-3">
+                <VariantThumb id={activeVariant.id} />
+                <span className="text-left">
+                  <span className="block text-[10px] font-medium uppercase tracking-wide text-faint">Layout</span>
+                  <span className="text-[13.5px] font-semibold text-ink">{activeVariant.label}</span>
+                </span>
+              </span>
+              <span className="text-[16px] text-faint">›</span>
+            </span>
+          )}>
+            {(close) => (
+              <div className="grid grid-cols-2 gap-1.5">
+                {variants.map((v) => (
+                  <button key={v.id} type="button" onClick={() => { onPatch({ variant: v.id }); close(); }}
+                    className={`rounded-lg border p-1.5 text-left ${activeId === v.id ? "border-accent bg-accent-soft/40" : "border-line hover:border-line-strong"}`}>
+                    <VariantThumb id={v.id} />
+                    <span className="mt-1 block text-[11px] text-body">{v.label}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </Popover>
+        )}
+
+        {/* Asset placement — swap image/content side (split layouts) */}
+        {supportsAsset && (
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-medium uppercase tracking-wide text-faint">Asset<br />placement</span>
+            <div className="flex items-center gap-1 rounded-lg bg-panel p-1">
+              {(["left", "right"] as const).map((side) => (
+                <button key={side} type="button" onClick={() => onPatch({ asset: side })} title={`Image on ${side}`}
+                  className={`grid h-9 w-14 place-items-center rounded-md text-[18px] transition-colors ${assetSide === side ? "bg-surface text-ink shadow-sm" : "text-muted hover:text-body"}`}>
+                  {side === "left" ? "←" : "→"}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="h-px bg-line" />
+
+        {/* Status (approve / reject) */}
         <Field label="Status">
           <div className="flex gap-1">
             {(["draft", "approved", "rejected"] as const).map((st) => (
-              <button key={st} type="button" onClick={() => onPatch({ status: st })} className={`flex-1 rounded-md px-2 py-1 text-[11px] font-medium capitalize ${status === st ? SECTION_STATUS_STYLE[st] : "bg-panel text-muted"}`}>{st}</button>
+              <button key={st} type="button" onClick={() => onPatch({ status: st })} className={`flex-1 rounded-md px-2 py-1.5 text-[11px] font-medium capitalize ${status === st ? SECTION_STATUS_STYLE[st] : "bg-panel text-muted"}`}>{st}</button>
             ))}
           </div>
         </Field>
 
-        {/* Design variant selector — real styled variants for this section kind */}
-        {(() => {
-          const variants = variantMetaForKind(sectionKind(section.name));
-          if (variants.length === 0) return null;
-          const activeId = section.variant ?? variants[0]?.id;
-          const activeLabel = variants.find((v) => v.id === activeId)?.label ?? "Default";
-          return (
-            <Field label={`Design variant · ${variants.length} option${variants.length === 1 ? "" : "s"}`}>
-              <Popover width={240} trigger={() => (
-                <span className="flex w-full items-center justify-between rounded-lg border border-line px-2.5 py-1.5 text-[12.5px]">
-                  {activeLabel} <span className="text-faint">▾</span>
-                </span>
-              )}>
-                {(close) => (
-                  <div className="grid gap-1">
-                    {variants.map((v) => (
-                      <button key={v.id} type="button" onClick={() => { onPatch({ variant: v.id }); close(); }}
-                        className={`flex items-center justify-between rounded-lg border px-2.5 py-2 text-left text-[12.5px] ${activeId === v.id ? "border-accent bg-accent-soft/40 text-accent" : "border-line text-body hover:border-line-strong"}`}>
-                        <span>{v.label}</span>
-                        {activeId === v.id && <span className="text-[11px]">✓</span>}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </Popover>
-            </Field>
-          );
-        })()}
+        {/* Source + style scheme (compact) */}
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-medium uppercase tracking-wide text-faint">Source</span>
+          <SourceTag source={section.source} onClick={() => onPatch({ source: nextSource(section.source) })} />
+        </div>
 
-        {/* Style scheme popover from the Style Guide colors */}
         <Field label="Style scheme">
           <Popover width={220} trigger={() => (
             <span className="flex w-full items-center justify-between rounded-lg border border-line px-2.5 py-1.5 text-[12.5px]">
@@ -787,24 +874,10 @@ function SectionSettingsContent({
             )}
           </Popover>
         </Field>
-
-        <Field label="Asset placement">
-          <select value={section.asset ?? ""} onChange={(e) => onPatch({ asset: e.target.value || undefined })} className="w-full rounded-lg border border-line bg-surface px-2.5 py-1.5 capitalize">
-            {ASSET_PLACEMENTS.map((a) => <option key={a} value={a === "none" ? "" : a}>{a}</option>)}
-          </select>
-        </Field>
-
-        <label className="flex items-center gap-2">
-          <input type="checkbox" checked={Boolean(section.global)} onChange={(e) => onPatch({ global: e.target.checked })} className="accent-accent" />
-          <span className="text-[12.5px] text-body">Global section (reused on every page)</span>
-        </label>
       </div>
 
       <div className="mt-auto grid gap-2 border-t border-line p-4">
-        <div className="grid grid-cols-2 gap-2">
-          <Button size="sm" variant="secondary" disabled title="Coming soon">✦ Generate copy</Button>
-          <Button size="sm" variant="secondary" disabled title="Coming soon">↻ Regenerate</Button>
-        </div>
+        <Button size="sm" variant="secondary" onClick={generate} className="w-full">✦ Generate copy</Button>
         <div className="flex items-center justify-between">
           <button type="button" onClick={onDuplicate} className="text-[12px] font-medium text-body hover:text-accent">Duplicate</button>
           <button type="button" onClick={onDelete} className="text-[12px] font-medium text-danger hover:underline">Delete</button>
