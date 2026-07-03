@@ -8,7 +8,6 @@ import { BRAND_GENERATORS, DESIGN_GENERATORS, type GeneratorContext } from "@/li
 import type { AnimationAnalysis } from "@/lib/analysis/animation-extractor";
 import type { AiScreenshotAnalysis } from "@/lib/ai/types";
 import type { SitemapCanvas } from "@/lib/canvas";
-import { puckDocToSitemap, type MultiPagePuck } from "@/lib/puck-canvas";
 import type {
   WebsiteAnalysis,
   VisualAnalysis,
@@ -42,17 +41,12 @@ async function loadContext(projectId: string): Promise<{ ctx: GeneratorContext; 
           "ANIMATION_ANALYSIS.json",
           "AI_SCREENSHOT_ANALYSIS.json",
           "SITEMAP_CANVAS.json",
-          "DESIGN_CANVAS.json",
         ],
       },
     },
     select: { name: true, content: true },
   });
   const byName = new Map(jsonFiles.map((f) => [f.name, f.content]));
-
-  const designDoc = safeParse<MultiPagePuck>(byName.get("DESIGN_CANVAS.json"));
-  const designCanvas =
-    designDoc && designDoc.pages?.length ? (puckDocToSitemap(designDoc) as SitemapCanvas) : null;
 
   const ctx: GeneratorContext = {
     input: toGenerationInput(project),
@@ -61,9 +55,7 @@ async function loadContext(projectId: string): Promise<{ ctx: GeneratorContext; 
     tokens: safeParse<TokensAnalysis>(byName.get("DESIGN_TOKENS.json")),
     animation: safeParse<AnimationAnalysis>(byName.get("ANIMATION_ANALYSIS.json")),
     ai: safeParse<AiScreenshotAnalysis>(byName.get("AI_SCREENSHOT_ANALYSIS.json")),
-    // Prefer the approved Design Puck data (per-page ordered sections) as the
-    // export source of truth; fall back to the Sitemap canvas.
-    canvas: designCanvas ?? safeParse<SitemapCanvas>(byName.get("SITEMAP_CANVAS.json")),
+    canvas: safeParse<SitemapCanvas>(byName.get("SITEMAP_CANVAS.json")),
   };
   return { ctx, analysisCount: jsonFiles.length };
 }

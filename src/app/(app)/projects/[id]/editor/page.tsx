@@ -11,15 +11,8 @@ import {
   type StyleGuideCanvas,
 } from "@/lib/canvas";
 import {
-  WIREFRAME_CANVAS_FILE,
-  DESIGN_CANVAS_FILE,
-  type MultiPagePuck,
-} from "@/lib/puck-canvas";
-import {
   saveSitemapCanvasAction,
   saveStyleGuideCanvasAction,
-  saveWireframeCanvasAction,
-  saveDesignCanvasAction,
   approveEditorStageAction,
 } from "./actions";
 
@@ -54,19 +47,12 @@ export default async function EditorPage({ params }: { params: Promise<{ id: str
     parse<StyleGuideCanvas>(STYLE_GUIDE_CANVAS_FILE) ??
     deriveStyleGuideCanvas(tokens, { primaryColor: b.primaryColor, secondaryColor: b.secondaryColor });
 
-  // Per-page Puck data for the Wireframe/Design stages (separate files). The
-  // editor reconciles these with the current Sitemap page set on load.
-  const wireframe = parse<MultiPagePuck>(WIREFRAME_CANVAS_FILE);
-  const design = parse<MultiPagePuck>(DESIGN_CANVAS_FILE);
-
   return (
     <DesignEditor
       projectId={id}
       projectName={project.name}
       initialSitemap={sitemap}
       initialStyle={style}
-      initialWireframe={wireframe}
-      initialDesign={design}
       features={b.features ?? []}
       approvals={{
         sitemap: Boolean(b.sitemapApproved),
@@ -76,8 +62,6 @@ export default async function EditorPage({ params }: { params: Promise<{ id: str
       }}
       saveSitemap={saveSitemapCanvasAction}
       saveStyle={saveStyleGuideCanvasAction}
-      saveWireframe={saveWireframeCanvasAction}
-      saveDesign={saveDesignCanvasAction}
       approveStage={approveEditorStageAction}
     />
   );

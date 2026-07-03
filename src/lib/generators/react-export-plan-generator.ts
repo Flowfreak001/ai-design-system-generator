@@ -1,5 +1,6 @@
 import { type GeneratorContext, type MdArtifact, paletteOf, fontsOf, Assumptions } from "./context";
 import { componentNameForSection, sectionKind } from "@/lib/sections";
+import { resolveVariant } from "@/lib/section-variants";
 
 // REACT_EXPORT_PLAN.json — a machine-readable handoff plan for a React build.
 // It follows the LATEST approved editor state (SITEMAP_CANVAS pages + sections),
@@ -20,18 +21,24 @@ export function generateReactExportPlanMd(ctx: GeneratorContext): MdArtifact {
         name: p.name,
         source: p.source,
         status: p.status ?? "draft",
-        sections: p.sections.map((s) => ({
-          name: s.name,
-          kind: sectionKind(s.name),
-          component: componentNameForSection(s.name),
-          source: s.source,
-          status: s.status ?? "draft",
-          global: Boolean(s.global),
-          layoutVariant: s.variant ?? "default",
-          styleScheme: s.scheme ?? null,
-          assetPlacement: s.asset ?? null,
-          content: { note: s.note ?? null },
-        })),
+        sections: p.sections.map((s) => {
+          const kind = sectionKind(s.name);
+          const variant = resolveVariant(kind, s.variant);
+          return {
+            name: s.name,
+            kind,
+            // The specific styled variant chosen in the Design canvas (from our
+            // section library); fall back to the base component if none set.
+            component: variant?.component ?? componentNameForSection(s.name),
+            designVariant: variant ? { id: variant.id, label: variant.label } : null,
+            source: s.source,
+            status: s.status ?? "draft",
+            global: Boolean(s.global),
+            styleScheme: s.scheme ?? null,
+            assetPlacement: s.asset ?? null,
+            content: { note: s.note ?? null },
+          };
+        }),
       }))
     : (ctx.input.brief.keyItems.length ? ctx.input.brief.keyItems : ["Home"]).map((name) => ({
         name,
