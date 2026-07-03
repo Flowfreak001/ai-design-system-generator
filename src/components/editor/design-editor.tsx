@@ -946,30 +946,42 @@ function AddSectionDrawer({ open, previewTheme, patterns = [], onClose, onAdd }:
         )}
       </div>
       <div className="p-3">
-        {/* From the project's Section Reference Library */}
-        {refs.length > 0 && (
-          <div className="mb-3">
-            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-accent">From your Reference Library</p>
+        {/* From the project's Section Reference Library — always shown on top,
+            in a highlighted panel, even when empty. */}
+        <div className="mb-3 rounded-xl border border-accent/30 bg-accent-soft/40 p-2.5">
+          <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-accent">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <rect x="3.5" y="4.5" width="17" height="15" rx="2.5" stroke="currentColor" strokeWidth="1.7" />
+              <circle cx="9" cy="10" r="1.6" stroke="currentColor" strokeWidth="1.7" />
+              <path d="m4.5 17 4.2-4.2a1.5 1.5 0 0 1 2.1 0L15 16.5m-1.5-1.5 1.7-1.7a1.5 1.5 0 0 1 2.1 0l2.2 2.2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            From your Reference Library
+          </p>
+          {refs.length > 0 ? (
             <div className="grid gap-2">
               {refs.map((p) => {
                 const type = (p.matchedComponent?.type ?? sectionTypeForKind(sectionKind(p.sectionType))) as SectionType;
                 const Comp = getSectionComponent(type, p.matchedComponent?.variantId);
                 return (
-                  <button key={p.id} type="button" onClick={() => addPattern(p)} className="group overflow-hidden rounded-lg border border-line text-left transition-colors hover:border-accent">
+                  <button key={p.id} type="button" onClick={() => addPattern(p)} className="group overflow-hidden rounded-lg border border-line bg-surface text-left transition-colors hover:border-accent">
                     <div className="pointer-events-none overflow-hidden bg-surface" style={{ height: 96 }}>
                       {Comp ? <div style={{ width: 1100, zoom: 0.26 } as React.CSSProperties}><Comp theme={previewTheme} /></div>
                         : <div className="grid h-full place-items-center text-[11px] text-faint">{p.customSpec?.suggestedComponentName ?? "Custom section"} · needs build</div>}
                     </div>
                     <div className="flex items-center justify-between border-t border-line px-2.5 py-1.5">
                       <span className="truncate text-[11.5px] font-medium text-body">{p.name}</span>
-                      <span className="shrink-0 text-[11px] font-medium text-accent opacity-0 transition-opacity group-hover:opacity-100">＋ Add</span>
+                      <span className="shrink-0 text-[11px] font-medium text-accent opacity-0 transition-opacity group-hover:opacity-100">Add</span>
                     </div>
                   </button>
                 );
               })}
             </div>
-          </div>
-        )}
+          ) : (
+            <p className="px-0.5 py-1 text-[11.5px] text-muted">
+              {query ? "No saved references match your search." : <>No saved references yet. <a href="references" className="font-medium text-accent hover:underline">Add one in the Library →</a></>}
+            </p>
+          )}
+        </div>
         {groups.map((g) => (
           <div key={g.category} className="mb-3">
             <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-faint">{g.category}</p>
