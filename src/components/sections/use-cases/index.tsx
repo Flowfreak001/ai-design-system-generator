@@ -44,8 +44,8 @@ export function IndustryGrid({ theme, eyebrow, title, items, mobile }: SectionPr
         <h2 className="mt-2 text-[26px] font-bold" style={h(t)}>{title || "Trusted across industries"}</h2>
       </div>
       <div className={`mx-auto mt-8 grid max-w-4xl gap-3 grid-cols-2 md:grid-cols-4`}>
-        {industries.map((name) => (
-          <div key={name} className="grid place-items-center rounded-xl py-6 text-[13px] font-medium" style={{ background: t.backgroundColor, border: `1px solid ${t.borderColor}`, color: t.textColor }}>{name}</div>
+        {industries.map((name, i) => (
+          <div key={`${name}-${i}`} className="grid place-items-center rounded-xl py-6 text-[13px] font-medium" style={{ background: t.backgroundColor, border: `1px solid ${t.borderColor}`, color: t.textColor }}>{name}</div>
         ))}
       </div>
     </section>

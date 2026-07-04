@@ -44,7 +44,7 @@ export function FeatureTabs({ theme, eyebrow, title, items, mobile }: SectionPro
       </div>
       <div className="mx-auto mt-7 flex max-w-2xl flex-wrap justify-center gap-2">
         {tabs.map((tab, i) => (
-          <span key={tab} className="rounded-full px-4 py-2 text-[13px] font-medium" style={i === 0 ? { background: t.accentColor, color: "#fff" } : { background: t.backgroundColor, color: t.textColor, border: `1px solid ${t.borderColor}` }}>{tab}</span>
+          <span key={`${tab}-${i}`} className="rounded-full px-4 py-2 text-[13px] font-medium" style={i === 0 ? { background: t.accentColor, color: "#fff" } : { background: t.backgroundColor, color: t.textColor, border: `1px solid ${t.borderColor}` }}>{tab}</span>
         ))}
       </div>
       <div className={`mx-auto mt-8 grid max-w-4xl items-center gap-8 md:grid-cols-2`}>
