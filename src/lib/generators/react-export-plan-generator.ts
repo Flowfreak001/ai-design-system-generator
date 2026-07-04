@@ -1,6 +1,5 @@
 import { type GeneratorContext, type MdArtifact, paletteOf, fontsOf, Assumptions } from "./context";
-import { sectionKind } from "@/lib/sections";
-import { sectionTypeForKind, resolveVariantMeta } from "@/components/sections/catalog";
+import { exportPageToPlan } from "@/lib/section-editor/export-section";
 
 // REACT_EXPORT_PLAN.json — a machine-readable handoff plan for a React build.
 // It follows the LATEST approved editor state (SITEMAP_CANVAS pages + sections),
@@ -15,40 +14,18 @@ export function generateReactExportPlanMd(ctx: GeneratorContext): MdArtifact {
   const tokenSource = measured ? "extracted from rendered styles" : ctx.tokens ? "reference-inspired" : "assumed";
 
   // Prefer the user's edited canvas; fall back to the brief's selected pages.
+  // All section mapping lives in lib/section-editor/export-section.ts — the
+  // plan carries the EDITED content, final item order, chosen variants,
+  // layout, media assets (placeholders + AI prompts) and motion settings.
   const canvasPages = ctx.canvas?.pages ?? [];
   const pages = canvasPages.length
-    ? canvasPages.map((p) => ({
-        name: p.name,
-        source: p.source,
-        status: p.status ?? "draft",
-        sections: p.sections.map((s) => {
-          const kind = sectionKind(s.name);
-          const sectionType = sectionTypeForKind(kind);
-          const variant = resolveVariantMeta(sectionType, s.variant);
-          return {
-            name: s.name,
-            kind,
-            sectionType,
-            // The specific styled variant chosen in the Design canvas (from our
-            // section variation library) + where to import it from.
-            component: variant?.componentName ?? "GenericSection",
-            importPath: variant?.importPath ?? null,
-            designVariant: variant ? { id: variant.id, label: variant.label } : null,
-            exportNotes: variant?.exportNotes ?? null,
-            source: s.source,
-            status: s.status ?? "draft",
-            global: Boolean(s.global),
-            styleScheme: s.scheme ?? null,
-            assetPlacement: s.asset ?? null,
-            content: { note: s.note ?? null },
-          };
-        }),
-      }))
+    ? canvasPages.map(exportPageToPlan)
     : (ctx.input.brief.keyItems.length ? ctx.input.brief.keyItems : ["Home"]).map((name) => ({
         name,
         source: "user-added" as const,
         status: "draft",
-        sections: [] as unknown[],
+        pageType: null,
+        sections: [],
       }));
 
   const plan = {

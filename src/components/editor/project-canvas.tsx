@@ -261,6 +261,7 @@ function PageFrame({
                     onEditImage: onEditImage ? (v) => onEditImage(page.id, s.id, v) : undefined,
                     contentItems: s.content?.items,
                     onEditItems: onEditItems ? (items) => onEditItems(page.id, s.id, items) : undefined,
+                    content: s.content,
                   })}
                 </div>
               );

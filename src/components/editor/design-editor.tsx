@@ -22,7 +22,7 @@ import { recommendElements } from "@/lib/element-library/recommendations";
 import { isReady } from "@/lib/element-library/registry";
 import { KIND_LABEL, KIND_BADGE } from "@/lib/element-library/categories";
 import { ELEMENT_ICONS } from "./element-icons";
-import { EDITABLE_PARTS } from "@/components/sections/blocks/parts";
+import { SectionSettingsDrawer } from "./section-drawer/SectionSettingsDrawer";
 import type { ElementItem, ElementLibraryContext } from "@/lib/element-library/types";
 import { arrayMove } from "@dnd-kit/sortable";
 import type {
@@ -197,8 +197,12 @@ export function DesignEditor({
   }, []);
 
   // ---- Section mutators (scoped to a page) ----
-  const patchPage = (pageId: string, fn: (pg: CanvasPage) => CanvasPage) =>
+  // Any canvas edit makes previously generated files stale (outdated-files rule).
+  const [filesOutdated, setFilesOutdated] = useState(false);
+  const patchPage = (pageId: string, fn: (pg: CanvasPage) => CanvasPage) => {
     setPages((p) => p.map((x) => (x.id === pageId ? fn(x) : x)));
+    if (approvals.design) setFilesOutdated(true);
+  };
   const addSection = (pageId: string, name: string, variant?: string) =>
     patchPage(pageId, (pg) => ({ ...pg, sections: [...pg.sections, { id: uid("s"), name, source: "user-added", variant }] }));
   const removeSection = (pageId: string, sid: string) =>
@@ -303,6 +307,11 @@ export function DesignEditor({
           ))}
         </nav>
         <div className="flex items-center gap-2">
+          {filesOutdated && (
+            <span className="hidden items-center gap-1.5 rounded-full bg-warning-soft px-2.5 py-1 text-[11.5px] font-medium text-warning md:inline-flex" title="Generated files are outdated. Regenerate from approved Design.">
+              ⚠ Generated files outdated — regenerate from approved Design
+            </span>
+          )}
           <span className="hidden text-[12px] text-faint sm:inline">
             {saving ? "Saving…" : dirty ? "Unsaved changes" : "All changes saved"}
           </span>
@@ -872,10 +881,16 @@ function WireframeEditor({
           onMoveSection={onMoveSection}
           onDuplicateSection={onDuplicateSection}
           onRemoveSection={(pid, sid) => { onRemoveSection(pid, sid); setSelectedSectionId(null); }}
-          onEditText={(pid, sid, field, value) => onPatchSection(pid, sid, field === "title" ? { name: value } : { note: value })}
+          onEditText={(pid, sid, field, value) => {
+            const sec = pages.find((p) => p.id === pid)?.sections.find((x) => x.id === sid);
+            onPatchSection(pid, sid, { content: { ...sec?.content, [field]: value } });
+          }}
           onEditIcon={(pid, sid, icon) => onPatchSection(pid, sid, { icon })}
           onEditImage={(pid, sid, image) => onPatchSection(pid, sid, { image })}
-          onEditItems={(pid, sid, items) => onPatchSection(pid, sid, { content: { items } })}
+          onEditItems={(pid, sid, items) => {
+            const sec = pages.find((p) => p.id === pid)?.sections.find((x) => x.id === sid);
+            onPatchSection(pid, sid, { content: { ...sec?.content, items } });
+          }}
         />
       </div>
 
@@ -1307,166 +1322,26 @@ function SectionSettingsContent({
   onApplyGlobal?: () => void;
 }) {
   const kind = sectionKind(section.name);
-  const status = section.status ?? "draft";
-  const activeScheme = schemes.find((c) => c.name === section.scheme);
-  const variants = getSectionVariants(sectionTypeForKind(kind));
-  const activeId = section.variant ?? variants[0]?.id;
-  const activeVariant = variants.find((v) => v.id === activeId) ?? variants[0];
-  const supportsAsset = Boolean(activeVariant?.supportsAssetSwap);
-  const assetSide: "left" | "right" = section.asset === "left" ? "left" : "right";
-  const generate = () => onPatch({ note: suggestCopy(kind, section.name) });
-
   return (
     <div className="flex h-full flex-col">
-      <div className="grid gap-4 overflow-y-auto p-4 text-[13px]">
-        {/* Make a global section toggle */}
-        <button
-          type="button"
-          onClick={() => onPatch({ global: !section.global })}
-          className={`flex items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-[13px] font-semibold transition-colors ${section.global ? "border-accent bg-accent-soft/40 text-accent" : "border-line text-body hover:bg-panel"}`}
-        >
-          <span>✦</span> {section.global ? "Global section ✓" : "Make a global section"}
-        </button>
-        {section.global && onApplyGlobal && (
-          <button type="button" onClick={onApplyGlobal} className="-mt-2 rounded-lg border border-dashed border-accent px-3 py-2 text-[12px] font-medium text-accent hover:bg-accent-soft">
-            Apply to all pages
-          </button>
-        )}
-
-        <Field label="Name">
-          <input value={section.name} onChange={(e) => onPatch({ name: e.target.value })} className="w-full rounded-lg bg-panel px-3 py-2.5 text-[14px] font-medium text-ink outline-none focus:ring-1 focus:ring-accent" />
-        </Field>
-
-        {/* Description with Prompt button */}
-        <div>
-          <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-faint">Description</label>
-          <div className="relative">
-            <textarea value={section.note ?? ""} onChange={(e) => onPatch({ note: e.target.value })} rows={4} className="w-full rounded-lg bg-panel px-3 py-2.5 pb-10 text-[14px] leading-relaxed text-ink outline-none focus:ring-1 focus:ring-accent" placeholder="What this section should communicate…" />
-            <button type="button" onClick={generate} className="absolute bottom-2 right-2 flex items-center gap-1 rounded-md border border-line bg-surface px-2.5 py-1 text-[12px] font-medium text-accent shadow-sm hover:bg-accent-soft">
-              Prompt <span className="text-[11px]">✦</span>
-            </button>
-          </div>
-        </div>
-
-        <div className="h-px bg-line" />
-
-        {/* Layout / design variant — click to change */}
-        {variants.length > 0 && activeVariant && (
-          <Popover width={260} trigger={() => (
-            <span className="flex w-full items-center justify-between rounded-xl border border-line px-3 py-3 hover:border-line-strong">
-              <span className="flex items-center gap-3">
-                <VariantThumb id={activeVariant.id} />
-                <span className="text-left">
-                  <span className="block text-[10px] font-medium uppercase tracking-wide text-faint">Layout</span>
-                  <span className="text-[13.5px] font-semibold text-ink">{activeVariant.label}</span>
-                </span>
-              </span>
-              <span className="text-[16px] text-faint">›</span>
-            </span>
-          )}>
-            {(close) => (
-              <div className="grid grid-cols-2 gap-1.5">
-                {variants.map((v) => (
-                  <button key={v.id} type="button" onClick={() => { onPatch({ variant: v.id }); close(); }}
-                    className={`rounded-lg border p-1.5 text-left ${activeId === v.id ? "border-accent bg-accent-soft/40" : "border-line hover:border-line-strong"}`}>
-                    <VariantThumb id={v.id} />
-                    <span className="mt-1 block text-[11px] text-body">{v.label}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </Popover>
-        )}
-
-        {/* Asset placement — swap image/content side (split layouts) */}
-        {supportsAsset && (
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-medium uppercase tracking-wide text-faint">Asset<br />placement</span>
-            <div className="flex items-center gap-1 rounded-lg bg-panel p-1">
-              {(["left", "right"] as const).map((side) => (
-                <button key={side} type="button" onClick={() => onPatch({ asset: side })} title={`Image on ${side}`}
-                  className={`grid h-9 w-14 place-items-center rounded-md text-[18px] transition-colors ${assetSide === side ? "bg-surface text-ink shadow-sm" : "text-muted hover:text-body"}`}>
-                  {side === "left" ? "←" : "→"}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Elements — show/hide editable parts on the canvas (block sections). */}
-        {kind === "block" && (
-          <div>
-            <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wide text-faint">Elements</label>
-            <div className="grid gap-1">
-              {EDITABLE_PARTS.map((part) => {
-                const shown = !(section.hidden ?? []).includes(part.key);
-                return (
-                  <button key={part.key} type="button"
-                    onClick={() => { const cur = section.hidden ?? []; onPatch({ hidden: shown ? [...cur, part.key] : cur.filter((k) => k !== part.key) }); }}
-                    className="flex items-center justify-between rounded-lg border border-line px-3 py-2 text-[12.5px] hover:border-line-strong">
-                    <span className={shown ? "text-body" : "text-faint line-through"}>{part.label}</span>
-                    <span className={`text-[11px] font-medium ${shown ? "text-accent" : "text-faint"}`}>{shown ? "Visible" : "Hidden"}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        <div className="h-px bg-line" />
-
-        {/* Status (approve / reject) */}
-        <Field label="Status">
-          <div className="flex gap-1">
-            {(["draft", "approved", "rejected"] as const).map((st) => (
-              <button key={st} type="button" onClick={() => onPatch({ status: st })} className={`flex-1 rounded-md px-2 py-1.5 text-[11px] font-medium capitalize ${status === st ? SECTION_STATUS_STYLE[st] : "bg-panel text-muted"}`}>{st}</button>
-            ))}
-          </div>
-        </Field>
-
-        {/* Source + style scheme (compact) */}
-        <div className="flex items-center justify-between">
-          <span className="text-[11px] font-medium uppercase tracking-wide text-faint">Source</span>
-          <SourceTag source={section.source} onClick={() => onPatch({ source: nextSource(section.source) })} />
-        </div>
-
-        <Field label="Style scheme">
-          <Popover width={220} trigger={() => (
-            <span className="flex w-full items-center justify-between rounded-lg border border-line px-2.5 py-1.5 text-[12.5px]">
-              <span className="flex items-center gap-2">
-                {activeScheme ? <span className="h-3.5 w-3.5 rounded-full border border-line" style={{ background: activeScheme.value }} /> : null}
-                {section.scheme ?? "brand default"}
-              </span>
-              <span className="text-faint">▾</span>
-            </span>
-          )}>
-            {(close) => (
-              <div className="grid gap-1">
-                <button type="button" onClick={() => { onPatch({ scheme: undefined }); close(); }} className="rounded-md px-2 py-1.5 text-left text-[12.5px] hover:bg-panel">Brand default</button>
-                {schemes.map((c) => (
-                  <button key={c.name} type="button" onClick={() => { onPatch({ scheme: c.name }); close(); }} className="flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-[12.5px] hover:bg-panel">
-                    <span className="h-4 w-4 rounded-full border border-line" style={{ background: c.value }} />
-                    <span className="truncate">{c.name}</span>
-                  </button>
-                ))}
-                {schemes.length === 0 && <p className="px-2 py-1 text-[11.5px] text-faint">Add colors in the Style Guide.</p>}
-              </div>
-            )}
-          </Popover>
-        </Field>
+      <div className="min-h-0 flex-1">
+        <SectionSettingsDrawer
+          section={section}
+          kind={kind}
+          schemes={schemes}
+          onPatch={onPatch}
+          onDuplicate={onDuplicate}
+          onDelete={onDelete}
+          onApplyGlobal={onApplyGlobal}
+        />
       </div>
-
-      <div className="mt-auto grid gap-2 border-t border-line p-4">
-        <Button size="sm" variant="secondary" onClick={generate} className="w-full">✦ Generate copy</Button>
-        <div className="flex items-center justify-between">
-          <button type="button" onClick={onDuplicate} className="text-[12px] font-medium text-body hover:text-accent">Duplicate</button>
-          <button type="button" onClick={onDelete} className="text-[12px] font-medium text-danger hover:underline">Delete</button>
-        </div>
-        <Button size="sm" onClick={onClose}>Done</Button>
+      <div className="border-t border-line p-3">
+        <Button size="sm" onClick={onClose} className="w-full">Done</Button>
       </div>
     </div>
   );
 }
+
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -1609,10 +1484,16 @@ function DesignTab({
           onDuplicateSection={onDuplicateSection}
           onRemoveSection={(pid, sid) => { onRemoveSection(pid, sid); setSelectedSectionId(null); }}
           onApproveSection={(pid, sid, status) => onPatchSection(pid, sid, { status })}
-          onEditText={(pid, sid, field, value) => onPatchSection(pid, sid, field === "title" ? { name: value } : { note: value })}
+          onEditText={(pid, sid, field, value) => {
+            const sec = pages.find((p) => p.id === pid)?.sections.find((x) => x.id === sid);
+            onPatchSection(pid, sid, { content: { ...sec?.content, [field]: value } });
+          }}
           onEditIcon={(pid, sid, icon) => onPatchSection(pid, sid, { icon })}
           onEditImage={(pid, sid, image) => onPatchSection(pid, sid, { image })}
-          onEditItems={(pid, sid, items) => onPatchSection(pid, sid, { content: { items } })}
+          onEditItems={(pid, sid, items) => {
+            const sec = pages.find((p) => p.id === pid)?.sections.find((x) => x.id === sid);
+            onPatchSection(pid, sid, { content: { ...sec?.content, items } });
+          }}
         />
       </div>
 

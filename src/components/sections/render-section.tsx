@@ -34,16 +34,41 @@ export function renderSectionByKind(
     onEditText?: (field: "title" | "description", value: string) => void;
     iconKey?: string; imageUrl?: string; onEditIcon?: (k: string) => void; onEditImage?: (v: string) => void;
     contentItems?: import("./types").SectionContentItem[]; onEditItems?: (items: import("./types").SectionContentItem[]) => void;
+    /** Edited content from the Section Settings drawer (overrides name/note). */
+    content?: { eyebrow?: string; title?: string; subtitle?: string; description?: string; primaryButtonLabel?: string; primaryButtonHref?: string; secondaryButtonLabel?: string; secondaryButtonHref?: string };
   },
 ) {
   const type = sectionTypeForKind(kind);
   const meta = resolveVariantMeta(type, variantId);
+  const c = props.content ?? {};
+  // Bridge edited items into every classic section's `items` prop. Editor items
+  // use {title,text,href,icon}; components read per-kind aliases (question/
+  // answer, quote/author/role, label/value, price…), so map them all.
+  const items = props.contentItems?.length
+    ? props.contentItems.map((it) => {
+        const x = it as { title?: string; text?: string; href?: string; icon?: string; image?: string };
+        return {
+          ...x,
+          description: x.text,
+          question: x.title, answer: x.text,
+          quote: x.text, author: x.title, role: x.href,
+          label: x.title, value: x.text,
+          price: x.icon,
+        };
+      })
+    : undefined;
   return (
     <RenderSection
       type={type}
       variant={meta?.id}
-      title={props.name}
-      description={props.note}
+      title={c.title ?? props.name}
+      description={c.description ?? props.note}
+      eyebrow={c.eyebrow}
+      subtitle={c.subtitle}
+      primaryButtonLabel={c.primaryButtonLabel}
+      primaryButtonHref={c.primaryButtonHref}
+      secondaryButtonLabel={c.secondaryButtonLabel}
+      secondaryButtonHref={c.secondaryButtonHref}
       theme={props.theme}
       mobile={props.mobile}
       assetSide={props.assetSide}
@@ -53,6 +78,7 @@ export function renderSectionByKind(
       imageUrl={props.imageUrl}
       onEditIcon={props.onEditIcon}
       onEditImage={props.onEditImage}
+      items={items}
       contentItems={props.contentItems}
       onEditItems={props.onEditItems}
     />

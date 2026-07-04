@@ -33,8 +33,14 @@ export type CanvasSection = {
   icon?: string;
   /** Uploaded image (data URL) for the section's image slot. Grey placeholder if unset. */
   image?: string;
-  /** Per-section editable content (repeated items — cards/steps/list rows). */
-  content?: { items?: import("@/components/sections/types").SectionContentItem[] };
+  /** Per-section editable content (heading/copy/buttons + repeated items). */
+  content?: import("@/lib/section-editor/types").SectionContent;
+  /** Layout options (alignment/columns/spacing/background/asset placement). */
+  layout?: import("@/lib/section-editor/types").SectionLayout;
+  /** Controlled motion preset + intensity. */
+  motion?: import("@/lib/section-editor/types").SectionMotion;
+  /** Media assets (grey placeholder by default; uploads/alt/AI prompts). */
+  assets?: import("@/lib/section-editor/types").SectionAsset[];
 };
 
 /** Sitemap category tabs for the Visual Sitemap board. */
