@@ -214,6 +214,44 @@ function aiPromptFor(role: string, pattern: SectionPattern): string {
 }
 
 /** Generate an ORIGINAL section spec from a pattern (reference-inspired, not a copy). */
+/** Original, purpose-driven starter copy for the created-section preview.
+ *  Derived from the reference's section type + purpose — grey placeholders only,
+ *  never the uploaded image. Fully editable once added to the canvas. */
+function buildPreviewContent(
+  pattern: SectionPattern,
+  cta: string,
+  ctx: { businessName?: string },
+): GeneratedSectionSpec["previewContent"] {
+  const who = ctx.businessName?.trim() || "your business";
+  const type = pattern.sectionType;
+  const slotCount = Math.min(6, Math.max(3, pattern.contentSlots.filter(Boolean).length || 3));
+  const items = (labels: [string, string][]) =>
+    Array.from({ length: slotCount }, (_, i) => labels[i % labels.length]).map(([title, text]) => ({ title, text }));
+
+  switch (type) {
+    case "hero":
+      return { eyebrow: "Introducing", title: `A clear headline for ${who}`, description: "One or two supporting sentences that explain the value and invite the next step.", primaryButtonLabel: cta, secondaryButtonLabel: "Learn more" };
+    case "features":
+      return { eyebrow: "Why us", title: "Everything you need, in one place", description: "Group the key benefits into clear, scannable points.", items: items([["Fast setup", "Get started in minutes with a guided flow."], ["Built to scale", "Grows with you from day one."], ["Always supported", "Help whenever you need it."], ["Secure by default", "Your data stays protected."]]) };
+    case "services":
+      return { eyebrow: "What we do", title: "Services built around your goals", description: "A short line introducing the services below.", items: items([["Consultation", "We map a clear plan forward."], ["Delivery", "Hands-on execution, transparent updates."], ["Support", "Ongoing help so results compound."], ["Strategy", "Align every step to your outcome."]]) };
+    case "testimonials":
+      return { eyebrow: "Loved by clients", title: "What our clients say", items: items([["Sarah Mitchell", "They delivered exactly what we needed, on time."], ["James Carter", "The whole process was smooth and stress-free."], ["Aisha Khan", "Our results improved within the first months."]]) };
+    case "pricing":
+      return { eyebrow: "Pricing", title: "Simple, transparent pricing", description: "Pick the plan that fits — change anytime.", primaryButtonLabel: cta };
+    case "faq":
+      return { eyebrow: "FAQ", title: "Frequently asked questions", items: items([["How does it work?", "A short, reassuring answer goes here."], ["How long does it take?", "Set expectations clearly and simply."], ["Can I change later?", "Yes — everything stays flexible."]]) };
+    case "cta":
+      return { title: `Ready to get started with ${who}?`, description: "A single, compelling line that drives the primary action.", primaryButtonLabel: cta, secondaryButtonLabel: "Talk to us" };
+    case "footer":
+      return { title: who, description: "Helpful navigation, contact and legal links — organised into clear columns.", primaryButtonLabel: "Subscribe" };
+    case "showcase":
+      return { eyebrow: "Our work", title: "Selected projects", description: "Lead with large visual placeholders and minimal chrome." };
+    default:
+      return { eyebrow: "Section", title: `A ${type} section for ${who}`, description: "Original starter copy — edit everything after adding.", primaryButtonLabel: cta };
+  }
+}
+
 export function generateSectionFromReferencePattern(
   pattern: SectionPattern,
   ctx: { businessName?: string } = {},
@@ -249,6 +287,7 @@ export function generateSectionFromReferencePattern(
       ctaSecondary: "Secondary CTA",
       slots: pattern.contentSlots,
     },
+    previewContent: buildPreviewContent(pattern, g.cta, ctx),
     assetPlacement: /left/i.test(pattern.layoutPattern) ? "left" : /right/i.test(pattern.layoutPattern) ? "right" : "none",
     assets: roles.map((role) => ({
       source: "placeholder" as const,

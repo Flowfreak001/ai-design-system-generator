@@ -268,6 +268,17 @@ export interface GeneratedSectionSpec {
   componentName: string;
   needsNewComponent: boolean;
   content: Record<string, unknown>;
+  /** Original starter copy for the created section preview — grey placeholders
+   *  only, never the uploaded reference. Editable after adding. */
+  previewContent?: {
+    eyebrow?: string;
+    title?: string;
+    subtitle?: string;
+    description?: string;
+    primaryButtonLabel?: string;
+    secondaryButtonLabel?: string;
+    items?: { title?: string; text?: string }[];
+  };
   assetPlacement: string;
   assets: {
     source: "placeholder";

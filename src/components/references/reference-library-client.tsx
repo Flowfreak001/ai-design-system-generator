@@ -333,6 +333,18 @@ export function ReferenceLibraryClient({ projectId, projectName, initialPatterns
                     type={created.spec.type as SectionType}
                     variant={created.spec.designVariant}
                     assetSide={created.spec.assetPlacement === "left" ? "left" : "right"}
+                    eyebrow={created.spec.previewContent?.eyebrow}
+                    title={created.spec.previewContent?.title}
+                    subtitle={created.spec.previewContent?.subtitle}
+                    description={created.spec.previewContent?.description}
+                    primaryButtonLabel={created.spec.previewContent?.primaryButtonLabel}
+                    secondaryButtonLabel={created.spec.previewContent?.secondaryButtonLabel}
+                    items={created.spec.previewContent?.items?.map((it) => ({
+                      ...it, description: it.text,
+                      question: it.title, answer: it.text,
+                      quote: it.text, author: it.title, role: "Client",
+                      label: it.title, value: it.text,
+                    }))}
                   />
                 </div>
               </div>
