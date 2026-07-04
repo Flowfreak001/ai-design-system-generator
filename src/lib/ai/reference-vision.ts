@@ -150,7 +150,7 @@ export async function analyzeSectionReferenceImage(input: {
     " ALSO return a `detected` object describing the VISUAL PATTERN (not the content category):" +
     ' { layoutType (one concise kebab-case pattern name, e.g. "split-media-accordion", "dark-feature-showcase", "faq-accordion", "pricing-card-comparison", "contact-form-section", "testimonial-card-row", "logo-cloud", "stats-row", "gallery-showcase", "centered-hero", "split-hero", "simple-card-grid", "media-card-grid"),' +
     " patternFamily, shortDescription, isDark (true if the section background is dark/black), mediaSide ('left'|'right'), cardCount (number of cards if any)," +
-    " hasMedia, hasAccordion, hasForm, hasPricing, hasTestimonials, hasStats, hasLogos, hasGallery, hasSplitIntro (all booleans for what is actually visible)," +
+    " hasMedia, hasImageCards (cards are large image tiles with text below), hasIconCards (small icon+text cards), hasAccordion, hasForm, hasPricing, hasTestimonials, hasStats, hasLogos, hasGallery, hasSplitIntro (all booleans for what is actually visible)," +
     " mustNotFlattenInto (array of generic layouts this must NOT collapse into, e.g. ['simple-card-grid','centered-hero']) }." +
     " Set the booleans from what you SEE (e.g. expandable +/- rows → hasAccordion:true; input fields → hasForm:true; price tiers → hasPricing:true)." +
     " detected.layoutType is the MOST IMPORTANT field — the generated section follows it. Never return a generic content category ('services','features','grid','cards') as layoutType; if unsure use 'custom-generated-layout'." +

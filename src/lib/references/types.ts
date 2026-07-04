@@ -302,6 +302,10 @@ export interface DetectedPattern {
   mediaSide?: "left" | "right";
   cardCount?: number;
   hasMedia?: boolean;
+  /** Cards are large image tiles (image on top, text below). */
+  hasImageCards?: boolean;
+  /** Cards are small icon + text cards. */
+  hasIconCards?: boolean;
   hasAccordion?: boolean;
   hasForm?: boolean;
   hasPricing?: boolean;

@@ -26,21 +26,40 @@ export function normalizeDetected(raw: unknown): DetectedPattern | undefined {
   const b = (v: unknown) => v === true;
   const s = (v: unknown, max = 60) => (typeof v === "string" ? v.trim().slice(0, max) : undefined);
   const n = Number(o.cardCount);
-  // Generic/content-category names are not layout types — treat as unknown.
-  const rawLayout = s(o.layoutType, 40)?.toLowerCase().replace(/\s+/g, "-");
-  const layoutType = rawLayout && !/^(services?|features?|grid|cards?|hero|section|grid-based|card-based|split-layout|multi-column|layout)$/.test(rawLayout) ? rawLayout : "custom-generated-layout";
-  return {
-    layoutType,
+  const d: DetectedPattern = {
     patternFamily: s(o.patternFamily, 40) ?? "unknown",
     shortDescription: s(o.shortDescription, 160),
     isDark: b(o.isDark),
     mediaSide: o.mediaSide === "left" ? "left" : o.mediaSide === "right" ? "right" : undefined,
     cardCount: Number.isFinite(n) && n > 0 && n <= 12 ? n : undefined,
-    hasMedia: b(o.hasMedia), hasAccordion: b(o.hasAccordion), hasForm: b(o.hasForm),
+    hasMedia: b(o.hasMedia), hasImageCards: b(o.hasImageCards), hasIconCards: b(o.hasIconCards),
+    hasAccordion: b(o.hasAccordion), hasForm: b(o.hasForm),
     hasPricing: b(o.hasPricing), hasTestimonials: b(o.hasTestimonials), hasStats: b(o.hasStats),
     hasLogos: b(o.hasLogos), hasGallery: b(o.hasGallery), hasSplitIntro: b(o.hasSplitIntro),
     mustNotFlattenInto: Array.isArray(o.mustNotFlattenInto) ? o.mustNotFlattenInto.map((x) => String(x)).slice(0, 6) : undefined,
   };
+  // Generic/content-category names are not layout types — derive a specific
+  // one from the component evidence instead of accepting them.
+  const rawLayout = s(o.layoutType, 40)?.toLowerCase().replace(/\s+/g, "-");
+  const generic = !rawLayout || /^(services?|features?|grid|cards?|hero|section|content|grid-based|card-based|split-layout|multi-column|layout|generic-grid|service-grid|card-grid)$/.test(rawLayout);
+  d.layoutType = generic ? deriveLayoutType(d) : rawLayout;
+  return d;
+}
+
+/** Map component evidence to a specific layout type (used when Vision returns
+ *  a generic name, or none at all). General across all reference shapes. */
+export function deriveLayoutType(d: DetectedPattern): string {
+  if (d.hasAccordion) return d.hasMedia ? "split-media-accordion" : "faq-accordion";
+  if (d.hasForm) return "form-with-content";
+  if (d.hasPricing) return "pricing-card-comparison";
+  if (d.hasTestimonials) return "testimonial-card-row";
+  if (d.hasStats) return "stats-row";
+  if (d.hasLogos) return "logo-cloud";
+  if (d.hasGallery) return "gallery-showcase";
+  if (d.hasSplitIntro && d.hasImageCards) return d.isDark ? "dark-feature-showcase" : "split-intro-card-row";
+  if (d.hasImageCards) return "media-card-grid";
+  if (d.hasIconCards) return "icon-card-grid";
+  return "custom-generated-layout";
 }
 
 type Content = NonNullable<GeneratedSectionSpec["previewContent"]>;
@@ -204,6 +223,15 @@ export function enforcePattern(bp: SectionBlueprint, pattern: SectionPattern): S
       }
     }
   }
+  // Image-card detection wins over icon cards (reference shows image tiles).
+  if (d?.hasImageCards) {
+    for (let i = 0; i < blocks.length; i++) {
+      const blk = blocks[i];
+      if (blk.type === "cardGrid" && blk.cards.some((c) => !c.image)) {
+        blocks[i] = { ...blk, cards: blk.cards.map((c) => ({ ...c, image: true, icon: false })) };
+      }
+    }
+  }
 
   // Accordion reference must not render as a card grid.
   if (wantsAccordion && !hasType("accordion")) {
@@ -259,6 +287,10 @@ export function validateBlueprintAgainstDetected(bp: SectionBlueprint, d?: Detec
   if (d.cardCount && d.cardCount > 0) {
     const grid = bp.blocks.find((b) => b.type === "cardGrid") as Extract<BlueprintBlock, { type: "cardGrid" }> | undefined;
     if (grid && grid.cards.length > d.cardCount) warnings.push(`Reference shows ${d.cardCount} cards but the section has ${grid.cards.length}.`);
+  }
+  if (d.hasImageCards) {
+    const grid = bp.blocks.find((b) => b.type === "cardGrid") as Extract<BlueprintBlock, { type: "cardGrid" }> | undefined;
+    if (grid && grid.cards.some((c) => !c.image)) warnings.push("Reference shows image cards but the section uses icon-only cards.");
   }
   if (d.isDark && bp.background) {
     let h = bp.background.replace("#", ""); if (h.length === 3) h = h.split("").map((c) => c + c).join("");

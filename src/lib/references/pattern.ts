@@ -261,14 +261,15 @@ export function generateSectionFromReferencePattern(
 ): GeneratedSectionSpec {
   const match = pattern.matchedComponent;
   const needsNewComponent = !match || Boolean(pattern.customSpec?.needsNewComponent);
-  const type = match?.type ?? pattern.sectionType;
-  // A NEW generated section — its own component/spec name. The matched library
-  // component (if any) is kept only as an inspiration reference, never reused.
+  // The old matched component must NOT control the created section: type comes
+  // from the analysis, the variant is always "custom", and the match survives
+  // only as inspiredByComponent (Advanced/debug info).
+  const type = pattern.sectionType;
   const inspiredBy = match?.componentName ?? pattern.customSpec?.suggestedComponentName;
   // A reference-created section is always a NEW generated section, rendered by
   // the blueprint renderer — never a reused library component.
   const componentName = "GeneratedSectionRenderer";
-  const designVariant = match?.variantId ?? "custom";
+  const designVariant = "custom";
   const roles = (pattern.assetRoles.length ? pattern.assetRoles : ["primary visual"]).slice(0, 4);
   const who = ctx.businessName ? ` for ${ctx.businessName}` : "";
   const primary = effectivePurpose(pattern);
