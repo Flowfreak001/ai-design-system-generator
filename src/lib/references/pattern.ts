@@ -259,7 +259,11 @@ export function generateSectionFromReferencePattern(
   const match = pattern.matchedComponent;
   const needsNewComponent = !match || Boolean(pattern.customSpec?.needsNewComponent);
   const type = match?.type ?? pattern.sectionType;
-  const componentName = match?.componentName ?? pattern.customSpec?.suggestedComponentName ?? "GenericSection";
+  // A NEW generated section — its own component/spec name. The matched library
+  // component (if any) is kept only as an inspiration reference, never reused.
+  const inspiredBy = match?.componentName ?? pattern.customSpec?.suggestedComponentName;
+  const cap = pattern.sectionType.charAt(0).toUpperCase() + pattern.sectionType.slice(1);
+  const componentName = `Generated${cap}Section`;
   const designVariant = match?.variantId ?? "custom";
   const roles = (pattern.assetRoles.length ? pattern.assetRoles : ["primary visual"]).slice(0, 4);
   const who = ctx.businessName ? ` for ${ctx.businessName}` : "";
@@ -278,6 +282,7 @@ export function generateSectionFromReferencePattern(
     layoutPattern: pattern.layoutPattern,
     designVariant,
     componentName,
+    inspiredByComponent: inspiredBy,
     needsNewComponent,
     content: {
       eyebrowSlot: "Short label",

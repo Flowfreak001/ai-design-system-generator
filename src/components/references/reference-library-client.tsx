@@ -10,8 +10,7 @@ import { Button } from "@/components/ui/button";
 import { PageContainer } from "@/components/layout/page-container";
 import { analyzeReferenceAction, saveReferencePatternAction, deleteReferencePatternAction } from "@/app/(app)/projects/[id]/references/actions";
 import { generateSectionFromReferencePattern, filterPatterns } from "@/lib/references/pattern";
-import { RenderSection } from "@/components/sections/render-section";
-import type { SectionType } from "@/components/sections/types";
+import { GeneratedSection } from "@/components/sections/generated/GeneratedSection";
 import {
   SECTION_TYPE_OPTIONS, WEBSITE_TYPE_OPTIONS, INDUSTRY_OPTIONS,
   PURPOSE_GROUPS, PURPOSE_CATEGORY_OF,
@@ -329,34 +328,15 @@ export function ReferenceLibraryClient({ projectId, projectName, initialPatterns
               {/* Live rendered preview of the created section. */}
               <div className="border-b border-line">
                 <div className="pointer-events-none select-none">
-                  <RenderSection
-                    type={created.spec.type as SectionType}
-                    variant={created.spec.designVariant}
-                    assetSide={created.spec.assetPlacement === "left" ? "left" : "right"}
-                    eyebrow={created.spec.previewContent?.eyebrow}
-                    title={created.spec.previewContent?.title}
-                    subtitle={created.spec.previewContent?.subtitle}
-                    description={created.spec.previewContent?.description}
-                    primaryButtonLabel={created.spec.previewContent?.primaryButtonLabel}
-                    secondaryButtonLabel={created.spec.previewContent?.secondaryButtonLabel}
-                    items={created.spec.previewContent?.items?.map((it) => ({
-                      ...it, description: it.text,
-                      question: it.title, answer: it.text,
-                      quote: it.text, author: it.title, role: "Client",
-                      label: it.title, value: it.text,
-                    }))}
-                  />
+                  <GeneratedSection spec={created.spec} pattern={created.pattern} />
                 </div>
               </div>
 
               <div className="grid gap-3 p-4 sm:grid-cols-2">
                 <div className="rounded-xl border border-line p-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-faint">Component match</p>
-                  {created.spec.needsNewComponent ? (
-                    <p className="mt-1 text-[12.5px] text-warning">Needs a new component — a fallback layout is shown. Suggested: {created.spec.componentName}</p>
-                  ) : (
-                    <p className="mt-1 text-[12.5px] text-body">Uses <span className="font-medium text-ink">{created.spec.componentName}</span>{created.spec.designVariant && created.spec.designVariant !== "custom" ? ` · ${created.spec.designVariant}` : ""}</p>
-                  )}
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-faint">Generated section</p>
+                  <p className="mt-1 text-[12.5px] text-body">New <span className="font-medium text-ink">{created.spec.componentName}</span> — composed from your reference.</p>
+                  <p className="mt-1 text-[11.5px] text-faint">{created.spec.inspiredByComponent ? `Inspired by ${created.spec.inspiredByComponent} · not reused.` : "Fully generated layout — no library reuse."}</p>
                   <p className="mt-2 text-[11px] text-faint">{created.spec.responsiveNotes}</p>
                 </div>
                 <div className="rounded-xl border border-line p-3">

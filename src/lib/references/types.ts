@@ -266,6 +266,8 @@ export interface GeneratedSectionSpec {
   layoutPattern: string;
   designVariant: string;
   componentName: string;
+  /** Library component this generated section was inspired by (never reused). */
+  inspiredByComponent?: string;
   needsNewComponent: boolean;
   content: Record<string, unknown>;
   /** Original starter copy for the created section preview — grey placeholders
