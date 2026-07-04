@@ -24,7 +24,7 @@ export function MobileNav({
   const t = resolveTheme(theme);
 
   return (
-    <div className="relative md:hidden">
+    <div className="relative lg:hidden">
       <button
         type="button"
         aria-label={open ? "Close menu" : "Open menu"}

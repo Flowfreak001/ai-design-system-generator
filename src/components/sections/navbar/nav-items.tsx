@@ -21,13 +21,13 @@ export function NavItems({ nav }: { nav: NavLink[] }) {
           <a
             key={`${l.label}-${i}`}
             href={l.href}
-            className="transition-opacity hover:opacity-70"
+            className="whitespace-nowrap transition-opacity hover:opacity-70"
             style={{ fontWeight: l.active ? 700 : undefined, opacity: l.active ? 1 : 0.85, color: "inherit", textDecoration: "none" }}
           >
             {l.label}
           </a>
         ) : (
-          <span key={`${l.label}-${i}`}>{l.label}</span>
+          <span key={`${l.label}-${i}`} className="whitespace-nowrap">{l.label}</span>
         ),
       )}
     </>
