@@ -423,6 +423,7 @@ export function DesignEditor({
               onMoveSection={moveSection}
               onDuplicateSection={duplicateSection}
               onRemoveSection={removeSection}
+              onRemovePage={removePage}
               approved={approvals.design}
               onApprove={() => approve("design")}
               busy={saving}
@@ -909,6 +910,7 @@ function WireframeEditor({
             const sec = pages.find((p) => p.id === pid)?.sections.find((x) => x.id === sid);
             onPatchSection(pid, sid, { content: { ...sec?.content, items } });
           }}
+          onRemovePage={(pid) => { onRemovePage(pid); setSelectedSectionId(null); }}
         />
       </div>
 
@@ -1459,7 +1461,7 @@ function TokenRow({ label, value, onChange }: { label: string; value: number; on
 
 // ------------------------------------------- Design (real styled page canvas)
 function DesignTab({
-  pages, selectedPage, style, onSelect, onPatchSection, onMoveSection, onDuplicateSection, onRemoveSection, approved, onApprove, busy,
+  pages, selectedPage, style, onSelect, onPatchSection, onMoveSection, onDuplicateSection, onRemoveSection, onRemovePage, approved, onApprove, busy,
 }: {
   pages: CanvasPage[];
   selectedPage?: CanvasPage;
@@ -1469,6 +1471,7 @@ function DesignTab({
   onMoveSection: (pageId: string, sid: string, dir: -1 | 1) => void;
   onDuplicateSection: (pageId: string, sid: string) => void;
   onRemoveSection: (pageId: string, sid: string) => void;
+  onRemovePage: (id: string) => void;
   approved: boolean;
   onApprove: () => void;
   busy: boolean;
@@ -1512,6 +1515,7 @@ function DesignTab({
             const sec = pages.find((p) => p.id === pid)?.sections.find((x) => x.id === sid);
             onPatchSection(pid, sid, { content: { ...sec?.content, items } });
           }}
+          onRemovePage={(pid) => { onRemovePage(pid); setSelectedSectionId(null); }}
         />
       </div>
 

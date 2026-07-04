@@ -37,7 +37,7 @@ export function ProjectCanvas({
   pages, mode, style, schemes,
   selectedPageId, selectedSectionId,
   onSelectPage, onSelectSection,
-  onMoveSection, onDuplicateSection, onRemoveSection, onApproveSection, onEditText, onEditIcon, onEditImage, onEditItems,
+  onMoveSection, onDuplicateSection, onRemoveSection, onApproveSection, onEditText, onEditIcon, onEditImage, onEditItems, onRemovePage,
 }: {
   pages: CanvasPage[];
   mode: "wireframe" | "design";
@@ -57,6 +57,8 @@ export function ProjectCanvas({
   onEditIcon?: (pageId: string, sid: string, iconKey: string) => void;
   onEditImage?: (pageId: string, sid: string, dataUrl: string) => void;
   onEditItems?: (pageId: string, sid: string, items: SectionContentItem[]) => void;
+  /** Delete a page from the canvas (confirmed in-place; same action as sitemap). */
+  onRemovePage?: (pageId: string) => void;
 }) {
   const [device, setDevice] = useState<Device>("desktop");
   const [zoom, setZoom] = useState(0.55);
@@ -130,6 +132,7 @@ export function ProjectCanvas({
               onEditIcon={onEditIcon}
               onEditImage={onEditImage}
               onEditItems={onEditItems}
+              onRemovePage={pages.length > 1 ? onRemovePage : undefined}
             />
           ))}
         </div>
@@ -166,7 +169,7 @@ export function ProjectCanvas({
 
 function PageFrame({
   page, frameW, mode, baseTheme, schemes, device, isHome, selectedPage, selectedSectionId,
-  onSelectPage, onSelectSection, onMoveSection, onDuplicateSection, onRemoveSection, onApproveSection, onEditText, onEditIcon, onEditImage, onEditItems,
+  onSelectPage, onSelectSection, onMoveSection, onDuplicateSection, onRemoveSection, onApproveSection, onEditText, onEditIcon, onEditImage, onEditItems, onRemovePage,
 }: {
   page: CanvasPage;
   frameW: number;
@@ -187,6 +190,7 @@ function PageFrame({
   onEditIcon?: (pageId: string, sid: string, iconKey: string) => void;
   onEditImage?: (pageId: string, sid: string, dataUrl: string) => void;
   onEditItems?: (pageId: string, sid: string, items: SectionContentItem[]) => void;
+  onRemovePage?: (pageId: string) => void;
 }) {
   const mobile = device === "mobile";
   return (
@@ -205,6 +209,21 @@ function PageFrame({
         <span className="flex shrink-0 items-center gap-1.5">
           <span className={`rounded-full px-1.5 py-0.5 text-[9.5px] font-medium ${SOURCE_STYLE[page.source] ?? "bg-panel text-muted"}`}>{page.source}</span>
           <span className="text-[11px] text-faint">{page.sections.length} sec</span>
+          {onRemovePage && (
+            <span
+              role="button"
+              tabIndex={0}
+              title="Delete page"
+              aria-label={`Delete page ${page.name}`}
+              onClick={(e) => { e.stopPropagation(); if (window.confirm(`Delete page “${page.name}” and all its sections?`)) onRemovePage(page.id); }}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); if (window.confirm(`Delete page “${page.name}” and all its sections?`)) onRemovePage(page.id); } }}
+              className="grid h-6 w-6 cursor-pointer place-items-center rounded-md text-faint transition-colors hover:bg-danger-soft hover:text-danger"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="m6 6 12 12M18 6 6 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              </svg>
+            </span>
+          )}
         </span>
       </button>
 
