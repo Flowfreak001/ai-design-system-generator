@@ -31,6 +31,7 @@ import { TypeBadge } from "@/components/projects/status-badge";
 import { GeneratedFilesViewer } from "@/components/projects/generated-files-viewer";
 import { PreviewPanel } from "@/components/projects/preview-panel";
 import { ExportPanel } from "@/components/projects/export-panel";
+import { SimpleSteps } from "@/components/projects/simple-steps";
 import { WorkflowBlueprint } from "@/components/projects/workflow-blueprint";
 import { NotesSection } from "@/components/projects/notes-section";
 import { AgentRunTimeline } from "@/components/projects/agent-run-timeline";
@@ -270,35 +271,38 @@ export default async function ProjectWorkspacePage({
 
   const overview = (
     <div className="grid gap-4">
-      {/* Design pipeline — Brand foundation first, every later stage gated. */}
-      <ProjectPipeline
-        projectId={id}
-        stages={pipeline}
-        brandExists={hasBrandGuidelines}
-        brandApproved={brandApproved}
-        designType={designType}
-        hasReference={hasReferenceUrls}
-        discovered={discovered}
-        confirmedPages={b.confirmedPages ?? []}
-        sitemap={sitemap}
-        wireframe={wireframe}
-        style={styleGuide}
-        evidence={evidence}
-        previewExists={Boolean(previewHtml)}
-        producedFiles={docFiles.map((f) => f.name)}
-        exportHref={`/api/projects/${id}/export`}
-        actions={{
-          generateBrand,
-          approveBrand,
-          crawl,
-          runVision: runAiVision,
-          confirmPages,
-          approveStage,
-          setDesignType: setDesignTypeAction,
-          generateMd,
-          generatePreview,
-        }}
-      />
+      {/* Simple 3-step journey (Setup → Design → Export). The full gated
+          pipeline with every action lives under its "All steps" toggle. */}
+      <SimpleSteps stages={pipeline} editorHref={`/projects/${id}/editor`}>
+        <ProjectPipeline
+          projectId={id}
+          stages={pipeline}
+          brandExists={hasBrandGuidelines}
+          brandApproved={brandApproved}
+          designType={designType}
+          hasReference={hasReferenceUrls}
+          discovered={discovered}
+          confirmedPages={b.confirmedPages ?? []}
+          sitemap={sitemap}
+          wireframe={wireframe}
+          style={styleGuide}
+          evidence={evidence}
+          previewExists={Boolean(previewHtml)}
+          producedFiles={docFiles.map((f) => f.name)}
+          exportHref={`/api/projects/${id}/export`}
+          actions={{
+            generateBrand,
+            approveBrand,
+            crawl,
+            runVision: runAiVision,
+            confirmPages,
+            approveStage,
+            setDesignType: setDesignTypeAction,
+            generateMd,
+            generatePreview,
+          }}
+        />
+      </SimpleSteps>
 
       {/* Status timeline */}
       <div className="card p-5">
