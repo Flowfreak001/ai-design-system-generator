@@ -297,7 +297,13 @@ export function generateSectionFromReferencePattern(
     if (blk.type === "heading") preview.title = blk.text;
     else if (blk.type === "eyebrow") preview.eyebrow = blk.text;
     else if (blk.type === "paragraph") preview.description = blk.text;
-    else if (blk.type === "splitIntro") { if (blk.heading) preview.title = blk.heading; if (blk.paragraph) preview.description = blk.paragraph; }
+    else if (blk.type === "splitIntro") {
+      if (blk.eyebrow) preview.eyebrow = blk.eyebrow;
+      if (blk.heading) preview.title = blk.heading;
+      if (blk.paragraph) preview.description = blk.paragraph;
+      if (blk.buttons?.[0]) preview.primaryButtonLabel = blk.buttons[0].label;
+      if (blk.buttons?.[1]) preview.secondaryButtonLabel = blk.buttons[1].label;
+    }
   }
 
   return {

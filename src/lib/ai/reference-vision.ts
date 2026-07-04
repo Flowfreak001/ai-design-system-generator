@@ -134,7 +134,7 @@ export async function analyzeSectionReferenceImage(input: {
     ' {type:"media",ratio,label}, {type:"stats",items:[{value,label}]}, {type:"logos",count},' +
     ' {type:"accordion",items:[{question,answer}]}, {type:"linkColumns",columns:[{heading,links:[string]}]},' +
     // Composition primitives — capture WHERE elements sit, not just that they exist.
-    ' {type:"splitIntro",heading,paragraph,buttons:[{label,variant}],headingSide:"left"|"right"} (use this when a large heading sits on ONE side and the paragraph/CTA on the OTHER side — e.g. heading top-left, paragraph+button top-right),' +
+    ' {type:"splitIntro",eyebrow,heading,subheading,paragraph,buttons:[{label,variant}],headingSide:"left"|"right"} (use this when a large heading sits on ONE side and the paragraph/CTA on the OTHER side — e.g. heading top-left, paragraph+button top-right; put any kicker/eyebrow and supporting subheading INSIDE this block, and set headingSide to the side the BIG heading actually sits on in the screenshot),' +
     ' {type:"spacer",size:"small"|"medium"|"large"} (use for deliberate large negative space between areas),' +
     ' {type:"form",heading,fields:[string],submitLabel} (use when the reference shows a contact/booking/newsletter/lead FORM with input fields),' +
     ' {type:"pricing",plans:[{name,price,features:[string],featured}]} (use when the reference shows PRICING PLANS/tiers) }.' +

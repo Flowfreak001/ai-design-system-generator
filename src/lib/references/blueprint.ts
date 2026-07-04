@@ -235,8 +235,11 @@ export function enforcePattern(bp: SectionBlueprint, pattern: SectionPattern): S
 
   // Detected media side wins over the blueprint's guess.
   const mediaSide = d?.mediaSide ?? bp.mediaSide;
-  // A split-media detection must keep the split layout.
-  const layout = d?.hasMedia && (d.hasAccordion || d.hasSplitIntro || /split/.test(d.layoutType ?? "")) ? "split" as const : bp.layout;
+  // A split-media detection keeps the split layout — but only when the
+  // blueprint actually has a side media block (media inside cards doesn't
+  // count; the renderer never invents a visual).
+  const hasMediaBlock = blocks.some((b) => b.type === "media");
+  const layout = hasMediaBlock && d?.hasMedia && (d.hasAccordion || d.hasSplitIntro || /split/.test(d.layoutType ?? "")) ? "split" as const : (hasMediaBlock ? bp.layout : "stack" as const);
 
   return { ...bp, background, accent: bp.accent ?? pal.accent, mediaSide, layout, blocks };
 }
@@ -337,8 +340,10 @@ export function normalizeBlueprint(raw: unknown): SectionBlueprint | null {
       case "splitIntro": {
         const heading = clean(rb.heading, "heading", 120);
         const paragraph = clean(rb.paragraph, "paragraph", 400);
+        const eyebrow = S(rb.eyebrow, 60);
+        const subheading = S(rb.subheading, 120);
         const btns = A<Record<string, unknown>>(rb.buttons).map((x) => ({ label: clean(x.label, "button", 40), variant: x.variant === "secondary" ? "secondary" as const : "primary" as const })).filter((x) => x.label).slice(0, 3);
-        if (heading || paragraph) blocks.push({ type: "splitIntro", heading, paragraph, buttons: btns, headingSide: rb.headingSide === "right" ? "right" : "left" });
+        if (heading || paragraph) blocks.push({ type: "splitIntro", eyebrow: eyebrow || undefined, heading, subheading: subheading || undefined, paragraph, buttons: btns, headingSide: rb.headingSide === "right" ? "right" : "left" });
         break;
       }
       case "spacer":
@@ -367,12 +372,24 @@ export function normalizeBlueprint(raw: unknown): SectionBlueprint | null {
     const paragraph = blocks.find((b): b is Extract<BlueprintBlock, { type: "paragraph" }> => b.type === "paragraph");
     const btns = blocks.find((b): b is Extract<BlueprintBlock, { type: "buttons" }> => b.type === "buttons");
     if (heading && (paragraph || btns)) {
-      const consumed = new Set<BlueprintBlock>([heading, ...(paragraph ? [paragraph] : []), ...(btns ? [btns] : [])]);
-      const before = blocks.filter((b) => !consumed.has(b) && (b.type === "eyebrow" || b.type === "subheading"));
-      const rest = blocks.filter((b) => !consumed.has(b) && b.type !== "eyebrow" && b.type !== "subheading");
-      const intro: BlueprintBlock = { type: "splitIntro", heading: heading.text, paragraph: paragraph?.text, buttons: btns?.items, headingSide: o.mediaSide === "left" ? "right" : "left" };
+      const eyebrow = blocks.find((b): b is Extract<BlueprintBlock, { type: "eyebrow" }> => b.type === "eyebrow");
+      const subheading = blocks.find((b): b is Extract<BlueprintBlock, { type: "subheading" }> => b.type === "subheading");
+      const consumed = new Set<BlueprintBlock>([heading, ...(paragraph ? [paragraph] : []), ...(btns ? [btns] : []), ...(eyebrow ? [eyebrow] : []), ...(subheading ? [subheading] : [])]);
+      const rest = blocks.filter((b) => !consumed.has(b));
+      // Everything folds INTO the split intro (eyebrow above the heading,
+      // subheading above the paragraph) — no orphan centered rows. The big
+      // heading defaults to the LEFT (mediaSide is meaningless without media).
+      const intro: BlueprintBlock = {
+        type: "splitIntro",
+        eyebrow: eyebrow?.text,
+        heading: heading.text,
+        subheading: subheading?.text,
+        paragraph: paragraph?.text,
+        buttons: btns?.items,
+        headingSide: "left",
+      };
       blocks.length = 0;
-      blocks.push(...before, intro, { type: "spacer", size: "large" }, ...rest);
+      blocks.push(intro, { type: "spacer", size: "large" }, ...rest);
     }
     layout = "stack";
   }

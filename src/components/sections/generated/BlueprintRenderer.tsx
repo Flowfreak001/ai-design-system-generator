@@ -103,9 +103,15 @@ export function BlueprintRenderer({ blueprint, theme }: { blueprint: SectionBlue
           </div>
         );
       case "splitIntro": {
-        const headingEl = block.heading ? <h2 className="text-[30px] font-bold leading-tight sm:text-[40px]" style={{ fontFamily: t.headingFont, color: r.fg }}>{block.heading}</h2> : null;
+        const headingEl = (
+          <div className="flex flex-col gap-3">
+            {block.eyebrow && <span className="text-[12px] font-semibold uppercase tracking-wide" style={{ color: accent }}>{block.eyebrow}</span>}
+            {block.heading && <h2 className="text-[30px] font-bold leading-tight sm:text-[40px]" style={{ fontFamily: t.headingFont, color: r.fg }}>{block.heading}</h2>}
+          </div>
+        );
         const rightEl = (
           <div className="flex flex-col gap-4">
+            {block.subheading && <h3 className="text-[17px] font-semibold" style={{ fontFamily: t.headingFont, color: r.fg }}>{block.subheading}</h3>}
             {block.paragraph && <p className="text-[15px] leading-relaxed" style={{ color: r.muted }}>{block.paragraph}</p>}
             {block.buttons?.length ? (
               <div className="flex flex-wrap gap-2.5">
