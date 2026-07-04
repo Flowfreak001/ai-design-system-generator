@@ -287,10 +287,14 @@ export function ReferenceLibraryClient({ projectId, projectName, initialPatterns
               <div className="max-h-[70vh] overflow-y-auto rounded-xl border border-line bg-panel/30 p-4">
                 {draft ? (
                   <>
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
                       <p className="text-[13px] font-semibold text-ink">Extracted pattern <span className="text-[11px] font-normal text-faint">· confidence {draft.confidence}</span></p>
-                      <Button size="sm" onClick={save} disabled={busy}>Save to library</Button>
+                      <div className="flex items-center gap-2">
+                        <Button size="sm" variant="secondary" onClick={save} disabled={busy}>Save pattern</Button>
+                        <Button size="sm" onClick={() => generate(draft)}>Create section →</Button>
+                      </div>
                     </div>
+                    <p className="mt-1 text-[11.5px] text-muted">Create an original editable section from this reference, or save the pattern for later.</p>
                     <PatternDetail p={draft} />
                   </>
                 ) : (
