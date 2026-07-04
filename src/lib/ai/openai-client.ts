@@ -3,9 +3,18 @@
 // back cleanly. Never import this from a client component — it reads the key
 // from server env and must not reach the browser.
 
-// Full gpt-4o for reference analysis: recreating a section's visual composition
-// needs strong vision + layout reasoning that the mini model can't provide.
-export const VISION_MODEL = "gpt-4o";
+// Cheap vision model for lightweight tasks (brand analysis, status reporting).
+export const VISION_MODEL = "gpt-4o-mini";
+
+// ── Reference-screenshot recreation ─────────────────────────────────────────
+// Recreating a section's visual composition needs the strongest available
+// vision model. Env-overridable so a newer model can be used without a code
+// change. Default is a REAL, working model (gpt-4o) — set the env var to a
+// stronger id (e.g. a future gpt-5.x) once it's available on your account.
+export const REFERENCE_VISION_MODEL = process.env.REFERENCE_VISION_MODEL?.trim() || "gpt-4o";
+export const REFERENCE_BLUEPRINT_MODEL = process.env.REFERENCE_BLUEPRINT_MODEL?.trim() || "gpt-4o";
+export const REFERENCE_VISION_MAX_TOKENS = Number(process.env.REFERENCE_VISION_MAX_TOKENS) || 12000;
+export const REFERENCE_BLUEPRINT_MAX_TOKENS = Number(process.env.REFERENCE_BLUEPRINT_MAX_TOKENS) || 12000;
 
 export type ChatMessage = {
   role: "system" | "user" | "assistant";

@@ -4,7 +4,7 @@
 // the exact text, imagery, logos, or pixel design. Falls back safely when the
 // API key is missing or the call fails.
 
-import { getOpenAI, VISION_MODEL, type ChatMessage } from "./openai-client";
+import { getOpenAI, REFERENCE_VISION_MODEL, REFERENCE_VISION_MAX_TOKENS, type ChatMessage } from "./openai-client";
 import { VISUAL_STYLE_TAGS, LAYOUT_TAGS, INTERACTION_TAGS, type SectionBlueprint, type DetectedPattern } from "@/lib/references/types";
 import { normalizeBlueprint, normalizeDetected, FALLBACK_DETECTED } from "@/lib/references/blueprint";
 
@@ -163,9 +163,11 @@ export async function analyzeSectionReferenceImage(input: {
   ];
 
   try {
-    // High token ceiling so the full analysis + blueprint + detected object
-    // never truncates (a cut-off response fails JSON.parse → silent fallback).
-    const raw = await client.chatJSON(messages, { model: VISION_MODEL, maxTokens: 6000 });
+    // Strongest available vision model + a high token ceiling so the full
+    // analysis + blueprint + detected object never truncates (a cut-off
+    // response fails JSON.parse → silent fallback to the shallow path).
+    console.info("[Reference Vision] Using model:", REFERENCE_VISION_MODEL, "· max tokens:", REFERENCE_VISION_MAX_TOKENS);
+    const raw = await client.chatJSON(messages, { model: REFERENCE_VISION_MODEL, maxTokens: REFERENCE_VISION_MAX_TOKENS });
     const p = JSON.parse(raw) as Record<string, unknown>;
     const conf = String(p.confidence ?? "medium").toLowerCase();
     return {
