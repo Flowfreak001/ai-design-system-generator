@@ -90,7 +90,7 @@ export async function analyzeSectionReferenceImage(input: {
     // Safe detection so a failed/skipped Vision run never silently falls back
     // into old generic layouts.
     detected: FALLBACK_DETECTED,
-    debug: { ran: false, model: REFERENCE_VISION_MODEL, maxTokens: REFERENCE_VISION_MAX_TOKENS, finishReason: "not-run", responseLength: 0, fallbackUsed: false },
+    debug: { ran: false, requestedModel: REFERENCE_VISION_MODEL, model: REFERENCE_VISION_MODEL, maxTokens: REFERENCE_VISION_MAX_TOKENS, finishReason: "not-run", responseLength: 0, fallbackUsed: false },
   };
 
   const client = getOpenAI();
@@ -171,9 +171,9 @@ export async function analyzeSectionReferenceImage(input: {
     // response fails JSON.parse → silent fallback to the shallow path).
     console.info("[Reference Vision] Using model:", REFERENCE_VISION_MODEL, "(fallback:", REFERENCE_MODEL_FALLBACK + ") · max tokens:", REFERENCE_VISION_MAX_TOKENS);
     const meta = await client.chatJSONMeta(messages, { model: REFERENCE_VISION_MODEL, fallbackModel: REFERENCE_MODEL_FALLBACK, maxTokens: REFERENCE_VISION_MAX_TOKENS });
-    const debug: VisionDebug = { ran: true, model: meta.model, maxTokens: REFERENCE_VISION_MAX_TOKENS, finishReason: meta.finishReason, responseLength: meta.responseLength, fallbackUsed: meta.fallbackUsed };
+    const debug: VisionDebug = { ran: true, requestedModel: meta.requestedModel, model: meta.model, maxTokens: REFERENCE_VISION_MAX_TOKENS, finishReason: meta.finishReason, responseLength: meta.responseLength, fallbackUsed: meta.fallbackUsed, fallbackReason: meta.fallbackReason };
     if (meta.finishReason === "length") debug.error = "Response was truncated (finish_reason=length) — raise REFERENCE_VISION_MAX_TOKENS.";
-    console.info("[Reference Vision] finish_reason:", meta.finishReason, "· length:", meta.responseLength, "· fallbackUsed:", meta.fallbackUsed);
+    console.info("[Reference Vision] requested:", meta.requestedModel, "· used:", meta.model, "· fallback:", meta.fallbackUsed, meta.fallbackReason ?? "", "· finish:", meta.finishReason, "· length:", meta.responseLength);
     const p = JSON.parse(meta.content) as Record<string, unknown>;
     const conf = String(p.confidence ?? "medium").toLowerCase();
     return {

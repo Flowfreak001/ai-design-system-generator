@@ -298,11 +298,16 @@ export type BlueprintBlock =
  *  this" signal, used to drive and validate the blueprint (not content category). */
 export interface VisionDebug {
   ran: boolean;
+  /** Model requested (from REFERENCE_VISION_MODEL). */
+  requestedModel: string;
+  /** Model that actually produced the response (may be the fallback). */
   model: string;
   maxTokens: number;
   finishReason: string;
   responseLength: number;
   fallbackUsed: boolean;
+  /** Exact OpenAI error (code: message) that triggered the fallback. */
+  fallbackReason?: string;
   error?: string;
 }
 

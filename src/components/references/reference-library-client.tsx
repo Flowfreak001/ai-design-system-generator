@@ -313,14 +313,15 @@ export function ReferenceLibraryClient({ projectId, projectName, initialPatterns
                     </div>
                     <p className="mt-1 text-[11.5px] text-muted">Create an original editable section from this reference, or save the pattern for later.</p>
                     {draft.visionDebug && (
-                      <div className={`mt-2 rounded-lg border px-2.5 py-2 text-[11px] ${draft.visionDebug.error || draft.visionDebug.finishReason === "length" ? "border-warning/40 bg-warning-soft/40 text-warning" : "border-line bg-surface text-muted"}`}>
+                      <div className={`mt-2 rounded-lg border px-2.5 py-2 text-[11px] ${draft.visionDebug.error || draft.visionDebug.finishReason === "length" ? "border-danger/40 bg-danger-soft/40 text-danger" : draft.visionDebug.fallbackUsed ? "border-warning/40 bg-warning-soft/40 text-warning" : "border-line bg-surface text-muted"}`}>
                         <span className="font-semibold uppercase tracking-wide">Vision</span>{" "}
-                        model <span className="font-mono">{draft.visionDebug.model}</span>
-                        {draft.visionDebug.fallbackUsed && <span className="text-warning"> (fell back)</span>}
+                        requested <span className="font-mono">{draft.visionDebug.requestedModel}</span> → used <span className="font-mono">{draft.visionDebug.model}</span>
+                        {" · "}fallback <span className="font-mono">{draft.visionDebug.fallbackUsed ? "yes" : "no"}</span>
                         {" · "}max {draft.visionDebug.maxTokens}
                         {" · "}finish <span className="font-mono">{draft.visionDebug.finishReason}</span>
                         {" · "}len {draft.visionDebug.responseLength}
-                        {!draft.visionDebug.ran && <span className="text-warning"> · did not run</span>}
+                        {!draft.visionDebug.ran && <span> · did not run</span>}
+                        {draft.visionDebug.fallbackReason && <div className="mt-0.5">fallback reason: {draft.visionDebug.fallbackReason}</div>}
                         {draft.visionDebug.error && <div className="mt-0.5">{draft.visionDebug.error}</div>}
                       </div>
                     )}
