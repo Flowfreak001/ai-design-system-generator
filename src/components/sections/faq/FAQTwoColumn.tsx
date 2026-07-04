@@ -14,7 +14,7 @@ export default function FAQTwoColumn({ theme, title, subtitle, items, mobile }: 
       <div className="mx-auto max-w-4xl">
         <h2 className="text-[26px] font-bold" style={h(t)}>{title || "Questions & answers"}</h2>
         {subtitle && <p className="mt-2 text-[14px]" style={b(t)}>{subtitle}</p>}
-        <div className={`mt-8 grid gap-x-10 gap-y-7 ${mobile ? "grid-cols-1" : "grid-cols-2"}`}>
+        <div className={`mt-8 grid gap-x-10 gap-y-7 grid-cols-1 md:grid-cols-2`}>
           {faqs.map((f, i) => (
             <div key={i}>
               <p className="text-[14px] font-semibold" style={h(t)}>{f.question || `Question ${i + 1}?`}</p>

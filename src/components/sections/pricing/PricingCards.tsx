@@ -13,7 +13,7 @@ export default function PricingCards({ theme, eyebrow, title, subtitle, items, m
       {eyebrow && <span className="text-[12px] font-semibold uppercase tracking-wide" style={{ color: t.accentColor }}>{eyebrow}</span>}
       <h2 className="mt-2 text-[26px] font-bold" style={h(t)}>{title || "Simple, transparent pricing"}</h2>
       {subtitle && <p className="mt-2 text-[14px]" style={b(t)}>{subtitle}</p>}
-      <div className={`mx-auto mt-10 grid max-w-4xl gap-5 ${mobile ? "grid-cols-1" : "grid-cols-3"}`}>
+      <div className={`mx-auto mt-10 grid max-w-4xl gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`}>
         {tiers.map((tier, i) => (
           <div key={i} className="p-6 text-left" style={{ background: t.backgroundColor, borderRadius: t.radius, border: tier.featured ? `2px solid ${t.accentColor}` : `1px solid ${t.borderColor}`, boxShadow: tier.featured ? t.shadow : "none" }}>
             <p className="text-[13px] font-semibold" style={{ color: t.accentColor }}>{tier.title || `Plan ${i + 1}`}</p>

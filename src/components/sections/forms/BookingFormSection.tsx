@@ -13,7 +13,7 @@ export default function BookingFormSection({ theme, eyebrow, title, subtitle, fi
           <p className="mt-2 text-[14px]" style={b(t)}>{subtitle || "Choose a service and time that suits you — we'll confirm by message."}</p>
         </div>
         <div className="mt-8 rounded-2xl p-6" style={{ background: t.backgroundColor, border: `1px solid ${t.borderColor}`, boxShadow: t.shadow }}>
-          <div className={`grid gap-4 ${mobile ? "grid-cols-1" : "grid-cols-2"}`}>
+          <div className={`grid gap-4 grid-cols-1 md:grid-cols-2`}>
             {formFields.map((f) => (
               <div key={f}>
                 <label className="text-[12.5px] font-medium" style={b(t)}>{f}</label>

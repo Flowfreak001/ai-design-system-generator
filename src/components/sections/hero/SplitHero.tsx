@@ -17,7 +17,7 @@ export default function SplitHero({ theme, eyebrow, title, subtitle, description
   const asset = <div className="h-64 w-full" style={card(t)} />;
   return (
     <section className="px-8 py-16" style={{ background: t.backgroundColor }}>
-      <div className={`grid items-center gap-10 ${mobile ? "" : "grid-cols-2"}`}>
+      <div className={`grid items-center gap-10 md:grid-cols-2`}>
         {assetSide === "left" ? <>{asset}{content}</> : <>{content}{asset}</>}
       </div>
     </section>

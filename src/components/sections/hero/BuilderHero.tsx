@@ -63,7 +63,7 @@ export default function BuilderHero({ theme, eyebrow, title, subtitle, descripti
   const visual = <EditorMockup t={t} />;
   return (
     <section className="px-8 py-16" style={{ background: t.backgroundColor }}>
-      <div className={`grid items-center gap-12 ${mobile ? "" : "grid-cols-2"}`}>
+      <div className={`grid items-center gap-12 md:grid-cols-2`}>
         {assetSide === "left" ? <>{visual}{content}</> : <>{content}{visual}</>}
       </div>
     </section>

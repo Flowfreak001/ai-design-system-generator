@@ -10,7 +10,7 @@ export default function ListingGrid({ theme, title, items, mobile }: SectionProp
         <h2 className="text-[22px] font-bold" style={h(t)}>{title || "Browse listings"}</h2>
         <div className="hidden gap-2 sm:flex">{["Filter", "Sort", "Map"].map((f) => <span key={f} className="px-3 py-1.5 text-[12px]" style={{ background: t.surfaceColor, borderRadius: t.radius, color: t.mutedTextColor }}>{f}</span>)}</div>
       </div>
-      <div className={`mt-6 grid gap-4 ${mobile ? "grid-cols-1" : "grid-cols-3"}`}>
+      <div className={`mt-6 grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`}>
         {listings.map((l, i) => (
           <div key={i} className="overflow-hidden" style={{ background: t.backgroundColor, borderRadius: t.radius, border: `1px solid ${t.borderColor}` }}>
             <div className="h-28 w-full" style={{ background: t.surfaceColor }} />

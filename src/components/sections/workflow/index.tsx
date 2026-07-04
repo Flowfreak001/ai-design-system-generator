@@ -18,7 +18,7 @@ export function StepByStepProcess({ theme, eyebrow, title, subtitle, items, mobi
         <h2 className="mt-2 text-[26px] font-bold" style={h(t)}>{title || "How it works"}</h2>
         {subtitle && <p className="mt-2 text-[14px]" style={b(t)}>{subtitle}</p>}
       </div>
-      <div className={`mx-auto mt-10 grid max-w-4xl gap-6 ${mobile ? "grid-cols-1" : "grid-cols-3"}`}>
+      <div className={`mx-auto mt-10 grid max-w-4xl gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`}>
         {steps.map((s, i) => (
           <div key={i} className="relative">
             <div className="grid h-11 w-11 place-items-center rounded-full text-[16px] font-bold text-white" style={{ background: t.accentColor }}>{i + 1}</div>
@@ -45,7 +45,7 @@ export function HowItWorksCards({ theme, eyebrow, title, items, mobile }: Sectio
         {eyebrow && <span className="text-[12px] font-semibold uppercase tracking-wide" style={{ color: t.accentColor }}>{eyebrow}</span>}
         <h2 className="mt-2 text-[26px] font-bold" style={h(t)}>{title || "A simple, powerful workflow"}</h2>
       </div>
-      <div className={`mx-auto mt-10 grid max-w-5xl gap-5 ${mobile ? "grid-cols-1" : "grid-cols-4"}`}>
+      <div className={`mx-auto mt-10 grid max-w-5xl gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4`}>
         {steps.map((s, i) => (
           <div key={i} className="p-5" style={cardRaised(t)}>
             <span className="text-[13px] font-bold" style={{ color: t.accentColor }}>0{i + 1}</span>
@@ -77,7 +77,7 @@ export function AIWorkflowSection({ theme, eyebrow, title, subtitle, description
   );
   return (
     <section className="px-8 py-16" style={{ background: t.backgroundColor }}>
-      <div className={`grid items-center gap-10 ${mobile ? "" : "grid-cols-2"}`}>
+      <div className={`grid items-center gap-10 md:grid-cols-2`}>
         {assetSide === "left" ? <>{visual}{content}</> : <>{content}{visual}</>}
       </div>
     </section>

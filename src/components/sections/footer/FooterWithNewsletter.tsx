@@ -9,7 +9,7 @@ export default function FooterWithNewsletter({ theme, title, subtitle, primaryBu
   ];
   return (
     <footer className="px-8 py-14" style={{ background: t.primaryColor }}>
-      <div className={`grid gap-10 ${mobile ? "grid-cols-1" : "grid-cols-[2fr_1fr_1fr]"}`}>
+      <div className={`grid gap-10 grid-cols-1 md:grid-cols-[2fr_1fr_1fr]`}>
         <div>
           <p className="text-[16px] font-bold" style={{ fontFamily: t.headingFont, color: "#ffffff" }}>{title || "Stay in the loop"}</p>
           <p className="mt-1.5 text-[13px]" style={{ color: "rgba(255,255,255,0.65)" }}>{subtitle || "Product updates and tips, straight to your inbox. No spam."}</p>

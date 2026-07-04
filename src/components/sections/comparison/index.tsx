@@ -44,7 +44,7 @@ export function WhyChooseUsGrid({ theme, eyebrow, title, items, mobile }: Sectio
         {eyebrow && <span className="text-[12px] font-semibold uppercase tracking-wide" style={{ color: t.accentColor }}>{eyebrow}</span>}
         <h2 className="mt-2 text-[26px] font-bold" style={h(t)}>{title || "Why choose us"}</h2>
       </div>
-      <div className={`mx-auto mt-10 grid max-w-4xl gap-5 ${mobile ? "grid-cols-1" : "grid-cols-2"}`}>
+      <div className={`mx-auto mt-10 grid max-w-4xl gap-5 grid-cols-1 md:grid-cols-2`}>
         {reasons.map((r, i) => (
           <div key={i} className="p-6" style={cardRaised(t)}>
             <div className="grid h-10 w-10 place-items-center rounded-lg text-white" style={{ background: t.accentColor }}>✓</div>

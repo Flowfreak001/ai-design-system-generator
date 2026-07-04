@@ -16,7 +16,7 @@ export default function FeatureGrid({ theme, eyebrow, title, subtitle, items, mo
         <h2 className="mt-2 text-[26px] font-bold" style={h(t)}>{title || "Everything you need"}</h2>
         {subtitle && <p className="mx-auto mt-2 max-w-xl text-[14px]" style={b(t)}>{subtitle}</p>}
       </div>
-      <div className={`mx-auto mt-10 grid max-w-4xl gap-x-8 gap-y-7 ${mobile ? "grid-cols-1" : "grid-cols-2"}`}>
+      <div className={`mx-auto mt-10 grid max-w-4xl gap-x-8 gap-y-7 grid-cols-1 md:grid-cols-2`}>
         {features.map((f, i) => (
           <div key={i} className="flex gap-4">
             <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg" style={{ background: t.surfaceColor, color: t.accentColor }}>◆</div>

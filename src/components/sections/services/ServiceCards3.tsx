@@ -15,7 +15,7 @@ export default function ServiceCards3({ theme, eyebrow, title, subtitle, items, 
         <h2 className="mt-2 text-[26px] font-bold" style={h(t)}>{title || "Our services"}</h2>
         {subtitle && <p className="mt-2 text-[14px]" style={b(t)}>{subtitle}</p>}
       </div>
-      <div className={`mx-auto mt-10 grid max-w-4xl gap-5 ${mobile ? "grid-cols-1" : "grid-cols-3"}`}>
+      <div className={`mx-auto mt-10 grid max-w-4xl gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`}>
         {services.map((s, i) => (
           <div key={i} className="p-6" style={cardRaised(t)}>
             <div className="grid h-10 w-10 place-items-center rounded-lg text-[15px] font-bold text-white" style={{ background: t.accentColor }}>{i + 1}</div>

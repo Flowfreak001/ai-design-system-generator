@@ -30,7 +30,7 @@ export default function FAQWithCTA({ theme, title, description, items, primaryBu
   );
   return (
     <section className="px-8 py-16" style={{ background: t.backgroundColor }}>
-      <div className={`grid items-stretch gap-10 ${mobile ? "" : "grid-cols-2"}`}>
+      <div className={`grid items-stretch gap-10 md:grid-cols-2`}>
         {assetSide === "left" ? <>{aside}{content}</> : <>{content}{aside}</>}
       </div>
     </section>

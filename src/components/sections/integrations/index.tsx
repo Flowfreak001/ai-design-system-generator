@@ -13,7 +13,7 @@ export function IntegrationLogoCloud({ theme, eyebrow, title, subtitle, items, m
         <h2 className="mt-2 text-[26px] font-bold" style={h(t)}>{title || "Works with your favourite tools"}</h2>
         <p className="mt-2 text-[14px]" style={b(t)}>{subtitle || "Connect the stack you already use — no rip-and-replace."}</p>
       </div>
-      <div className={`mx-auto mt-10 grid max-w-4xl gap-4 ${mobile ? "grid-cols-3" : "grid-cols-5"}`}>
+      <div className={`mx-auto mt-10 grid max-w-4xl gap-4 grid-cols-3 md:grid-cols-5`}>
         {Array.from({ length: count }).map((_, i) => (
           <div key={i} className="grid aspect-square place-items-center rounded-2xl" style={{ background: t.surfaceColor, border: `1px solid ${t.borderColor}` }}>
             <div className="h-8 w-8 rounded-lg" style={{ background: t.backgroundColor, border: `1px solid ${t.borderColor}` }} />

@@ -86,7 +86,7 @@ export default function FeatureSplitAccordion({ theme, eyebrow, title, subtitle,
 
   return (
     <section className="px-8 py-16" style={{ background: t.backgroundColor }}>
-      <div className={`grid items-center gap-12 ${mobile ? "" : "grid-cols-2"}`}>
+      <div className={`grid items-center gap-12 md:grid-cols-2`}>
         {assetSide === "right" ? <>{accordion}{visual}</> : <>{visual}{accordion}</>}
       </div>
     </section>

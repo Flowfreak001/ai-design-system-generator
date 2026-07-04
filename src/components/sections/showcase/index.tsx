@@ -14,7 +14,7 @@ export function TemplateGallery({ theme, eyebrow, title, subtitle, items, mobile
         <h2 className="mt-2 text-[26px] font-bold" style={h(t)}>{title || "Start from a beautiful template"}</h2>
         {subtitle && <p className="mt-2 text-[14px]" style={b(t)}>{subtitle}</p>}
       </div>
-      <div className={`mx-auto mt-10 grid max-w-5xl gap-4 ${mobile ? "grid-cols-2" : "grid-cols-3"}`}>
+      <div className={`mx-auto mt-10 grid max-w-5xl gap-4 grid-cols-2 lg:grid-cols-3`}>
         {Array.from({ length: count }).map((_, i) => (
           <div key={i} className="overflow-hidden" style={{ borderRadius: t.radius, border: `1px solid ${t.borderColor}`, boxShadow: t.shadow }}>
             <div className="aspect-[4/3] w-full" style={{ background: t.surfaceColor }} />
@@ -42,7 +42,7 @@ export function CaseStudyCards({ theme, eyebrow, title, items, mobile }: Section
         {eyebrow && <span className="text-[12px] font-semibold uppercase tracking-wide" style={{ color: t.accentColor }}>{eyebrow}</span>}
         <h2 className="mt-2 text-[26px] font-bold" style={h(t)}>{title || "Results our clients are proud of"}</h2>
       </div>
-      <div className={`mx-auto mt-8 grid max-w-5xl gap-5 ${mobile ? "grid-cols-1" : "grid-cols-3"}`}>
+      <div className={`mx-auto mt-8 grid max-w-5xl gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`}>
         {cases.map((c, i) => (
           <div key={i} className="overflow-hidden" style={{ background: t.backgroundColor, borderRadius: t.radius, border: `1px solid ${t.borderColor}` }}>
             <div className="h-40 w-full" style={{ background: t.surfaceColor }} />

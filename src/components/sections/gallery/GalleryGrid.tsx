@@ -13,7 +13,7 @@ export default function GalleryGrid({ theme, eyebrow, title, subtitle, items, mo
           {subtitle && <p className="mt-2 text-[14px]" style={b(t)}>{subtitle}</p>}
         </div>
       )}
-      <div className={`grid gap-3 ${mobile ? "grid-cols-2" : "grid-cols-4"}`}>
+      <div className={`grid gap-3 grid-cols-2 md:grid-cols-4`}>
         {Array.from({ length: count }).map((_, i) => (
           <div key={i} className="aspect-square w-full" style={{ background: t.surfaceColor, borderRadius: t.radius }} />
         ))}

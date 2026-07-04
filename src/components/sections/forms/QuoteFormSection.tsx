@@ -27,7 +27,7 @@ export default function QuoteFormSection({ theme, eyebrow, title, subtitle, desc
   );
   return (
     <section className="px-8 py-16" style={{ background: t.surfaceColor }}>
-      <div className={`grid items-center gap-10 ${mobile ? "" : "grid-cols-2"}`}>
+      <div className={`grid items-center gap-10 md:grid-cols-2`}>
         {assetSide === "left" ? <>{form}{content}</> : <>{content}{form}</>}
       </div>
     </section>

@@ -11,8 +11,8 @@ export default function MultiColumnFooter({ theme, title, mobile }: SectionProps
   ];
   return (
     <footer className="px-8 py-14" style={{ background: t.primaryColor }}>
-      <div className={`grid gap-8 ${mobile ? "grid-cols-2" : "grid-cols-5"}`}>
-        <div className={mobile ? "col-span-2" : ""}>
+      <div className={`grid gap-8 grid-cols-2 md:grid-cols-5`}>
+        <div className="col-span-2 md:col-span-1">
           <p className="text-[16px] font-bold" style={{ fontFamily: t.headingFont, color: "#ffffff" }}>{title || "Company"}</p>
           <p className="mt-2 text-[12.5px]" style={{ color: "rgba(255,255,255,0.6)" }}>Helping businesses do more with less.</p>
         </div>

@@ -12,7 +12,7 @@ export function SaaSFooter({ theme, title, subtitle, primaryButtonLabel, mobile 
   ];
   return (
     <footer className="px-8 py-14" style={{ background: t.primaryColor }}>
-      <div className={`grid gap-10 ${mobile ? "grid-cols-1" : "grid-cols-[1.6fr_1fr_1fr_1fr]"}`}>
+      <div className={`grid gap-10 grid-cols-1 sm:grid-cols-2 md:grid-cols-[1.6fr_1fr_1fr_1fr]`}>
         <div>
           <p className="text-[16px] font-bold" style={{ fontFamily: t.headingFont, color: "#fff" }}>{title || "Company"}</p>
           <p className="mt-2 max-w-xs text-[12.5px]" style={{ color: "rgba(255,255,255,0.6)" }}>{subtitle || "Design and ship polished websites with AI — faster than ever."}</p>

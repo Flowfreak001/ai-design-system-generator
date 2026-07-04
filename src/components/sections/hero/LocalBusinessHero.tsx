@@ -22,7 +22,7 @@ export default function LocalBusinessHero({ theme, eyebrow, title, subtitle, des
   );
   return (
     <section className="px-8 py-16" style={{ background: t.backgroundColor }}>
-      <div className={`grid items-stretch gap-10 ${mobile ? "" : "grid-cols-2"}`}>
+      <div className={`grid items-stretch gap-10 md:grid-cols-2`}>
         {assetSide === "left" ? <>{asset}{content}</> : <>{content}{asset}</>}
       </div>
     </section>

@@ -18,7 +18,7 @@ export default function ServiceGrid6({ theme, eyebrow, title, subtitle, items, m
         <h2 className="mt-2 text-[26px] font-bold" style={h(t)}>{title || "What we offer"}</h2>
         {subtitle && <p className="mt-2 text-[14px]" style={b(t)}>{subtitle}</p>}
       </div>
-      <div className={`mx-auto mt-10 grid max-w-5xl gap-4 ${mobile ? "grid-cols-2" : "grid-cols-3"}`}>
+      <div className={`mx-auto mt-10 grid max-w-5xl gap-4 grid-cols-2 lg:grid-cols-3`}>
         {services.map((s, i) => (
           <div key={i} className="p-5" style={{ background: t.backgroundColor, borderRadius: t.radius, border: `1px solid ${t.borderColor}` }}>
             <div className="h-9 w-9 rounded-lg" style={{ background: t.accentColor, opacity: 0.9 }} />

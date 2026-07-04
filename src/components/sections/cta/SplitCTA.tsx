@@ -5,7 +5,7 @@ export default function SplitCTA({ theme, title, subtitle, description, primaryB
   const t = resolveTheme(theme);
   return (
     <section className="px-8 py-14" style={{ background: t.surfaceColor }}>
-      <div className={`mx-auto flex max-w-5xl items-center gap-6 rounded-2xl p-8 ${mobile ? "flex-col text-center" : "justify-between"}`} style={{ background: t.backgroundColor, border: `1px solid ${t.borderColor}`, boxShadow: t.shadow }}>
+      <div className={`mx-auto flex max-w-5xl items-center gap-6 rounded-2xl p-8 flex-col text-center md:flex-row md:items-center md:justify-between md:text-left`} style={{ background: t.backgroundColor, border: `1px solid ${t.borderColor}`, boxShadow: t.shadow }}>
         <div>
           <h2 className="text-[22px] font-bold" style={h(t)}>{title || "Let's build something great together"}</h2>
           <p className="mt-1.5 text-[14px]" style={b(t)}>{subtitle || description || "Start today — no credit card required."}</p>

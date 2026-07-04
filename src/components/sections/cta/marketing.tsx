@@ -26,7 +26,7 @@ export function TrialSignupCTA({ theme, eyebrow, title, subtitle, primaryButtonL
         {eyebrow && <span className="text-[12px] font-semibold uppercase tracking-wide" style={{ color: t.accentColor }}>{eyebrow}</span>}
         <h2 className="mt-2 text-[27px] font-bold" style={h(t)}>{title || "Try it free for 14 days"}</h2>
         <p className="mx-auto mt-3 max-w-md text-[14px]" style={b(t)}>{subtitle || "Sign up in seconds and see your first design system generated."}</p>
-        <div className={`mx-auto mt-6 flex max-w-md gap-2 ${mobile ? "flex-col" : ""}`}>
+        <div className={`mx-auto mt-6 flex max-w-md gap-2 flex-col sm:flex-row`}>
           <div className="h-12 flex-1 rounded-lg" style={{ background: t.surfaceColor, border: `1px solid ${t.borderColor}` }} />
           <span className="grid place-items-center px-6 py-3 text-[13.5px] font-semibold" style={fill(t)}>{primaryButtonLabel || "Start free"}</span>
         </div>

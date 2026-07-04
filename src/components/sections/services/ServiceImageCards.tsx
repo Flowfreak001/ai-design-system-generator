@@ -14,7 +14,7 @@ export default function ServiceImageCards({ theme, eyebrow, title, items, mobile
         {eyebrow && <span className="text-[12px] font-semibold uppercase tracking-wide" style={{ color: t.accentColor }}>{eyebrow}</span>}
         <h2 className="mt-2 text-[26px] font-bold" style={h(t)}>{title || "Our services"}</h2>
       </div>
-      <div className={`mx-auto mt-8 grid max-w-5xl gap-5 ${mobile ? "grid-cols-1" : "grid-cols-3"}`}>
+      <div className={`mx-auto mt-8 grid max-w-5xl gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`}>
         {services.map((s, i) => (
           <div key={i} className="overflow-hidden" style={{ background: t.backgroundColor, borderRadius: t.radius, border: `1px solid ${t.borderColor}`, boxShadow: t.shadow }}>
             <div className="h-36 w-full" style={{ background: t.surfaceColor }} />
