@@ -244,6 +244,8 @@ export interface SectionPattern {
   matchedComponent?: { type: string; variantId: string; componentName: string } | null;
   /** Structured renderable blueprint from Vision (preferred) — dynamic layout. */
   blueprint?: SectionBlueprint;
+  /** Visual-pattern detection (layout type + component detectors). */
+  detected?: DetectedPattern;
   customSpec?: CustomSectionSpec | null;
   similarityRules: SimilarityRules;
   confidence: "high" | "medium" | "low";
@@ -289,6 +291,27 @@ export type BlueprintBlock =
   /** Pricing plan cards. */
   | { type: "pricing"; plans: { name: string; price?: string; features?: string[]; featured?: boolean }[] };
 
+/** Structured visual-pattern detection from Vision — the "what UI pattern is
+ *  this" signal, used to drive and validate the blueprint (not content category). */
+export interface DetectedPattern {
+  layoutType?: string;
+  patternFamily?: string;
+  shortDescription?: string;
+  isDark?: boolean;
+  mediaSide?: "left" | "right";
+  cardCount?: number;
+  hasMedia?: boolean;
+  hasAccordion?: boolean;
+  hasForm?: boolean;
+  hasPricing?: boolean;
+  hasTestimonials?: boolean;
+  hasStats?: boolean;
+  hasLogos?: boolean;
+  hasGallery?: boolean;
+  hasSplitIntro?: boolean;
+  mustNotFlattenInto?: string[];
+}
+
 export interface SectionBlueprint {
   /** Background colour direction (hex) from the reference; grey placeholders for media. */
   background?: string;
@@ -318,6 +341,8 @@ export interface GeneratedSectionSpec {
   inspiredByComponent?: string;
   /** Structured layout the section is rendered from (dynamic; drives the canvas). */
   blueprint?: SectionBlueprint;
+  /** Visual-pattern detection surfaced in the result panel. */
+  detected?: DetectedPattern;
   needsNewComponent: boolean;
   content: Record<string, unknown>;
   /** Original starter copy for the created section preview — grey placeholders

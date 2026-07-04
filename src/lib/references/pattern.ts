@@ -200,6 +200,7 @@ export function createSectionPatternFromReferenceImage(input: {
     recommendedVariants: matchedComponent ? [matchedComponent.componentName] : [],
     matchedComponent,
     blueprint: v.blueprint,
+    detected: v.detected,
     customSpec,
     similarityRules: DEFAULT_SIMILARITY_RULES,
     confidence: v.confidence,
@@ -293,6 +294,7 @@ export function generateSectionFromReferencePattern(
       (pattern.blueprint ? normalizeBlueprint(pattern.blueprint) : null) ?? buildBlueprintFromPattern(pattern, buildPreviewContent(pattern, g.cta, ctx) ?? {}),
       pattern,
     ),
+    detected: pattern.detected,
     needsNewComponent,
     content: {
       eyebrowSlot: "Short label",

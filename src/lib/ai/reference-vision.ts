@@ -5,8 +5,8 @@
 // API key is missing or the call fails.
 
 import { getOpenAI, VISION_MODEL, type ChatMessage } from "./openai-client";
-import { VISUAL_STYLE_TAGS, LAYOUT_TAGS, INTERACTION_TAGS, type SectionBlueprint } from "@/lib/references/types";
-import { normalizeBlueprint } from "@/lib/references/blueprint";
+import { VISUAL_STYLE_TAGS, LAYOUT_TAGS, INTERACTION_TAGS, type SectionBlueprint, type DetectedPattern } from "@/lib/references/types";
+import { normalizeBlueprint, normalizeDetected } from "@/lib/references/blueprint";
 
 export interface ReferenceVisionResult {
   source: "openai_vision" | "fallback";
@@ -35,6 +35,8 @@ export interface ReferenceVisionResult {
   confidence: "high" | "medium" | "low";
   /** Structured, renderable blueprint (dynamic layout) — grey placeholders only. */
   blueprint?: SectionBlueprint;
+  /** Visual-pattern detection (layout type + component detectors). */
+  detected?: DetectedPattern;
 }
 
 /** Keep only values that exist in the given vocabulary (case-insensitive). */
@@ -139,6 +141,13 @@ export async function analyzeSectionReferenceImage(input: {
     " ANALYSE THE VISUAL COMPOSITION LIKE A UI DESIGNER, not just the content: where is the heading, where is the paragraph/CTA, how many columns, are cards image-on-top with text below, how much whitespace, is the background dark/black." +
     " Reproduce that composition with the blocks IN ORDER. If the heading and paragraph are on opposite sides, use splitIntro (NOT separate centred heading+paragraph). If large image cards sit in a row, use cardGrid with image:true (image on top, text below) and columns = the real count. Put a spacer where there is big vertical whitespace." +
     " Set background to the ACTUAL section background hex INCLUDING dark/black backgrounds. Do NOT flatten a rich composition into a generic centred hero or a plain icon grid." +
+    // Structured visual-pattern detection — the "what UI pattern is this" signal.
+    " ALSO return a `detected` object describing the VISUAL PATTERN (not the content category):" +
+    ' { layoutType (one concise kebab-case pattern name, e.g. "split-media-accordion", "dark-feature-showcase", "faq-accordion", "pricing-card-comparison", "contact-form-section", "testimonial-card-row", "logo-cloud", "stats-row", "gallery-showcase", "centered-hero", "split-hero", "simple-card-grid", "media-card-grid"),' +
+    " patternFamily, shortDescription, isDark (true if the section background is dark/black), mediaSide ('left'|'right'), cardCount (number of cards if any)," +
+    " hasMedia, hasAccordion, hasForm, hasPricing, hasTestimonials, hasStats, hasLogos, hasGallery, hasSplitIntro (all booleans for what is actually visible)," +
+    " mustNotFlattenInto (array of generic layouts this must NOT collapse into, e.g. ['simple-card-grid','centered-hero']) }." +
+    " Set the booleans from what you SEE (e.g. expandable +/- rows → hasAccordion:true; input fields → hasForm:true; price tiers → hasPricing:true)." +
     " Write REAL, concrete, ORIGINAL starter copy for every text slot — natural words a designer would ship, relevant to the section's purpose. Do NOT output literal template labels like 'Your Main Heading', 'Your Subheading', 'Card Title 1', 'Card description here', or 'Your Media Placeholder'. Example — good heading: 'Launch a site that converts'; bad: 'Your Main Heading'. Never transcribe the reference's exact words, brand, or logo; for any image use a placeholder — never reuse the reference's images.";
 
   const messages: ChatMessage[] = [
@@ -175,6 +184,7 @@ export async function analyzeSectionReferenceImage(input: {
       suggestedInteractionTags: pickFromVocab(p.suggestedInteractionTags, INTERACTION_TAGS),
       confidence: conf === "high" || conf === "low" ? (conf as "high" | "low") : "medium",
       blueprint: normalizeBlueprint(p.blueprint) ?? undefined,
+      detected: normalizeDetected(p.detected),
     };
   } catch (err) {
     return { ...base, originalityWarnings: [`Vision analysis failed: ${err instanceof Error ? err.message : String(err)}`] };

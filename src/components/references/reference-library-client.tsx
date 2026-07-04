@@ -352,9 +352,20 @@ export function ReferenceLibraryClient({ projectId, projectName, initialPatterns
 
               <div className="grid gap-3 p-4 sm:grid-cols-2">
                 <div className="rounded-xl border border-line p-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-faint">Generated section</p>
-                  <p className="mt-1 text-[12.5px] text-body">New <span className="font-medium text-ink">{created.spec.componentName}</span> — composed from your reference.</p>
-                  <p className="mt-1 text-[11.5px] text-faint">{created.spec.inspiredByComponent ? `Inspired by ${created.spec.inspiredByComponent} · not reused.` : "Fully generated layout — no library reuse."}</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-faint">Detected pattern</p>
+                  {created.spec.detected?.layoutType ? (
+                    <p className="mt-1 text-[12.5px] text-body"><span className="font-medium text-ink">{created.spec.detected.layoutType}</span>{created.spec.detected.patternFamily ? ` · ${created.spec.detected.patternFamily}` : ""}</p>
+                  ) : (
+                    <p className="mt-1 text-[12.5px] text-body">Composed from the reference’s layout.</p>
+                  )}
+                  {created.spec.detected && (
+                    <div className="mt-1.5 flex flex-wrap gap-1">
+                      {(["hasAccordion","hasForm","hasPricing","hasTestimonials","hasStats","hasLogos","hasGallery","hasMedia","hasSplitIntro"] as const)
+                        .filter((k) => created.spec.detected?.[k]).map((k) => <span key={k} className="rounded bg-panel px-1.5 py-0.5 text-[10px] text-muted">{k.replace(/^has/, "").toLowerCase()}</span>)}
+                      {created.spec.detected.isDark && <span className="rounded bg-panel px-1.5 py-0.5 text-[10px] text-muted">dark</span>}
+                    </div>
+                  )}
+                  <p className="mt-1.5 text-[11px] text-faint">New GeneratedSectionRenderer{created.spec.inspiredByComponent ? ` · similar: ${created.spec.inspiredByComponent} (not reused)` : ""}</p>
                   <p className="mt-2 text-[11px] text-faint">{created.spec.responsiveNotes}</p>
                 </div>
                 <div className="rounded-xl border border-line p-3">

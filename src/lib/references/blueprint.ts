@@ -4,7 +4,28 @@
 // follows the uploaded reference dynamically instead of a fixed per-type
 // template. Media is always a grey placeholder; copy is original slot text.
 
-import type { BlueprintBlock, SectionBlueprint, SectionPattern, GeneratedSectionSpec } from "./types";
+import type { BlueprintBlock, SectionBlueprint, SectionPattern, GeneratedSectionSpec, DetectedPattern } from "./types";
+
+/** Parse a Vision-returned `detected` object (visual pattern detection). */
+export function normalizeDetected(raw: unknown): DetectedPattern | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const o = raw as Record<string, unknown>;
+  const b = (v: unknown) => v === true;
+  const s = (v: unknown, max = 60) => (typeof v === "string" ? v.trim().slice(0, max) : undefined);
+  const n = Number(o.cardCount);
+  return {
+    layoutType: s(o.layoutType, 40),
+    patternFamily: s(o.patternFamily, 40),
+    shortDescription: s(o.shortDescription, 160),
+    isDark: b(o.isDark),
+    mediaSide: o.mediaSide === "left" ? "left" : o.mediaSide === "right" ? "right" : undefined,
+    cardCount: Number.isFinite(n) && n > 0 && n <= 12 ? n : undefined,
+    hasMedia: b(o.hasMedia), hasAccordion: b(o.hasAccordion), hasForm: b(o.hasForm),
+    hasPricing: b(o.hasPricing), hasTestimonials: b(o.hasTestimonials), hasStats: b(o.hasStats),
+    hasLogos: b(o.hasLogos), hasGallery: b(o.hasGallery), hasSplitIntro: b(o.hasSplitIntro),
+    mustNotFlattenInto: Array.isArray(o.mustNotFlattenInto) ? o.mustNotFlattenInto.map((x) => String(x)).slice(0, 6) : undefined,
+  };
+}
 
 type Content = NonNullable<GeneratedSectionSpec["previewContent"]>;
 
@@ -59,10 +80,11 @@ export function buildBlueprintFromPattern(pattern: SectionPattern, content: Cont
   // grid. Order matters (most specific first). Prevents accordion/form/pricing
   // references from flattening into a generic services grid. ──
   const st = String(type);
-  const wantsAccordion = st === "faq" || st === "accordion" || has(pattern, /accordion|faq|expand|collapse|toggle|plus.?minus|disclosure/);
-  const wantsForm = st === "contact" || st === "booking" || st === "quote" || has(pattern, /\bform\b|input field|text field|email field|contact form|booking form|quote form|sign.?up form|newsletter form|message field/);
-  const wantsPricing = st === "pricing" || has(pattern, /pricing|per month|\/mo\b|price plan|tier|subscription plan/);
-  const wantsTestimonial = st === "testimonials" || st === "quote" || has(pattern, /testimonial|customer quote|review card|rating star/);
+  const d = pattern.detected;
+  const wantsAccordion = d?.hasAccordion ?? (st === "faq" || st === "accordion" || has(pattern, /accordion|faq|expand|collapse|toggle|plus.?minus|disclosure/));
+  const wantsForm = d?.hasForm ?? (st === "contact" || st === "booking" || st === "quote" || has(pattern, /\bform\b|input field|text field|email field|contact form|booking form|quote form|sign.?up form|newsletter form|message field/));
+  const wantsPricing = d?.hasPricing ?? (st === "pricing" || has(pattern, /pricing|per month|\/mo\b|price plan|tier|subscription plan/));
+  const wantsTestimonial = d?.hasTestimonials ?? (st === "testimonials" || st === "quote" || has(pattern, /testimonial|customer quote|review card|rating star/));
 
   if (wantsAccordion) {
     const acc = { type: "accordion" as const, items: (items.length ? items : Array.from({ length: 4 }, (_, i) => ({ title: `Question ${i + 1}`, text: "A clear, concise answer." }))).map((it) => ({ question: it.title ?? "", answer: it.text })) };
@@ -148,10 +170,13 @@ export function buildBlueprintFromPattern(pattern: SectionPattern, content: Cont
 export function enforcePattern(bp: SectionBlueprint, pattern: SectionPattern): SectionBlueprint {
   const blocks = [...bp.blocks];
   const hasType = (tp: string) => blocks.some((b) => b.type === tp);
+  const d = pattern.detected;
   const sig = `${pattern.layoutPattern} ${pattern.layoutTags.join(" ")} ${pattern.interactionPattern.join(" ")} ${pattern.componentStructure.join(" ")} ${pattern.contentSlots.join(" ")}`.toLowerCase();
   const st = String(pattern.sectionType);
-  const wantsAccordion = st === "faq" || st === "accordion" || /accordion|faq|expand|collapse|toggle|plus.?minus|disclosure/.test(sig);
-  const wantsForm = st === "contact" || st === "booking" || st === "quote" || /\bform\b|input field|email field|contact form|booking form|quote form/.test(sig);
+  // Prefer explicit Vision detectors; fall back to text signals.
+  const wantsAccordion = d?.hasAccordion ?? (st === "faq" || st === "accordion" || /accordion|faq|expand|collapse|toggle|plus.?minus|disclosure/.test(sig));
+  const wantsForm = d?.hasForm ?? (st === "contact" || st === "booking" || st === "quote" || /\bform\b|input field|email field|contact form|booking form|quote form/.test(sig));
+  const wantsPricing = d?.hasPricing ?? false;
 
   // Accordion reference must not render as a card grid.
   if (wantsAccordion && !hasType("accordion")) {
@@ -165,6 +190,12 @@ export function enforcePattern(bp: SectionBlueprint, pattern: SectionPattern): S
   }
   // Form reference must include a form.
   if (wantsForm && !hasType("form")) blocks.push({ type: "form", fields: ["Name", "Email", "Message"], submitLabel: "Send" });
+  // Pricing reference must include pricing plans.
+  if (wantsPricing && !hasType("pricing")) blocks.push({ type: "pricing", plans: [
+    { name: "Starter", price: "$—", features: ["Included feature", "Included feature"] },
+    { name: "Growth", price: "$—", features: ["Included feature", "Included feature"], featured: true },
+    { name: "Scale", price: "$—", features: ["Included feature", "Included feature"] },
+  ] });
 
   // Preserve a clearly-dark background if Vision returned a pale/empty one.
   const pal = refPalette(pattern.colorDirection);
@@ -172,7 +203,7 @@ export function enforcePattern(bp: SectionBlueprint, pattern: SectionPattern): S
     let h = x.replace("#", ""); if (h.length === 3) h = h.split("").map((c) => c + c).join("");
     return (parseInt(h.slice(0, 2), 16) * 0.299 + parseInt(h.slice(2, 4), 16) * 0.587 + parseInt(h.slice(4, 6), 16) * 0.114) / 255 < 0.25;
   });
-  const isDarkRef = /\bdark\b|\bblack\b/.test(sig) || Boolean(darkHex);
+  const isDarkRef = d?.isDark ?? (/\bdark\b|\bblack\b/.test(sig) || Boolean(darkHex));
   const background = isDarkRef ? (darkHex ?? "#0B0B0F") : (bp.background ?? pal.background);
 
   return { ...bp, background, accent: bp.accent ?? pal.accent, blocks };
