@@ -5,7 +5,8 @@
 // API key is missing or the call fails.
 
 import { getOpenAI, VISION_MODEL, type ChatMessage } from "./openai-client";
-import { VISUAL_STYLE_TAGS, LAYOUT_TAGS, INTERACTION_TAGS } from "@/lib/references/types";
+import { VISUAL_STYLE_TAGS, LAYOUT_TAGS, INTERACTION_TAGS, type SectionBlueprint } from "@/lib/references/types";
+import { normalizeBlueprint } from "@/lib/references/blueprint";
 
 export interface ReferenceVisionResult {
   source: "openai_vision" | "fallback";
@@ -32,6 +33,8 @@ export interface ReferenceVisionResult {
   suggestedLayoutTags: string[];
   suggestedInteractionTags: string[];
   confidence: "high" | "medium" | "low";
+  /** Structured, renderable blueprint (dynamic layout) — grey placeholders only. */
+  blueprint?: SectionBlueprint;
 }
 
 /** Keep only values that exist in the given vocabulary (case-insensitive). */
@@ -114,7 +117,20 @@ export async function analyzeSectionReferenceImage(input: {
     ` suggestedStyleTags (array — choose ALL that visibly apply, ONLY from: ${VISUAL_STYLE_TAGS.join(", ")}),` +
     ` suggestedLayoutTags (array — choose ALL that apply, ONLY from: ${LAYOUT_TAGS.join(", ")}),` +
     ` suggestedInteractionTags (array — choose ALL that apply, ONLY from: ${INTERACTION_TAGS.join(", ")}),` +
-    " confidence ('high'|'medium'|'low'). For the three suggested*Tags, pick multiple as needed based on what the image actually shows — do not invent tags outside the given lists.";
+    " confidence ('high'|'medium'|'low'). For the three suggested*Tags, pick multiple as needed based on what the image actually shows — do not invent tags outside the given lists." +
+    // Structured, renderable blueprint — the dynamic layout to recreate the section.
+    " ALSO return a `blueprint` object so we can RECREATE this section's layout as an ORIGINAL editable design (not a copy):" +
+    " { background (hex from the reference bg), accent (hex for buttons/icons), textColor (hex), align ('left'|'center')," +
+    " layout ('stack' for single-column, or 'split' for text-beside-media), mediaSide ('left'|'right') if split," +
+    " blocks: an ORDERED array matching the reference's real structure, each one of:" +
+    ' {type:"eyebrow",text}, {type:"heading",text}, {type:"subheading",text}, {type:"paragraph",text},' +
+    ' {type:"buttons",items:[{label,variant:"primary"|"secondary"}]}, {type:"chips",items:[string]},' +
+    ' {type:"cardGrid",columns:<actual number of cards>,cards:[{title,body,icon:true|image:true}]},' +
+    ' {type:"media",ratio,label}, {type:"stats",items:[{value,label}]}, {type:"logos",count},' +
+    ' {type:"accordion",items:[{question,answer}]}, {type:"linkColumns",columns:[{heading,links:[string]}]} }.' +
+    " Use ORIGINAL placeholder copy for every text/slot (never transcribe the reference's real words, brand, or logo)." +
+    " Set cardGrid.columns to the ACTUAL number of cards you see. For any image/photo use a media/image placeholder — never describe reusing the reference's images." +
+    " Match the block ORDER, counts, split-vs-grid, and colours to what the screenshot actually shows so the recreated section closely resembles the reference's STRUCTURE.";
 
   const messages: ChatMessage[] = [
     { role: "system", content: system },
@@ -149,6 +165,7 @@ export async function analyzeSectionReferenceImage(input: {
       suggestedLayoutTags: pickFromVocab(p.suggestedLayoutTags, LAYOUT_TAGS),
       suggestedInteractionTags: pickFromVocab(p.suggestedInteractionTags, INTERACTION_TAGS),
       confidence: conf === "high" || conf === "low" ? (conf as "high" | "low") : "medium",
+      blueprint: normalizeBlueprint(p.blueprint) ?? undefined,
     };
   } catch (err) {
     return { ...base, originalityWarnings: [`Vision analysis failed: ${err instanceof Error ? err.message : String(err)}`] };

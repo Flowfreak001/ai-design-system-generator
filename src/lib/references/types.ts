@@ -242,6 +242,8 @@ export interface SectionPattern {
   recommendedVariants: string[];
   /** Matched existing library component, if any. */
   matchedComponent?: { type: string; variantId: string; componentName: string } | null;
+  /** Structured renderable blueprint from Vision (preferred) — dynamic layout. */
+  blueprint?: SectionBlueprint;
   customSpec?: CustomSectionSpec | null;
   similarityRules: SimilarityRules;
   confidence: "high" | "medium" | "low";
@@ -256,6 +258,43 @@ export interface ReferenceLibrary {
   updatedAt?: string;
 }
 
+// ─────────────────────────────────────────────────────────────────────────
+// Structured, renderable BLUEPRINT — the dynamic layout the generated section
+// is rendered from. Produced by Vision (preferred) or derived deterministically
+// from the extracted pattern. One generic renderer draws any blueprint, so new
+// reference shapes render without adding per-type templates. Media = grey
+// placeholders only; copy is original slot text (never the reference's words).
+// ─────────────────────────────────────────────────────────────────────────
+
+export type BlueprintBlock =
+  | { type: "eyebrow"; text: string }
+  | { type: "heading"; text: string }
+  | { type: "subheading"; text: string }
+  | { type: "paragraph"; text: string }
+  | { type: "buttons"; items: { label: string; variant?: "primary" | "secondary" }[] }
+  | { type: "chips"; items: string[] }
+  | { type: "cardGrid"; columns?: number; cards: { title: string; body?: string; icon?: boolean; image?: boolean }[] }
+  | { type: "media"; ratio?: string; label?: string }
+  | { type: "stats"; items: { value: string; label: string }[] }
+  | { type: "logos"; count?: number }
+  | { type: "accordion"; items: { question: string; answer?: string }[] }
+  | { type: "linkColumns"; columns: { heading: string; links: string[] }[] };
+
+export interface SectionBlueprint {
+  /** Background colour direction (hex) from the reference; grey placeholders for media. */
+  background?: string;
+  /** Accent colour (hex) for buttons/icons. */
+  accent?: string;
+  /** Text colour (hex). */
+  textColor?: string;
+  align?: "left" | "center";
+  /** stack = single column; split = text column + media column. */
+  layout?: "stack" | "split";
+  mediaSide?: "left" | "right";
+  /** Ordered blocks that make up the section (the text column when split). */
+  blocks: BlueprintBlock[];
+}
+
 /** An original section generated FROM a pattern (reference-inspired, not a copy). */
 export interface GeneratedSectionSpec {
   id: string;
@@ -268,6 +307,8 @@ export interface GeneratedSectionSpec {
   componentName: string;
   /** Library component this generated section was inspired by (never reused). */
   inspiredByComponent?: string;
+  /** Structured layout the section is rendered from (dynamic; drives the canvas). */
+  blueprint?: SectionBlueprint;
   needsNewComponent: boolean;
   content: Record<string, unknown>;
   /** Original starter copy for the created section preview — grey placeholders
