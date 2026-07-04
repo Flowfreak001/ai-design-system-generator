@@ -331,7 +331,7 @@ function StageBody({
         ) : (
           <p className="text-[13px] text-muted">Confirm discovered pages first.</p>
         )}
-        <p className="text-[11.5px] text-faint">Add / remove / reorder / rename lands in the canvas editor — approve to continue.</p>
+        <p className="text-[11.5px] text-faint">Once your pages look right, open the Design Editor — sections, styling and the full design all happen there.</p>
         <div><Approve stage="sitemap" label="Approve sitemap" /></div>
         {error && <p className="text-xs text-danger">{error}</p>}
       </div>

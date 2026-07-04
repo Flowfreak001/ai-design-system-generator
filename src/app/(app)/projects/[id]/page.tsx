@@ -273,12 +273,14 @@ export default async function ProjectWorkspacePage({
 
   const overview = (
     <div className="grid gap-4">
-      {/* Simple 3-step journey (Setup → Design → Export). The full gated
-          pipeline with every action lives under its "All steps" toggle. */}
+      {/* Simple hero + a trimmed detail list. Everything after the sitemap
+          (wireframe, style, design, files, export) now lives in the Design
+          Editor and the Export tab, so the "All steps" list only shows the
+          pre-editor prep: evidence, brand, sitemap. */}
       <SimpleSteps stages={pipeline} editorHref={`/projects/${id}/editor`}>
         <ProjectPipeline
           projectId={id}
-          stages={pipeline}
+          stages={pipeline.filter((s) => ["evidence", "brand", "sitemap"].includes(s.id))}
           brandExists={hasBrandGuidelines}
           brandApproved={brandApproved}
           designType={designType}
@@ -591,6 +593,22 @@ export default async function ProjectWorkspacePage({
 
   const exportPanel = (
     <div className="grid gap-4">
+      {/* Full package ZIP — moved here from the old Export pipeline stage. */}
+      <div className="card flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+        <div>
+          <p className="text-[14px] font-semibold text-ink">Download full package</p>
+          <p className="text-[12px] text-muted">Everything zipped — brief, analysis, brand, design system, prompts and preview.</p>
+        </div>
+        <ActionDialog
+          projectId={id}
+          trigger="button"
+          title="Export ZIP"
+          description="Full package for your build tool."
+          confirmText="Download the full export package and mark this project as Exported?"
+          downloadHref={`/api/projects/${id}/export`}
+        />
+      </div>
+
       {/* Build prompts — straight from the edited Design canvas (source of truth). */}
       {savedCanvas && savedCanvas.pages.length > 0 ? (
         <div className="card overflow-hidden">
