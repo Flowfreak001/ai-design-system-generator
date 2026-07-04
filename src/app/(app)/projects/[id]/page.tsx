@@ -37,6 +37,8 @@ import { NotesSection } from "@/components/projects/notes-section";
 import { AgentRunTimeline } from "@/components/projects/agent-run-timeline";
 import { WorkspaceTabs } from "@/components/projects/workspace-tabs";
 import { ActionDialog } from "@/components/projects/action-dialog";
+import { ExportPanel as PromptExportPanel } from "@/components/editor/export-panel/ExportPanel";
+import type { SitemapCanvas, StyleGuideCanvas } from "@/lib/canvas";
 import { ReferencesEditor } from "@/components/projects/references-editor";
 import { ScreenshotUpload } from "@/components/projects/screenshot-upload";
 import { prisma } from "@/lib/db/client";
@@ -529,7 +531,45 @@ export default async function ProjectWorkspacePage({
     </div>
   );
 
-  const filesPanel = <GeneratedFilesViewer files={docFiles} />;
+  // ── Design-editor-first tab logic: the saved Design canvas is the source of
+  // truth. Parse it once for the Export prompts, and flag generated files as
+  // outdated whenever the canvas was edited after they were produced.
+  const parseFile = <T,>(name: string): T | null => {
+    const raw = project.files.find((f) => f.name === name)?.content;
+    if (!raw) return null;
+    try { return JSON.parse(raw) as T; } catch { return null; }
+  };
+  const savedCanvas = parseFile<SitemapCanvas>("SITEMAP_CANVAS.json");
+  const savedStyle = parseFile<StyleGuideCanvas>("STYLE_GUIDE_CANVAS.json");
+  const canvasFile = project.files.find((f) => f.name === "SITEMAP_CANVAS.json");
+  const designMdFile = project.files.find((f) => f.name === "DESIGN.md");
+  const filesOutdated = Boolean(
+    canvasFile && designMdFile && new Date(canvasFile.updatedAt) > new Date(designMdFile.updatedAt),
+  );
+
+  const outdatedBanner = filesOutdated && (
+    <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-warning-soft px-4 py-3">
+      <p className="text-[13px] font-medium text-warning">
+        ⚠ Generated files are outdated — the Design canvas was edited after they were generated.
+      </p>
+      <ActionDialog
+        projectId={id}
+        trigger="button"
+        title="Regenerate from Design"
+        description="Regenerate the MD design-system files from the current approved canvases."
+        confirmText="Regenerate all design-system files from the latest Design canvas?"
+        runName="MD design-system generation"
+        action={generateMd}
+      />
+    </div>
+  );
+
+  const filesPanel = (
+    <div className="grid gap-4">
+      {outdatedBanner}
+      <GeneratedFilesViewer files={docFiles} />
+    </div>
+  );
 
   const preview = (
     <div className="grid gap-4">
@@ -550,10 +590,42 @@ export default async function ProjectWorkspacePage({
   );
 
   const exportPanel = (
-    <ExportPanel
-      projectId={id}
-      files={project.files.map((f) => ({ id: f.id, name: f.name, type: f.type, content: f.content }))}
-    />
+    <div className="grid gap-4">
+      {/* Build prompts — straight from the edited Design canvas (source of truth). */}
+      {savedCanvas && savedCanvas.pages.length > 0 ? (
+        <div className="card overflow-hidden">
+          <div className="border-b border-line px-4 py-3">
+            <p className="text-[14px] font-semibold text-ink">Build prompts</p>
+            <p className="text-[12px] text-muted">Copy-ready prompts generated from your edited Design canvas — section, page, full site, or platform-specific.</p>
+          </div>
+          <div className="h-[600px]">
+            <PromptExportPanel
+              ctx={{
+                projectName: project.name,
+                businessName: project.clientName ?? undefined,
+                websiteType: b.websiteType,
+                industry: b.industry,
+                goals: b.goals,
+                pages: savedCanvas.pages,
+                style: savedStyle,
+                designApproved: Boolean(b.designApproved),
+              }}
+              outdated={filesOutdated}
+            />
+          </div>
+        </div>
+      ) : (
+        <div className="card px-4 py-6 text-center text-[13px] text-muted">
+          Save your work in the Design Editor to unlock copy-ready build prompts here.
+        </div>
+      )}
+
+      {/* Generated file downloads (ZIP + individual files). */}
+      <ExportPanel
+        projectId={id}
+        files={project.files.map((f) => ({ id: f.id, name: f.name, type: f.type, content: f.content }))}
+      />
+    </div>
   );
 
   const activity = (
