@@ -102,6 +102,28 @@ export function BlueprintRenderer({ blueprint, theme }: { blueprint: SectionBlue
             ))}
           </div>
         );
+      case "splitIntro": {
+        const headingEl = block.heading ? <h2 className="text-[30px] font-bold leading-tight sm:text-[40px]" style={{ fontFamily: t.headingFont, color: r.fg }}>{block.heading}</h2> : null;
+        const rightEl = (
+          <div className="flex flex-col gap-4">
+            {block.paragraph && <p className="text-[15px] leading-relaxed" style={{ color: r.muted }}>{block.paragraph}</p>}
+            {block.buttons?.length ? (
+              <div className="flex flex-wrap gap-2.5">
+                {block.buttons.map((btn, j) => (
+                  <span key={j} className="rounded-lg px-5 py-2.5 text-[13px] font-medium" style={btn.variant === "secondary" ? { border: `1px solid ${accent}`, color: accent } : { background: accent, color: "#fff" }}>{btn.label}</span>
+                ))}
+              </div>
+            ) : null}
+          </div>
+        );
+        return (
+          <div key={i} className="grid w-full max-w-6xl items-start gap-8 text-left md:grid-cols-2">
+            {block.headingSide === "right" ? <>{rightEl}{headingEl}</> : <>{headingEl}{rightEl}</>}
+          </div>
+        );
+      }
+      case "spacer":
+        return <div key={i} aria-hidden="true" style={{ height: block.size === "large" ? 72 : block.size === "small" ? 24 : 44 }} />;
       default:
         return null;
     }

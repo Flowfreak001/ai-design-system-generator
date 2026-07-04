@@ -85,8 +85,20 @@ export function buildBlueprintFromPattern(pattern: SectionPattern, content: Cont
 
   if (isGrid || type === "testimonials" || type === "pricing" || type === "custom") {
     const n = items.length || cardCount(pattern);
+    // Media cards (image on top, text below) when the reference shows imagery.
+    const mediaCards = hasImage || pattern.imageTreatment.length > 0;
     const cards = (items.length ? items : Array.from({ length: n }, (_, i) => ({ title: `Card ${i + 1}`, text: "A short supporting line describing this card." })))
-      .map((it) => ({ title: it.title ?? "", body: it.text, icon: true }));
+      .map((it) => ({ title: it.title ?? "", body: it.text, icon: !mediaCards, image: mediaCards }));
+    // A split intro above the cards when the reference reads that way
+    // (heading one side, paragraph/CTA the other) — preserves composition.
+    const splitIntro = has(pattern, /split|two.?col|side.?by.?side|intro|hero/) && Boolean(content.title || content.description);
+    if (splitIntro) {
+      return { ...base, align: "left", blocks: [
+        { type: "splitIntro", heading: content.title, paragraph: content.description, buttons: buttons[0]?.type === "buttons" ? buttons[0].items : undefined },
+        { type: "spacer", size: "large" },
+        { type: "cardGrid", columns: n, cards },
+      ] };
+    }
     return { ...base, align: "center", blocks: [...head, { type: "cardGrid", columns: n, cards }, ...buttons] };
   }
 
@@ -148,6 +160,16 @@ export function normalizeBlueprint(raw: unknown): SectionBlueprint | null {
         if (columns.length) blocks.push({ type: "linkColumns", columns });
         break;
       }
+      case "splitIntro": {
+        const heading = S(rb.heading, 120);
+        const paragraph = S(rb.paragraph, 400);
+        const btns = A<Record<string, unknown>>(rb.buttons).map((x) => ({ label: S(x.label, 40), variant: x.variant === "secondary" ? "secondary" as const : "primary" as const })).filter((x) => x.label).slice(0, 3);
+        if (heading || paragraph) blocks.push({ type: "splitIntro", heading, paragraph, buttons: btns, headingSide: rb.headingSide === "right" ? "right" : "left" });
+        break;
+      }
+      case "spacer":
+        blocks.push({ type: "spacer", size: rb.size === "small" ? "small" : rb.size === "large" ? "large" : "medium" });
+        break;
     }
   }
   if (!blocks.length) return null;

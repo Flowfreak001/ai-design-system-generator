@@ -278,7 +278,12 @@ export type BlueprintBlock =
   | { type: "stats"; items: { value: string; label: string }[] }
   | { type: "logos"; count?: number }
   | { type: "accordion"; items: { question: string; answer?: string }[] }
-  | { type: "linkColumns"; columns: { heading: string; links: string[] }[] };
+  | { type: "linkColumns"; columns: { heading: string; links: string[] }[] }
+  // Composition primitives — capture WHERE things sit, not just what exists.
+  /** Two-column intro: a heading on one side, paragraph + buttons on the other. */
+  | { type: "splitIntro"; heading?: string; paragraph?: string; buttons?: { label: string; variant?: "primary" | "secondary" }[]; headingSide?: "left" | "right" }
+  /** Deliberate vertical whitespace between areas. */
+  | { type: "spacer"; size?: "small" | "medium" | "large" };
 
 export interface SectionBlueprint {
   /** Background colour direction (hex) from the reference; grey placeholders for media. */

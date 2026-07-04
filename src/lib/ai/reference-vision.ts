@@ -127,10 +127,14 @@ export async function analyzeSectionReferenceImage(input: {
     ' {type:"buttons",items:[{label,variant:"primary"|"secondary"}]}, {type:"chips",items:[string]},' +
     ' {type:"cardGrid",columns:<actual number of cards>,cards:[{title,body,icon:true|image:true}]},' +
     ' {type:"media",ratio,label}, {type:"stats",items:[{value,label}]}, {type:"logos",count},' +
-    ' {type:"accordion",items:[{question,answer}]}, {type:"linkColumns",columns:[{heading,links:[string]}]} }.' +
-    " Use ORIGINAL placeholder copy for every text/slot (never transcribe the reference's real words, brand, or logo)." +
-    " Set cardGrid.columns to the ACTUAL number of cards you see. For any image/photo use a media/image placeholder — never describe reusing the reference's images." +
-    " Match the block ORDER, counts, split-vs-grid, and colours to what the screenshot actually shows so the recreated section closely resembles the reference's STRUCTURE.";
+    ' {type:"accordion",items:[{question,answer}]}, {type:"linkColumns",columns:[{heading,links:[string]}]},' +
+    // Composition primitives — capture WHERE elements sit, not just that they exist.
+    ' {type:"splitIntro",heading,paragraph,buttons:[{label,variant}],headingSide:"left"|"right"} (use this when a large heading sits on ONE side and the paragraph/CTA on the OTHER side — e.g. heading top-left, paragraph+button top-right),' +
+    ' {type:"spacer",size:"small"|"medium"|"large"} (use for deliberate large negative space between areas) }.' +
+    " ANALYSE THE VISUAL COMPOSITION LIKE A UI DESIGNER, not just the content: where is the heading, where is the paragraph/CTA, how many columns, are cards image-on-top with text below, how much whitespace, is the background dark/black." +
+    " Reproduce that composition with the blocks IN ORDER. If the heading and paragraph are on opposite sides, use splitIntro (NOT separate centred heading+paragraph). If large image cards sit in a row, use cardGrid with image:true (image on top, text below) and columns = the real count. Put a spacer where there is big vertical whitespace." +
+    " Set background to the ACTUAL section background hex INCLUDING dark/black backgrounds. Do NOT flatten a rich composition into a generic centred hero or a plain icon grid." +
+    " Use ORIGINAL placeholder copy for every text/slot (never transcribe the reference's real words, brand, or logo); for any image use a placeholder — never reuse the reference's images.";
 
   const messages: ChatMessage[] = [
     { role: "system", content: system },
