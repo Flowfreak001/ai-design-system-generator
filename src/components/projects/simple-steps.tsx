@@ -1,21 +1,15 @@
 "use client";
 
-// Simplified project journey: the 8 internal pipeline stages grouped into the
-// 3 steps a normal user actually thinks in — Setup → Design → Export. The full
-// gated pipeline (with all its actions) stays available under "All steps",
-// so nothing is lost for power users; this is presentation only.
+// Project Overview hero. With a full Design Editor doing sitemap → wireframe →
+// style → design in one place, the user only needs ONE clear action: open the
+// editor (and later, export). Everything else (evidence, brand, per-stage
+// approvals) runs behind the scenes and stays available under "All steps".
 
 import { useState, type ReactNode } from "react";
-import { LinkButton, Button } from "@/components/ui/button";
+import { LinkButton } from "@/components/ui/button";
 import type { ComputedStage, StageId } from "@/lib/pipeline";
 
-type PhaseId = "setup" | "design" | "export";
-
-const PHASES: { id: PhaseId; label: string; description: string; stageIds: StageId[] }[] = [
-  { id: "setup", label: "Setup", description: "Brief, reference evidence and brand foundation.", stageIds: ["evidence", "brand"] },
-  { id: "design", label: "Design", description: "Pages, sections and styling — all in one editor.", stageIds: ["sitemap", "wireframe", "style", "design"] },
-  { id: "export", label: "Export", description: "Generated files and build-ready prompts.", stageIds: ["files", "export"] },
-];
+const DESIGN_STAGES: StageId[] = ["sitemap", "wireframe", "style", "design"];
 
 export function SimpleSteps({ stages, editorHref, children }: {
   stages: ComputedStage[];
@@ -23,59 +17,66 @@ export function SimpleSteps({ stages, editorHref, children }: {
   children: ReactNode; // the full detailed pipeline (advanced view)
 }) {
   const [showAll, setShowAll] = useState(false);
-
   const byId = new Map(stages.map((s) => [s.id, s]));
-  const phases = PHASES.map((p) => {
-    const own = p.stageIds.map((id) => byId.get(id)).filter(Boolean) as ComputedStage[];
-    const complete = own.every((s) => s.complete);
-    const doneCount = own.filter((s) => s.complete).length;
-    return { ...p, complete, doneCount, total: own.length };
-  });
-  const activeIdx = phases.findIndex((p) => !p.complete);
-  const setupDone = phases[0].complete;
+  const isDone = (id: StageId) => byId.get(id)?.complete ?? false;
+
+  const setupReady = isDone("evidence") && isDone("brand");
+  const designReady = DESIGN_STAGES.every(isDone);
+  const exported = isDone("export");
+
+  const chips: { label: string; done: boolean }[] = [
+    { label: "Setup", done: setupReady },
+    { label: "Design", done: designReady },
+    { label: "Export", done: isDone("files") || exported },
+  ];
+
+  const headline = !designReady
+    ? "Let's build your website design"
+    : "Your website design is ready";
+  const sub = !designReady
+    ? "Open the editor to generate your pages, then edit every section, text, image and style in one place."
+    : "Keep editing in the design editor, or grab your build-ready files and prompts.";
 
   return (
     <div className="grid gap-4">
-      {/* The 3-step journey */}
-      <div className="grid gap-3 sm:grid-cols-3">
-        {phases.map((p, i) => {
-          const state = p.complete ? "done" : i === activeIdx ? "active" : "locked";
-          return (
-            <div key={p.id} className={`card flex flex-col gap-2.5 p-5 ${state === "active" ? "ring-1 ring-accent" : ""} ${state === "locked" ? "opacity-60" : ""}`}>
-              <div className="flex items-center justify-between">
-                <span className={`grid h-9 w-9 place-items-center rounded-full text-[14px] font-bold ${state === "done" ? "bg-success text-white" : state === "active" ? "bg-accent text-white" : "bg-panel text-muted"}`}>
-                  {state === "done" ? (
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 12 4.5 4.5L19 7" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                  ) : i + 1}
+      {/* Single hero — the one thing to do next. */}
+      <div className="card relative overflow-hidden p-6 sm:p-8">
+        <div className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-accent-soft/50 blur-2xl" aria-hidden="true" />
+        <div className="relative max-w-xl">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-soft px-2.5 py-1 text-[11px] font-semibold text-accent">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3v18M3 12h18M6 6l12 12M18 6 6 18" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" opacity=".5" /></svg>
+            Design workspace
+          </span>
+          <h2 className="mt-3 text-[24px] font-semibold leading-tight tracking-[-0.02em] text-ink">{headline}</h2>
+          <p className="mt-2 text-[14px] leading-relaxed text-muted">{sub}</p>
+
+          <div className="mt-5 flex flex-wrap items-center gap-2.5">
+            <LinkButton href={editorHref} size="lg">✦ Open Design Editor</LinkButton>
+            {designReady && (
+              <a href="#export" className="rounded-xl border border-line bg-surface px-4 py-2.5 text-[13.5px] font-semibold text-body transition-colors hover:border-line-strong hover:text-ink">
+                Get build files
+              </a>
+            )}
+          </div>
+
+          {/* Slim, informational status — not steps to click through. */}
+          <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-[12px]">
+            {chips.map((c, i) => (
+              <span key={c.label} className="flex items-center gap-1.5">
+                {i > 0 && <span className="text-faint">·</span>}
+                <span className={`grid h-4 w-4 place-items-center rounded-full ${c.done ? "bg-success text-white" : "bg-panel text-faint"}`}>
+                  {c.done ? (
+                    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="m5 12 4.5 4.5L19 7" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                  ) : <span className="h-1 w-1 rounded-full bg-faint" />}
                 </span>
-                <span className={`rounded-full px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide ${state === "done" ? "bg-success-soft text-success" : state === "active" ? "bg-accent-soft text-accent" : "bg-panel text-faint"}`}>
-                  {state === "done" ? "done" : state === "active" ? "current" : "next"}
-                </span>
-              </div>
-              <div>
-                <h3 className="text-[16px] font-semibold text-ink">{p.label}</h3>
-                <p className="mt-0.5 text-[12.5px] leading-relaxed text-muted">{p.description}</p>
-              </div>
-              {!p.complete && p.doneCount > 0 && (
-                <p className="text-[11px] font-medium text-faint">{p.doneCount} of {p.total} parts done</p>
-              )}
-              <div className="mt-auto pt-1">
-                {p.id === "design" ? (
-                  <LinkButton href={editorHref} size="sm" className={`w-full ${state === "active" ? "" : ""}`}>
-                    {p.complete ? "Open Design Editor" : setupDone ? "Continue designing" : "Open Design Editor"}
-                  </LinkButton>
-                ) : state === "active" ? (
-                  <Button size="sm" variant="secondary" className="w-full" onClick={() => setShowAll(true)}>
-                    {p.id === "setup" ? "Continue setup" : "Get your files"}
-                  </Button>
-                ) : null}
-              </div>
-            </div>
-          );
-        })}
+                <span className={c.done ? "font-medium text-body" : "text-faint"}>{c.label}</span>
+              </span>
+            ))}
+          </div>
+        </div>
       </div>
 
-      {/* Full pipeline, tucked away — all detailed actions live here unchanged. */}
+      {/* Full pipeline, tucked away — every detailed action lives here unchanged. */}
       <div>
         <button
           type="button"
@@ -83,8 +84,8 @@ export function SimpleSteps({ stages, editorHref, children }: {
           className="flex w-full items-center justify-between rounded-xl border border-line bg-surface px-4 py-3 text-left transition-colors hover:border-line-strong"
         >
           <span>
-            <span className="block text-[13.5px] font-semibold text-ink">All steps</span>
-            <span className="block text-[12px] text-muted">The full step-by-step pipeline with every action and detail.</span>
+            <span className="block text-[13.5px] font-semibold text-ink">All steps &amp; details</span>
+            <span className="block text-[12px] text-muted">Evidence, brand, per-stage approvals and generated files — for when you need them.</span>
           </span>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" className={`shrink-0 text-faint transition-transform ${showAll ? "rotate-180" : ""}`}>
             <path d="m6 9 6 6 6-6" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />

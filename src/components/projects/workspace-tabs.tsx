@@ -3,7 +3,7 @@
 // Project workspace tabs — client shell that switches server-rendered panels.
 // Panels are passed as ReactNode so all data loading stays on the server.
 
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 
 export type WorkspacePanel = { id: string; label: string; badge?: string | number; content: ReactNode };
@@ -12,6 +12,25 @@ export function WorkspaceTabs({ panels, initial }: { panels: WorkspacePanel[]; i
   const [active, setActive] = useState(initial ?? panels[0]?.id);
   const reduce = useReducedMotion();
   const current = panels.find((p) => p.id === active) ?? panels[0];
+
+  // Deep-link support: a `#tab` hash (e.g. Overview hero → #export) selects that
+  // tab on load and whenever the hash changes.
+  useEffect(() => {
+    const applyHash = () => {
+      const id = window.location.hash.replace("#", "");
+      if (id && panels.some((p) => p.id === id)) setActive(id);
+    };
+    applyHash();
+    window.addEventListener("hashchange", applyHash);
+    return () => window.removeEventListener("hashchange", applyHash);
+  }, [panels]);
+
+  const select = (id: string) => {
+    setActive(id);
+    if (typeof window !== "undefined" && window.location.hash !== `#${id}`) {
+      history.replaceState(null, "", `#${id}`);
+    }
+  };
 
   return (
     <div>
@@ -27,7 +46,7 @@ export function WorkspaceTabs({ panels, initial }: { panels: WorkspacePanel[]; i
               key={p.id}
               role="tab"
               aria-selected={on}
-              onClick={() => setActive(p.id)}
+              onClick={() => select(p.id)}
               className={`flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm transition-colors duration-200 ${
                 on ? "bg-accent-soft font-medium text-accent" : "text-muted hover:bg-panel hover:text-ink"
               }`}
