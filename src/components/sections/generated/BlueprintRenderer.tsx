@@ -154,15 +154,18 @@ export function BlueprintRenderer({ blueprint, theme }: { blueprint: SectionBlue
     }
   };
 
-  if (blueprint.layout === "split") {
+  // Split needs an actual media column — never invent one. A "split" with no
+  // media block is really a split INTRO (heading one side, copy the other):
+  // render it as a stack (normalizeBlueprint converts those to splitIntro).
+  const mediaBlock = blueprint.blocks.find((x) => x.type === "media");
+  if (blueprint.layout === "split" && mediaBlock) {
     // Intro blocks sit in the text column; structural blocks (card rows,
     // accordions, stats, logos, link columns) render full-width BELOW the split
     // so they are never crammed into the narrow column.
     const introTypes = new Set(["eyebrow", "heading", "subheading", "paragraph", "buttons", "chips"]);
     const intro = blueprint.blocks.filter((x) => introTypes.has(x.type));
     const below = blueprint.blocks.filter((x) => !introTypes.has(x.type) && x.type !== "media" && x.type !== "spacer");
-    const mediaBlock = blueprint.blocks.find((x) => x.type === "media");
-    const media = mediaBlock ? renderBlock(mediaBlock, -1) : <Placeholder label="Visual" ratio="4/5" className="w-full" />;
+    const media = renderBlock(mediaBlock, -1);
     const textCol = <div className="flex flex-col items-start gap-4 text-left">{intro.map(renderBlock)}</div>;
     return (
       <section className="px-6 py-14 sm:px-10 sm:py-16" style={{ background: bg }}>

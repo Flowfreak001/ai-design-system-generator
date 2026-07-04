@@ -28,7 +28,7 @@ export function normalizeDetected(raw: unknown): DetectedPattern | undefined {
   const n = Number(o.cardCount);
   // Generic/content-category names are not layout types — treat as unknown.
   const rawLayout = s(o.layoutType, 40)?.toLowerCase().replace(/\s+/g, "-");
-  const layoutType = rawLayout && !/^(services?|features?|grid|cards?|hero|section)$/.test(rawLayout) ? rawLayout : "custom-generated-layout";
+  const layoutType = rawLayout && !/^(services?|features?|grid|cards?|hero|section|grid-based|card-based|split-layout|multi-column|layout)$/.test(rawLayout) ? rawLayout : "custom-generated-layout";
   return {
     layoutType,
     patternFamily: s(o.patternFamily, 40) ?? "unknown",
@@ -357,12 +357,32 @@ export function normalizeBlueprint(raw: unknown): SectionBlueprint | null {
     }
   }
   if (!blocks.length) return null;
+
+  // A "split" layout with NO media block is really a split INTRO (heading on
+  // one side, paragraph/CTA on the other). Convert the leading text blocks
+  // into a splitIntro and render as a stack — never invent a phantom visual.
+  let layout: "split" | "stack" = o.layout === "split" ? "split" : "stack";
+  if (layout === "split" && !blocks.some((b) => b.type === "media")) {
+    const heading = blocks.find((b): b is Extract<BlueprintBlock, { type: "heading" }> => b.type === "heading");
+    const paragraph = blocks.find((b): b is Extract<BlueprintBlock, { type: "paragraph" }> => b.type === "paragraph");
+    const btns = blocks.find((b): b is Extract<BlueprintBlock, { type: "buttons" }> => b.type === "buttons");
+    if (heading && (paragraph || btns)) {
+      const consumed = new Set<BlueprintBlock>([heading, ...(paragraph ? [paragraph] : []), ...(btns ? [btns] : [])]);
+      const before = blocks.filter((b) => !consumed.has(b) && (b.type === "eyebrow" || b.type === "subheading"));
+      const rest = blocks.filter((b) => !consumed.has(b) && b.type !== "eyebrow" && b.type !== "subheading");
+      const intro: BlueprintBlock = { type: "splitIntro", heading: heading.text, paragraph: paragraph?.text, buttons: btns?.items, headingSide: o.mediaSide === "left" ? "right" : "left" };
+      blocks.length = 0;
+      blocks.push(...before, intro, { type: "spacer", size: "large" }, ...rest);
+    }
+    layout = "stack";
+  }
+
   return {
     background: hex(o.background),
     accent: hex(o.accent),
     textColor: hex(o.textColor),
     align: o.align === "left" ? "left" : "center",
-    layout: o.layout === "split" ? "split" : "stack",
+    layout,
     mediaSide: o.mediaSide === "left" ? "left" : "right",
     blocks,
   };

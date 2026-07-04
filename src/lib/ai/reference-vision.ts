@@ -138,6 +138,8 @@ export async function analyzeSectionReferenceImage(input: {
     ' {type:"spacer",size:"small"|"medium"|"large"} (use for deliberate large negative space between areas),' +
     ' {type:"form",heading,fields:[string],submitLabel} (use when the reference shows a contact/booking/newsletter/lead FORM with input fields),' +
     ' {type:"pricing",plans:[{name,price,features:[string],featured}]} (use when the reference shows PRICING PLANS/tiers) }.' +
+    " Layout rules: layout:'split' ONLY when ONE large media/visual sits BESIDE the text column — and then you MUST include a media block. A heading on one side with the paragraph/CTA on the OTHER side at the TOP is a splitIntro block (hasSplitIntro:true) with layout:'stack', NOT layout:'split'." +
+    " Large image tiles in a row with captions/text below them → cardGrid with image:true on each card AND hasMedia:true (these are media cards, not icon cards)." +
     " DETECT THE ACTUAL UI PATTERN FIRST, then choose blocks to match it — do not flatten creative layouts into a generic card grid:" +
     " if you see expandable rows with +/- icons or dividers → use an accordion block (NOT cardGrid); if you see input fields → use a form block; if you see price tiers → use a pricing block; if you see testimonials → cardGrid of quotes; if a big media/mockup sits beside text → splitIntro or media." +
     " Do NOT classify as 'services' just because there are multiple items, and do NOT classify as a plain grid when it is really an accordion, form, pricing, or split composition." +

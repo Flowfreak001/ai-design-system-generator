@@ -5,7 +5,7 @@
 // placeholder assets + AI image prompts — never a copy).
 
 import { getVariantMetas, resolveVariantMeta } from "@/components/sections/catalog";
-import { normalizeBlueprint, enforcePattern, buildBlueprintFromPattern, validateBlueprintAgainstDetected } from "./blueprint";
+import { normalizeBlueprint, normalizeDetected, enforcePattern, buildBlueprintFromPattern, validateBlueprintAgainstDetected } from "./blueprint";
 import type { SectionType } from "@/components/sections/types";
 import type { ReferenceVisionResult } from "@/lib/ai/reference-vision";
 import {
@@ -284,6 +284,22 @@ export function generateSectionFromReferencePattern(
   );
   const warnings = validateBlueprintAgainstDetected(blueprint, pattern.detected);
 
+  // Keep the editable content in lockstep with what the blueprint renders —
+  // items come from the blueprint's cards/accordion rows (not generic
+  // defaults), so the drawer edits exactly what the user sees.
+  const preview = buildPreviewContent(pattern, g.cta, ctx) ?? {};
+  for (const blk of blueprint.blocks) {
+    if (blk.type === "cardGrid") { preview.items = blk.cards.map((c) => ({ title: c.title, text: c.body })); break; }
+    if (blk.type === "accordion") { preview.items = blk.items.map((it) => ({ title: it.question, text: it.answer })); break; }
+    if (blk.type === "pricing") { preview.items = blk.plans.map((p) => ({ title: p.name, text: (p.features ?? []).join(", ") })); break; }
+  }
+  for (const blk of blueprint.blocks) {
+    if (blk.type === "heading") preview.title = blk.text;
+    else if (blk.type === "eyebrow") preview.eyebrow = blk.text;
+    else if (blk.type === "paragraph") preview.description = blk.text;
+    else if (blk.type === "splitIntro") { if (blk.heading) preview.title = blk.heading; if (blk.paragraph) preview.description = blk.paragraph; }
+  }
+
   return {
     id: uid("sec"),
     type,
@@ -297,7 +313,9 @@ export function generateSectionFromReferencePattern(
     componentName,
     inspiredByComponent: inspiredBy,
     blueprint,
-    detected: pattern.detected,
+    // Re-normalize so stored detections (incl. generic layoutType names from
+    // older analyses) get the same safe defaults as fresh Vision output.
+    detected: pattern.detected ? normalizeDetected(pattern.detected) : undefined,
     validation: { status: warnings.length ? "warning" : "passed", warnings },
     needsNewComponent,
     content: {
@@ -308,7 +326,7 @@ export function generateSectionFromReferencePattern(
       ctaSecondary: "Secondary CTA",
       slots: pattern.contentSlots,
     },
-    previewContent: buildPreviewContent(pattern, g.cta, ctx),
+    previewContent: preview,
     assetPlacement: /left/i.test(pattern.layoutPattern) ? "left" : /right/i.test(pattern.layoutPattern) ? "right" : "none",
     assets: roles.map((role) => ({
       source: "placeholder" as const,
