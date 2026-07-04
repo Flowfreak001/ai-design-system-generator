@@ -3,7 +3,9 @@
 // back cleanly. Never import this from a client component — it reads the key
 // from server env and must not reach the browser.
 
-export const VISION_MODEL = "gpt-4o-mini"; // vision-capable, low cost
+// Full gpt-4o for reference analysis: recreating a section's visual composition
+// needs strong vision + layout reasoning that the mini model can't provide.
+export const VISION_MODEL = "gpt-4o";
 
 export type ChatMessage = {
   role: "system" | "user" | "assistant";

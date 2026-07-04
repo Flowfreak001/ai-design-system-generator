@@ -163,7 +163,9 @@ export async function analyzeSectionReferenceImage(input: {
   ];
 
   try {
-    const raw = await client.chatJSON(messages, { model: VISION_MODEL, maxTokens: 2400 });
+    // High token ceiling so the full analysis + blueprint + detected object
+    // never truncates (a cut-off response fails JSON.parse → silent fallback).
+    const raw = await client.chatJSON(messages, { model: VISION_MODEL, maxTokens: 6000 });
     const p = JSON.parse(raw) as Record<string, unknown>;
     const conf = String(p.confidence ?? "medium").toLowerCase();
     return {
