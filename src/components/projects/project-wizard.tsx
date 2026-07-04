@@ -149,6 +149,22 @@ function Area({
   );
 }
 
+/** Upload-cloud line icon for the brand-evidence dropzones. */
+function UploadCloudIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" aria-hidden="true" className={className}>
+      <path
+        d="M7 18a4 4 0 0 1-.5-7.97 5.5 5.5 0 0 1 10.7-1.2A4.5 4.5 0 0 1 17 18"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path d="M12 12v6m0-6-2.2 2.2M12 12l2.2 2.2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 /** Large single-select card (website type). */
 function OptionCard({
   label,
@@ -311,6 +327,7 @@ export function ProjectWizard({
   const [logo, setLogo] = useState<string>("");
   const [shots, setShots] = useState<Shot[]>([]);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [dragKind, setDragKind] = useState<"logo" | "shot" | null>(null);
 
   const onLogo = async (file?: File) => {
     if (!file) return;
@@ -675,14 +692,35 @@ export function ProjectWizard({
                     <div className="flex items-center gap-3 rounded-xl border border-line bg-surface p-3">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={logo} alt="Logo preview" className="h-12 w-12 rounded-lg object-contain" />
-                      <button type="button" onClick={() => setLogo("")} className="text-[12px] font-medium text-danger hover:underline">
-                        Remove
-                      </button>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[12.5px] font-medium text-ink">Logo uploaded</p>
+                        <button type="button" onClick={() => setLogo("")} className="text-[12px] font-medium text-danger hover:underline">
+                          Remove
+                        </button>
+                      </div>
                     </div>
                   ) : (
-                    <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-line bg-panel/50 px-4 py-5 text-center transition-colors hover:border-line-strong">
-                      <span className="text-[13px] font-medium text-body">Upload logo</span>
-                      <span className="mt-0.5 text-[12px] text-faint">PNG, SVG, or JPG</span>
+                    <label
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        setDragKind("logo");
+                      }}
+                      onDragLeave={() => setDragKind(null)}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setDragKind(null);
+                        onLogo(e.dataTransfer.files?.[0]);
+                      }}
+                      className={`flex min-h-[132px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-6 text-center transition-colors ${
+                        dragKind === "logo" ? "border-accent bg-accent-soft/40" : "border-line-strong hover:border-accent/60 hover:bg-panel/50"
+                      }`}
+                    >
+                      <UploadCloudIcon className="text-faint" />
+                      <span className="mt-2.5 text-[13.5px] font-semibold text-ink">Choose a file or drag &amp; drop</span>
+                      <span className="mt-0.5 text-[12px] text-muted">PNG, SVG, or JPG</span>
+                      <span className="mt-3 inline-flex items-center rounded-lg border border-line-strong bg-surface px-3.5 py-1.5 text-[12.5px] font-medium text-ink transition-colors hover:border-accent hover:text-accent">
+                        Browse file
+                      </span>
                       <input type="file" accept="image/*" className="hidden" onChange={(e) => onLogo(e.target.files?.[0])} />
                     </label>
                   )}
@@ -691,13 +729,31 @@ export function ProjectWizard({
                 {/* Reference screenshots */}
                 <div>
                   <p className="mb-1.5 text-sm font-medium">Reference screenshots <span className="text-faint text-xs font-normal">optional</span></p>
-                  <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-line bg-panel/50 px-4 py-5 text-center transition-colors hover:border-line-strong">
-                    <span className="text-[13px] font-medium text-body">Upload screenshots</span>
-                    <span className="mt-0.5 text-[12px] text-faint">Hero, cards, forms, pricing… (up to 6)</span>
+                  <label
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setDragKind("shot");
+                    }}
+                    onDragLeave={() => setDragKind(null)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setDragKind(null);
+                      onShots(e.dataTransfer.files);
+                    }}
+                    className={`flex min-h-[132px] cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-4 py-6 text-center transition-colors ${
+                      dragKind === "shot" ? "border-accent bg-accent-soft/40" : "border-line-strong hover:border-accent/60 hover:bg-panel/50"
+                    }`}
+                  >
+                    <UploadCloudIcon className="text-faint" />
+                    <span className="mt-2.5 text-[13.5px] font-semibold text-ink">Choose files or drag &amp; drop</span>
+                    <span className="mt-0.5 text-[12px] text-muted">PNG or JPG · hero, cards, forms… up to 6</span>
+                    <span className="mt-3 inline-flex items-center rounded-lg border border-line-strong bg-surface px-3.5 py-1.5 text-[12.5px] font-medium text-ink transition-colors hover:border-accent hover:text-accent">
+                      Browse files
+                    </span>
                     <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => onShots(e.target.files)} />
                   </label>
                   {shots.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-2">
+                    <div className="mt-2.5 flex flex-wrap gap-2">
                       {shots.map((s) => (
                         <div key={s.id} className="relative">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
