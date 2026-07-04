@@ -41,6 +41,13 @@ export type CanvasSection = {
   motion?: import("@/lib/section-editor/types").SectionMotion;
   /** Media assets (grey placeholder by default; uploads/alt/AI prompts). */
   assets?: import("@/lib/section-editor/types").SectionAsset[];
+  /** Reference-inspired generated blueprint — when present the canvas renders
+   *  this via GeneratedSection (composed from the analysis) instead of a library
+   *  component. The section stays editable (content/items) like any other. */
+  generated?: {
+    spec: import("@/lib/references/types").GeneratedSectionSpec;
+    pattern: import("@/lib/references/types").SectionPattern;
+  };
 };
 
 /** Sitemap category tabs for the Visual Sitemap board. */

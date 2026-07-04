@@ -8,6 +8,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { renderSectionByKind } from "@/components/sections/render-section";
+import { GeneratedSection } from "@/components/sections/generated/GeneratedSection";
 import { createSectionTheme, WIREFRAME_SECTION_THEME } from "@/components/sections/section-theme";
 import type { SectionTheme, SectionContentItem } from "@/components/sections/types";
 import { sectionKind } from "@/lib/sections";
@@ -266,7 +267,25 @@ function PageFrame({
                       <button type="button" onClick={(e) => { e.stopPropagation(); onRemoveSection(page.id, s.id); }} title="Delete" className="grid h-8 w-8 place-items-center rounded-lg text-[16px] text-body hover:bg-danger-soft hover:text-danger">✕</button>
                     </span>
                   </div>
-                  {renderSectionByKind(sectionKind(s.name), s.variant, {
+                  {s.generated ? (
+                    <GeneratedSection
+                      pattern={s.generated.pattern}
+                      theme={mode === "wireframe" ? WIREFRAME_SECTION_THEME : theme}
+                      spec={{
+                        ...s.generated.spec,
+                        // Merge Design-Canvas content edits over the generated defaults.
+                        previewContent: {
+                          ...s.generated.spec.previewContent,
+                          ...(s.content?.eyebrow !== undefined ? { eyebrow: s.content.eyebrow } : {}),
+                          ...(s.content?.title !== undefined ? { title: s.content.title } : {}),
+                          ...(s.content?.description !== undefined ? { description: s.content.description } : {}),
+                          ...(s.content?.primaryButtonLabel !== undefined ? { primaryButtonLabel: s.content.primaryButtonLabel } : {}),
+                          ...(s.content?.secondaryButtonLabel !== undefined ? { secondaryButtonLabel: s.content.secondaryButtonLabel } : {}),
+                          ...(s.content?.items?.length ? { items: s.content.items.map((it) => ({ title: it.title, text: it.text })) } : {}),
+                        },
+                      }}
+                    />
+                  ) : renderSectionByKind(sectionKind(s.name), s.variant, {
                     name: s.name,
                     note: s.note,
                     theme: mode === "wireframe" ? WIREFRAME_SECTION_THEME : theme,

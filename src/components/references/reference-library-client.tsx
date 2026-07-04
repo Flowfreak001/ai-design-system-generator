@@ -9,6 +9,8 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { PageContainer } from "@/components/layout/page-container";
 import { analyzeReferenceAction, saveReferencePatternAction, deleteReferencePatternAction } from "@/app/(app)/projects/[id]/references/actions";
+import { addGeneratedSectionToPageAction } from "@/app/(app)/projects/[id]/editor/actions";
+import { useRouter } from "next/navigation";
 import { generateSectionFromReferencePattern, filterPatterns } from "@/lib/references/pattern";
 import { GeneratedSection } from "@/components/sections/generated/GeneratedSection";
 import {
@@ -34,8 +36,24 @@ async function downscale(file: File, max: number): Promise<string> {
   });
 }
 
-export function ReferenceLibraryClient({ projectId, projectName, initialPatterns }: { projectId: string; projectName: string; initialPatterns: SectionPattern[] }) {
+export function ReferenceLibraryClient({ projectId, projectName, initialPatterns, pages = [] }: { projectId: string; projectName: string; initialPatterns: SectionPattern[]; pages?: { id: string; name: string }[] }) {
+  const router = useRouter();
   const [patterns, setPatterns] = useState<SectionPattern[]>(initialPatterns);
+  const [addPageId, setAddPageId] = useState<string>(pages[0]?.id ?? "");
+  const [adding, setAdding] = useState(false);
+  const [addedMsg, setAddedMsg] = useState<string | null>(null);
+
+  const addToPage = () => {
+    if (!created) return;
+    setAdding(true); setAddedMsg(null);
+    start(async () => {
+      const res = await addGeneratedSectionToPageAction(projectId, addPageId, created.spec, created.pattern);
+      setAdding(false);
+      if (res.error) { setAddedMsg(res.error); return; }
+      setAddedMsg("Added to the page — opening the Design Editor…");
+      setTimeout(() => router.push(`/projects/${projectId}/editor`), 700);
+    });
+  };
   const [full, setFull] = useState<string>("");
   const [thumb, setThumb] = useState<string>("");
   const [sectionType, setSectionType] = useState<ReferenceSectionType>("hero");
@@ -352,11 +370,18 @@ export function ReferenceLibraryClient({ projectId, projectName, initialPatterns
 
             {/* Actions. Add-to-page / save-to-library persistence is the next phase. */}
             <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line px-4 py-3">
-              <span className="mr-auto text-[11px] text-faint">source: reference-inspired · editable after adding</span>
+              <span className="mr-auto text-[11px] text-faint">{addedMsg ?? "source: reference-inspired · live & editable once added"}</span>
               <Button size="sm" variant="secondary" onClick={() => generate(created.pattern)}>Regenerate</Button>
-              <Link href={`/projects/${projectId}/editor`}>
-                <Button size="sm">Open Design Editor</Button>
-              </Link>
+              {pages.length > 0 ? (
+                <>
+                  <select value={addPageId} onChange={(e) => setAddPageId(e.target.value)} className="rounded-lg border border-line bg-surface px-2 py-1.5 text-[12.5px]">
+                    {pages.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                  </select>
+                  <Button size="sm" onClick={addToPage} disabled={adding || busy}>{adding ? "Adding…" : "Add to page →"}</Button>
+                </>
+              ) : (
+                <Link href={`/projects/${projectId}/editor`}><Button size="sm">Open Design Editor</Button></Link>
+              )}
             </div>
           </div>
         </div>
