@@ -22,10 +22,10 @@ export default async function LivePreviewPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; frame?: string }>;
 }) {
   const { id } = await params;
-  const { page } = await searchParams;
+  const { page, frame } = await searchParams;
   const user = await requireUser();
   const project = user.agencyId ? await getProject(id, user.agencyId) : null;
   if (!project) notFound();
@@ -45,5 +45,5 @@ export default async function LivePreviewPage({
     parse<StyleGuideCanvas>(STYLE_GUIDE_CANVAS_FILE) ??
     deriveStyleGuideCanvas(tokens, { primaryColor: b.primaryColor, secondaryColor: b.secondaryColor });
 
-  return <PagePreview projectId={id} pages={sitemap.pages} style={style} initialPageId={page} />;
+  return <PagePreview projectId={id} pages={sitemap.pages} style={style} initialPageId={page} framed={frame === "1"} />;
 }
