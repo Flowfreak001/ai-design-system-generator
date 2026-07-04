@@ -517,7 +517,8 @@ function PatternDetail({ p }: { p: SectionPattern }) {
   ];
   return (
     <div className="mt-3 grid gap-2 text-[12.5px]">
-      <p className="text-[12px] text-muted">Match: {p.matchedComponent ? <span className="font-medium text-success">{p.matchedComponent.componentName} ({p.matchedComponent.variantId})</span> : <span className="font-medium text-warning">needs new component — {p.customSpec?.suggestedComponentName}</span>}</p>
+      <p className="text-[12px] text-body">Creates a <span className="font-medium text-ink">new generated section</span> from this reference — rendered by GeneratedSectionRenderer, not a reused component.</p>
+      {p.matchedComponent && <p className="text-[11px] text-faint">Similar existing pattern (reference only): {p.matchedComponent.componentName}</p>}
       {rows.map(([k, v]) => (
         <div key={k} className="grid grid-cols-[110px_1fr] gap-2">
           <span className="text-[11px] font-medium uppercase tracking-wide text-faint">{k}</span>

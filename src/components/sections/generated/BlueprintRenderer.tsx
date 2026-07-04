@@ -124,6 +124,31 @@ export function BlueprintRenderer({ blueprint, theme }: { blueprint: SectionBlue
       }
       case "spacer":
         return <div key={i} aria-hidden="true" style={{ height: block.size === "large" ? 72 : block.size === "small" ? 24 : 44 }} />;
+      case "form":
+        return (
+          <div key={i} className="w-full max-w-md rounded-2xl p-6 text-left" style={{ background: r.card, border: `1px solid ${r.cardBorder}`, boxShadow: t.shadow }}>
+            {block.heading && <p className="mb-3 text-[16px] font-semibold" style={{ color: r.fg }}>{block.heading}</p>}
+            <div className="grid gap-2.5">
+              {(block.fields ?? ["Name", "Email", "Message"]).map((f, j) => (
+                <div key={j} className="rounded-lg px-3 py-2.5 text-[12.5px]" style={{ background: t.backgroundColor, border: `1px solid ${r.cardBorder}`, color: r.muted }}>{f}</div>
+              ))}
+              <span className="mt-1 rounded-lg py-2.5 text-center text-[13px] font-medium" style={{ background: accent, color: "#fff" }}>{block.submitLabel ?? "Submit"}</span>
+            </div>
+          </div>
+        );
+      case "pricing":
+        return (
+          <div key={i} className="grid w-full max-w-5xl gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {block.plans.map((p, j) => (
+              <div key={j} className="flex flex-col gap-3 rounded-2xl p-6 text-left" style={{ background: r.card, border: `${p.featured ? 2 : 1}px solid ${p.featured ? accent : r.cardBorder}`, boxShadow: t.shadow }}>
+                <p className="text-[15px] font-semibold" style={{ color: r.fg }}>{p.name}</p>
+                {p.price && <p className="text-[26px] font-bold" style={{ color: r.fg }}>{p.price}</p>}
+                <ul className="grid gap-1.5 text-[13px]" style={{ color: r.muted }}>{(p.features ?? []).map((f, k) => <li key={k}>✓ {f}</li>)}</ul>
+                <span className="mt-2 rounded-lg py-2 text-center text-[13px] font-medium" style={p.featured ? { background: accent, color: "#fff" } : { border: `1px solid ${accent}`, color: accent }}>Choose</span>
+              </div>
+            ))}
+          </div>
+        );
       default:
         return null;
     }

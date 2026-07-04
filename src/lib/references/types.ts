@@ -283,7 +283,11 @@ export type BlueprintBlock =
   /** Two-column intro: a heading on one side, paragraph + buttons on the other. */
   | { type: "splitIntro"; heading?: string; paragraph?: string; buttons?: { label: string; variant?: "primary" | "secondary" }[]; headingSide?: "left" | "right" }
   /** Deliberate vertical whitespace between areas. */
-  | { type: "spacer"; size?: "small" | "medium" | "large" };
+  | { type: "spacer"; size?: "small" | "medium" | "large" }
+  /** A lead/contact/booking/newsletter form (grey inputs + submit). */
+  | { type: "form"; heading?: string; fields?: string[]; submitLabel?: string }
+  /** Pricing plan cards. */
+  | { type: "pricing"; plans: { name: string; price?: string; features?: string[]; featured?: boolean }[] };
 
 export interface SectionBlueprint {
   /** Background colour direction (hex) from the reference; grey placeholders for media. */
