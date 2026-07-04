@@ -8,13 +8,32 @@ import { resolveTheme, h, b, fill, outline, cardRaised } from "../section-theme"
 import type { SectionTheme } from "../types";
 import type { GeneratedSectionSpec, SectionPattern } from "@/lib/references/types";
 
-/** First hex colour found in the extracted colour-direction notes, if any. */
+/** All hex colours found in the extracted colour-direction notes. */
+function allHex(arr: string[]): string[] {
+  return [...arr.join(" ").matchAll(/#(?:[0-9a-f]{6}|[0-9a-f]{3})/gi)].map((m) => m[0]);
+}
 function firstHex(arr: string[]): string | undefined {
-  for (const s of arr) {
-    const m = s.match(/#(?:[0-9a-f]{6}|[0-9a-f]{3})/i);
-    if (m) return m[0];
-  }
-  return undefined;
+  return allHex(arr)[0];
+}
+function lumOf(hex: string): number {
+  let h = hex.replace("#", "");
+  if (h.length === 3) h = h.split("").map((c) => c + c).join("");
+  const r = parseInt(h.slice(0, 2), 16), g = parseInt(h.slice(2, 4), 16), b = parseInt(h.slice(4, 6), 16);
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+}
+/** Split the reference palette into a light background and a saturated accent. */
+function refPalette(pattern: SectionPattern): { bg?: string; accent?: string } {
+  const hexes = allHex(pattern.colorDirection);
+  const bg = hexes.find((x) => lumOf(x) > 0.85);
+  const accent = hexes.find((x) => lumOf(x) < 0.7);
+  return { bg, accent };
+}
+/** Card/column count derived from the analysis (e.g. "card slots (4 total)"). */
+function cardCount(pattern: SectionPattern, fallback = 3): number {
+  const joined = pattern.componentStructure.concat(pattern.contentSlots).join(" ");
+  const m = joined.match(/\((\d+)\s*total\)/i) ?? joined.match(/(\d+)\s*(?:cards?|columns?|items?)/i);
+  const n = m ? parseInt(m[1], 10) : NaN;
+  return Number.isFinite(n) && n >= 2 && n <= 8 ? n : fallback;
 }
 
 /** Relative luminance → pick readable text colours over a background. */
@@ -104,21 +123,27 @@ export function GeneratedSection({ spec, pattern, theme }: { spec: GeneratedSect
     );
   }
 
-  // ── GRID: heading + card grid from the repeated content slots. ──
+  // ── GRID: heading + card grid, count + colours reflecting the reference. ──
   if (comp === "grid") {
-    const cards = items.length ? items : Array.from({ length: 3 }, (_, i) => ({ title: `Item ${i + 1}`, text: "Short supporting line." }));
+    const pal = refPalette(pattern);
+    const n = items.length || cardCount(pattern);
+    const cards = items.length ? items : Array.from({ length: n }, (_, i) => ({ title: `Card ${i + 1}`, text: "A short supporting line describing this card." }));
+    const gridBg = pal.bg ?? t.backgroundColor;
+    const gridR = pal.bg ? readable(gridBg) : { fg: t.textColor, muted: t.mutedTextColor, onCard: t.surfaceColor };
+    const iconColor = pal.accent ?? t.accentColor;
+    const cols = n >= 4 ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-2 lg:grid-cols-3";
     return (
-      <section className={wrap} style={{ background: bg }}>
+      <section className={wrap} style={{ background: gridBg }}>
         <div className="mx-auto max-w-2xl text-center">
-          {eyebrowEl}
-          <h2 className="mt-2 text-[26px] font-bold sm:text-[30px]" style={H()}>{c.title ?? spec.name}</h2>
-          {c.description && <p className="mt-2 text-[14px]" style={{ color: r.muted }}>{c.description}</p>}
+          {c.eyebrow && <span className="text-[12px] font-semibold uppercase tracking-wide" style={{ color: iconColor }}>{c.eyebrow}</span>}
+          <h2 className="mt-2 text-[26px] font-bold sm:text-[30px]" style={{ fontFamily: t.headingFont, color: gridR.fg }}>{c.title ?? spec.name}</h2>
+          {c.description && <p className="mt-2 text-[14px]" style={{ color: gridR.muted }}>{c.description}</p>}
         </div>
-        <div className="mx-auto mt-10 grid max-w-5xl gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        <div className={`mx-auto mt-10 grid max-w-6xl gap-5 ${cols}`}>
           {cards.map((it, i) => (
-            <div key={i} className="p-6" style={cardRaised(t)}>
-              <div className="grid h-10 w-10 place-items-center rounded-lg" style={{ background: t.surfaceColor, border: `1px solid ${t.borderColor}` }}>
-                <span className="h-4 w-4 rounded" style={{ background: t.accentColor, opacity: 0.5 }} />
+            <div key={i} className="rounded-2xl bg-white p-6" style={{ border: `1px solid ${t.borderColor}`, boxShadow: t.shadow }}>
+              <div className="grid h-11 w-11 place-items-center rounded-xl" style={{ background: `${iconColor}1a` }}>
+                <span className="h-4 w-4 rounded" style={{ background: iconColor }} />
               </div>
               <p className="mt-4 text-[15px] font-semibold" style={h(t)}>{it.title}</p>
               <p className="mt-1.5 text-[13px] leading-relaxed" style={b(t)}>{it.text}</p>
