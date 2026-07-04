@@ -6,7 +6,7 @@
 
 import { getOpenAI, VISION_MODEL, type ChatMessage } from "./openai-client";
 import { VISUAL_STYLE_TAGS, LAYOUT_TAGS, INTERACTION_TAGS, type SectionBlueprint, type DetectedPattern } from "@/lib/references/types";
-import { normalizeBlueprint, normalizeDetected } from "@/lib/references/blueprint";
+import { normalizeBlueprint, normalizeDetected, FALLBACK_DETECTED } from "@/lib/references/blueprint";
 
 export interface ReferenceVisionResult {
   source: "openai_vision" | "fallback";
@@ -85,6 +85,9 @@ export async function analyzeSectionReferenceImage(input: {
     reusableDesignRules: NA("Design rules"), originalityWarnings: [],
     suggestedStyleTags: [], suggestedLayoutTags: [], suggestedInteractionTags: [],
     confidence: "low",
+    // Safe detection so a failed/skipped Vision run never silently falls back
+    // into old generic layouts.
+    detected: FALLBACK_DETECTED,
   };
 
   const client = getOpenAI();
@@ -148,6 +151,8 @@ export async function analyzeSectionReferenceImage(input: {
     " hasMedia, hasAccordion, hasForm, hasPricing, hasTestimonials, hasStats, hasLogos, hasGallery, hasSplitIntro (all booleans for what is actually visible)," +
     " mustNotFlattenInto (array of generic layouts this must NOT collapse into, e.g. ['simple-card-grid','centered-hero']) }." +
     " Set the booleans from what you SEE (e.g. expandable +/- rows → hasAccordion:true; input fields → hasForm:true; price tiers → hasPricing:true)." +
+    " detected.layoutType is the MOST IMPORTANT field — the generated section follows it. Never return a generic content category ('services','features','grid','cards') as layoutType; if unsure use 'custom-generated-layout'." +
+    " Consistency rules: hasAccordion:true → layoutType must contain 'accordion'; hasForm:true → layoutType must contain 'form'; hasPricing:true → layoutType must contain 'pricing'; a dark/black section → isDark:true AND blueprint.background must be that dark hex; exactly N cards visible → cardCount:N and the blueprint cardGrid must have exactly N cards." +
     " Write REAL, concrete, ORIGINAL starter copy for every text slot — natural words a designer would ship, relevant to the section's purpose. Do NOT output literal template labels like 'Your Main Heading', 'Your Subheading', 'Card Title 1', 'Card description here', or 'Your Media Placeholder'. Example — good heading: 'Launch a site that converts'; bad: 'Your Main Heading'. Never transcribe the reference's exact words, brand, or logo; for any image use a placeholder — never reuse the reference's images.";
 
   const messages: ChatMessage[] = [

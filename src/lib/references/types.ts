@@ -343,6 +343,9 @@ export interface GeneratedSectionSpec {
   blueprint?: SectionBlueprint;
   /** Visual-pattern detection surfaced in the result panel. */
   detected?: DetectedPattern;
+  /** Result of checking the final blueprint against the detected pattern.
+   *  Sections with warnings should be saved as drafts, not marked Ready. */
+  validation?: { status: "passed" | "warning"; warnings: string[] };
   needsNewComponent: boolean;
   content: Record<string, unknown>;
   /** Original starter copy for the created section preview — grey placeholders

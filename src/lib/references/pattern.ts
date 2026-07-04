@@ -5,7 +5,7 @@
 // placeholder assets + AI image prompts — never a copy).
 
 import { getVariantMetas, resolveVariantMeta } from "@/components/sections/catalog";
-import { normalizeBlueprint, enforcePattern, buildBlueprintFromPattern } from "./blueprint";
+import { normalizeBlueprint, enforcePattern, buildBlueprintFromPattern, validateBlueprintAgainstDetected } from "./blueprint";
 import type { SectionType } from "@/components/sections/types";
 import type { ReferenceVisionResult } from "@/lib/ai/reference-vision";
 import {
@@ -275,6 +275,15 @@ export function generateSectionFromReferencePattern(
   const g = purposeGuidance(primary);
   const secondary = pattern.secondaryPurposes ?? [];
 
+  // Prefer Vision's blueprint (cleaned); else derive one from the analysis.
+  // Then enforce the detected UI pattern so it never flattens (e.g. accordion
+  // stays an accordion, dark stays dark) — general across all references.
+  const blueprint = enforcePattern(
+    (pattern.blueprint ? normalizeBlueprint(pattern.blueprint) : null) ?? buildBlueprintFromPattern(pattern, buildPreviewContent(pattern, g.cta, ctx) ?? {}),
+    pattern,
+  );
+  const warnings = validateBlueprintAgainstDetected(blueprint, pattern.detected);
+
   return {
     id: uid("sec"),
     type,
@@ -287,14 +296,9 @@ export function generateSectionFromReferencePattern(
     designVariant,
     componentName,
     inspiredByComponent: inspiredBy,
-    // Prefer Vision's blueprint (cleaned); else derive one from the analysis.
-    // Then enforce the detected UI pattern so it never flattens (e.g. accordion
-    // stays an accordion, dark stays dark) — general across all references.
-    blueprint: enforcePattern(
-      (pattern.blueprint ? normalizeBlueprint(pattern.blueprint) : null) ?? buildBlueprintFromPattern(pattern, buildPreviewContent(pattern, g.cta, ctx) ?? {}),
-      pattern,
-    ),
+    blueprint,
     detected: pattern.detected,
+    validation: { status: warnings.length ? "warning" : "passed", warnings },
     needsNewComponent,
     content: {
       eyebrowSlot: "Short label",

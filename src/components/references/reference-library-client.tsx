@@ -366,6 +366,16 @@ export function ReferenceLibraryClient({ projectId, projectName, initialPatterns
                     </div>
                   )}
                   <p className="mt-1.5 text-[11px] text-faint">New GeneratedSectionRenderer{created.spec.inspiredByComponent ? ` · similar: ${created.spec.inspiredByComponent} (not reused)` : ""}</p>
+                  {created.spec.validation && (created.spec.validation.status === "passed" ? (
+                    <p className="mt-1 text-[11px] font-medium text-success">Validation passed — matches the detected pattern.</p>
+                  ) : (
+                    <div className="mt-1">
+                      <p className="text-[11px] font-medium text-warning">Validation warnings — review before marking ready:</p>
+                      <ul className="mt-0.5 grid gap-0.5 text-[11px] text-warning">
+                        {created.spec.validation.warnings.map((w, i) => <li key={i}>• {w}</li>)}
+                      </ul>
+                    </div>
+                  ))}
                   <p className="mt-2 text-[11px] text-faint">{created.spec.responsiveNotes}</p>
                 </div>
                 <div className="rounded-xl border border-line p-3">

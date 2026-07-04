@@ -6,6 +6,19 @@
 
 import type { BlueprintBlock, SectionBlueprint, SectionPattern, GeneratedSectionSpec, DetectedPattern } from "./types";
 
+/** Safe detection when Vision does not run/fails — prevents silent fallback
+ *  into old generic layouts (they're explicitly listed as forbidden). */
+export const FALLBACK_DETECTED: DetectedPattern = {
+  layoutType: "custom-generated-layout",
+  patternFamily: "unknown",
+  shortDescription: "Vision analysis did not run.",
+  isDark: false,
+  cardCount: 0,
+  hasMedia: false, hasAccordion: false, hasForm: false, hasPricing: false,
+  hasTestimonials: false, hasStats: false, hasLogos: false, hasGallery: false, hasSplitIntro: false,
+  mustNotFlattenInto: ["service-grid", "centered-hero", "simple-card-grid"],
+};
+
 /** Parse a Vision-returned `detected` object (visual pattern detection). */
 export function normalizeDetected(raw: unknown): DetectedPattern | undefined {
   if (!raw || typeof raw !== "object") return undefined;
@@ -13,9 +26,12 @@ export function normalizeDetected(raw: unknown): DetectedPattern | undefined {
   const b = (v: unknown) => v === true;
   const s = (v: unknown, max = 60) => (typeof v === "string" ? v.trim().slice(0, max) : undefined);
   const n = Number(o.cardCount);
+  // Generic/content-category names are not layout types — treat as unknown.
+  const rawLayout = s(o.layoutType, 40)?.toLowerCase().replace(/\s+/g, "-");
+  const layoutType = rawLayout && !/^(services?|features?|grid|cards?|hero|section)$/.test(rawLayout) ? rawLayout : "custom-generated-layout";
   return {
-    layoutType: s(o.layoutType, 40),
-    patternFamily: s(o.patternFamily, 40),
+    layoutType,
+    patternFamily: s(o.patternFamily, 40) ?? "unknown",
     shortDescription: s(o.shortDescription, 160),
     isDark: b(o.isDark),
     mediaSide: o.mediaSide === "left" ? "left" : o.mediaSide === "right" ? "right" : undefined,
@@ -178,6 +194,17 @@ export function enforcePattern(bp: SectionBlueprint, pattern: SectionPattern): S
   const wantsForm = d?.hasForm ?? (st === "contact" || st === "booking" || st === "quote" || /\bform\b|input field|email field|contact form|booking form|quote form/.test(sig));
   const wantsPricing = d?.hasPricing ?? false;
 
+  // Card count from detection first: never render more cards than the
+  // reference shows (also bounds a later grid→accordion conversion).
+  if (d?.cardCount && d.cardCount > 0) {
+    for (let i = 0; i < blocks.length; i++) {
+      const blk = blocks[i];
+      if (blk.type === "cardGrid" && blk.cards.length > d.cardCount) {
+        blocks[i] = { ...blk, columns: Math.min(blk.columns ?? d.cardCount, d.cardCount), cards: blk.cards.slice(0, d.cardCount) };
+      }
+    }
+  }
+
   // Accordion reference must not render as a card grid.
   if (wantsAccordion && !hasType("accordion")) {
     const gi = blocks.findIndex((b) => b.type === "cardGrid");
@@ -206,7 +233,37 @@ export function enforcePattern(bp: SectionBlueprint, pattern: SectionPattern): S
   const isDarkRef = d?.isDark ?? (/\bdark\b|\bblack\b/.test(sig) || Boolean(darkHex));
   const background = isDarkRef ? (darkHex ?? "#0B0B0F") : (bp.background ?? pal.background);
 
-  return { ...bp, background, accent: bp.accent ?? pal.accent, blocks };
+  // Detected media side wins over the blueprint's guess.
+  const mediaSide = d?.mediaSide ?? bp.mediaSide;
+  // A split-media detection must keep the split layout.
+  const layout = d?.hasMedia && (d.hasAccordion || d.hasSplitIntro || /split/.test(d.layoutType ?? "")) ? "split" as const : bp.layout;
+
+  return { ...bp, background, accent: bp.accent ?? pal.accent, mediaSide, layout, blocks };
+}
+
+/** Post-enforcement check: does the final blueprint honour what Vision saw?
+ *  Returns human-readable warnings; empty = passed. Sections with warnings
+ *  should not be marked Ready. */
+export function validateBlueprintAgainstDetected(bp: SectionBlueprint, d?: DetectedPattern): string[] {
+  if (!d) return [];
+  const warnings: string[] = [];
+  const hasType = (tp: string) => bp.blocks.some((b) => b.type === tp);
+  if (d.hasAccordion && !hasType("accordion")) warnings.push("Reference shows an accordion but the section has none.");
+  if (d.hasForm && !hasType("form")) warnings.push("Reference shows a form but the section has none.");
+  if (d.hasPricing && !hasType("pricing")) warnings.push("Reference shows pricing tiers but the section has none.");
+  if (d.hasStats && !hasType("stats")) warnings.push("Reference shows stats but the section has none.");
+  if (d.hasLogos && !hasType("logos")) warnings.push("Reference shows logos but the section has none.");
+  if (d.cardCount && d.cardCount > 0) {
+    const grid = bp.blocks.find((b) => b.type === "cardGrid") as Extract<BlueprintBlock, { type: "cardGrid" }> | undefined;
+    if (grid && grid.cards.length > d.cardCount) warnings.push(`Reference shows ${d.cardCount} cards but the section has ${grid.cards.length}.`);
+  }
+  if (d.isDark && bp.background) {
+    let h = bp.background.replace("#", ""); if (h.length === 3) h = h.split("").map((c) => c + c).join("");
+    const lum = (parseInt(h.slice(0, 2), 16) * 0.299 + parseInt(h.slice(2, 4), 16) * 0.587 + parseInt(h.slice(4, 6), 16) * 0.114) / 255;
+    if (lum > 0.45) warnings.push("Reference has a dark background but the section is light.");
+  }
+  if (d.mediaSide && bp.layout === "split" && bp.mediaSide !== d.mediaSide) warnings.push(`Reference places media on the ${d.mediaSide}, section places it on the ${bp.mediaSide}.`);
+  return warnings;
 }
 
 // ── validate a Vision-returned blueprint (defensive; drop invalid blocks) ──
