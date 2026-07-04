@@ -23,6 +23,7 @@ import { isReady } from "@/lib/element-library/registry";
 import { KIND_LABEL, KIND_BADGE } from "@/lib/element-library/categories";
 import { ELEMENT_ICONS } from "./element-icons";
 import { SectionSettingsDrawer } from "./section-drawer/SectionSettingsDrawer";
+import { ExportPanel } from "./export-panel/ExportPanel";
 import type { ElementItem, ElementLibraryContext } from "@/lib/element-library/types";
 import { arrayMove } from "@dnd-kit/sortable";
 import type {
@@ -199,6 +200,7 @@ export function DesignEditor({
   // ---- Section mutators (scoped to a page) ----
   // Any canvas edit makes previously generated files stale (outdated-files rule).
   const [filesOutdated, setFilesOutdated] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
   const patchPage = (pageId: string, fn: (pg: CanvasPage) => CanvasPage) => {
     setPages((p) => p.map((x) => (x.id === pageId ? fn(x) : x)));
     if (approvals.design) setFilesOutdated(true);
@@ -330,7 +332,7 @@ export function DesignEditor({
             </svg>
             Live preview
           </Button>
-          <Button size="sm" variant="secondary" disabled title="Coming soon">Export</Button>
+          <Button size="sm" variant="secondary" title="Copy build-ready prompts from the edited Design Canvas" onClick={() => setExportOpen(true)}>Export</Button>
           <Button size="sm" onClick={save} disabled={saving || !dirty}>{saving ? "Saving…" : "Save"}</Button>
         </div>
       </header>
@@ -428,6 +430,22 @@ export function DesignEditor({
           )}
         </main>
       </div>
+
+      {/* Export drawer — copy-ready prompts from the FINAL edited canvas state. */}
+      <Drawer open={exportOpen} onClose={() => setExportOpen(false)} title="Export" subtitle="Build-ready prompts from your edited Design Canvas" width={620}>
+        <ExportPanel
+          ctx={{
+            projectName,
+            websiteType: siteContext.websiteType,
+            industry: siteContext.industry,
+            goals: siteContext.goals,
+            pages,
+            style,
+            designApproved: approvals.design,
+          }}
+          outdated={filesOutdated}
+        />
+      </Drawer>
     </div>
   );
 }
