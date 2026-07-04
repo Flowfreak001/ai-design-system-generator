@@ -107,6 +107,18 @@ export function buildBlueprintFromPattern(pattern: SectionPattern, content: Cont
 }
 
 // ── validate a Vision-returned blueprint (defensive; drop invalid blocks) ──
+// Replace literal template-label junk ("Your Main Heading", "Card Title 1"…)
+// with sensible original copy so the preview never looks unfinished.
+const PLACEHOLDER = /^(your\b|card title\s*\d*|card description|lorem|placeholder|section title|main heading|sub-?heading|eyebrow text|descriptive paragraph|media placeholder|your media)/i;
+const FALLBACK: Record<string, string> = {
+  eyebrow: "Overview", heading: "Everything you need, beautifully designed",
+  subheading: "Built for teams that move fast", paragraph: "A short, benefit-led sentence that sets up what follows.",
+  cardTitle: "Feature", cardBody: "A concise line describing this feature.", button: "Get started",
+};
+const clean = (v: unknown, kind: string, max = 200) => {
+  const s = typeof v === "string" ? v.trim().slice(0, max) : "";
+  return s && !PLACEHOLDER.test(s) ? s : (FALLBACK[kind] ?? "");
+};
 const S = (v: unknown, max = 200) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 const A = <T>(v: unknown): T[] => (Array.isArray(v) ? v : []);
 const hex = (v: unknown) => (typeof v === "string" && /^#(?:[0-9a-f]{3}|[0-9a-f]{6})$/i.test(v.trim()) ? v.trim() : undefined);
@@ -119,12 +131,12 @@ export function normalizeBlueprint(raw: unknown): SectionBlueprint | null {
     const t = String(rb.type ?? "");
     switch (t) {
       case "eyebrow": case "heading": case "subheading": case "paragraph": {
-        const text = S(rb.text, t === "paragraph" ? 400 : 120);
+        const text = clean(rb.text, t, t === "paragraph" ? 400 : 120);
         if (text) blocks.push({ type: t, text } as BlueprintBlock);
         break;
       }
       case "buttons": {
-        const items = A<Record<string, unknown>>(rb.items).map((x) => ({ label: S(x.label, 40), variant: x.variant === "secondary" ? "secondary" as const : "primary" as const })).filter((x) => x.label).slice(0, 3);
+        const items = A<Record<string, unknown>>(rb.items).map((x) => ({ label: clean(x.label, "button", 40), variant: x.variant === "secondary" ? "secondary" as const : "primary" as const })).filter((x) => x.label).slice(0, 3);
         if (items.length) blocks.push({ type: "buttons", items });
         break;
       }
@@ -134,14 +146,16 @@ export function normalizeBlueprint(raw: unknown): SectionBlueprint | null {
         break;
       }
       case "cardGrid": {
-        const cards = A<Record<string, unknown>>(rb.cards).map((x) => ({ title: S(x.title, 60), body: S(x.body, 200), icon: Boolean(x.icon), image: Boolean(x.image) })).filter((x) => x.title || x.body).slice(0, 8);
+        const cards = A<Record<string, unknown>>(rb.cards).map((x) => ({ title: clean(x.title, "cardTitle", 60), body: clean(x.body, "cardBody", 200), icon: Boolean(x.icon), image: Boolean(x.image) })).filter((x) => x.title || x.body).slice(0, 8);
         const columns = Number(rb.columns);
         if (cards.length) blocks.push({ type: "cardGrid", columns: Number.isFinite(columns) ? Math.min(4, Math.max(2, columns)) : undefined, cards });
         break;
       }
-      case "media":
-        blocks.push({ type: "media", ratio: S(rb.ratio, 8) || undefined, label: S(rb.label, 40) || undefined });
+      case "media": {
+        const label = S(rb.label, 40);
+        blocks.push({ type: "media", ratio: S(rb.ratio, 8) || undefined, label: label && !PLACEHOLDER.test(label) ? label : undefined });
         break;
+      }
       case "stats": {
         const items = A<Record<string, unknown>>(rb.items).map((x) => ({ value: S(x.value, 20), label: S(x.label, 40) })).filter((x) => x.value || x.label).slice(0, 6);
         if (items.length) blocks.push({ type: "stats", items });
@@ -161,9 +175,9 @@ export function normalizeBlueprint(raw: unknown): SectionBlueprint | null {
         break;
       }
       case "splitIntro": {
-        const heading = S(rb.heading, 120);
-        const paragraph = S(rb.paragraph, 400);
-        const btns = A<Record<string, unknown>>(rb.buttons).map((x) => ({ label: S(x.label, 40), variant: x.variant === "secondary" ? "secondary" as const : "primary" as const })).filter((x) => x.label).slice(0, 3);
+        const heading = clean(rb.heading, "heading", 120);
+        const paragraph = clean(rb.paragraph, "paragraph", 400);
+        const btns = A<Record<string, unknown>>(rb.buttons).map((x) => ({ label: clean(x.label, "button", 40), variant: x.variant === "secondary" ? "secondary" as const : "primary" as const })).filter((x) => x.label).slice(0, 3);
         if (heading || paragraph) blocks.push({ type: "splitIntro", heading, paragraph, buttons: btns, headingSide: rb.headingSide === "right" ? "right" : "left" });
         break;
       }

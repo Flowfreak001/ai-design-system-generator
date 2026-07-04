@@ -129,14 +129,23 @@ export function BlueprintRenderer({ blueprint, theme }: { blueprint: SectionBlue
     }
   };
 
-  const column = <div className={`flex flex-col gap-4 ${alignCls}`}>{blueprint.blocks.map(renderBlock)}</div>;
-
   if (blueprint.layout === "split") {
-    const media = <Placeholder label="Visual" ratio="4/5" className="w-full" />;
+    // Intro blocks sit in the text column; structural blocks (card rows,
+    // accordions, stats, logos, link columns) render full-width BELOW the split
+    // so they are never crammed into the narrow column.
+    const introTypes = new Set(["eyebrow", "heading", "subheading", "paragraph", "buttons", "chips"]);
+    const intro = blueprint.blocks.filter((x) => introTypes.has(x.type));
+    const below = blueprint.blocks.filter((x) => !introTypes.has(x.type) && x.type !== "media" && x.type !== "spacer");
+    const mediaBlock = blueprint.blocks.find((x) => x.type === "media");
+    const media = mediaBlock ? renderBlock(mediaBlock, -1) : <Placeholder label="Visual" ratio="4/5" className="w-full" />;
+    const textCol = <div className="flex flex-col items-start gap-4 text-left">{intro.map(renderBlock)}</div>;
     return (
       <section className="px-6 py-14 sm:px-10 sm:py-16" style={{ background: bg }}>
-        <div className="mx-auto grid max-w-6xl items-center gap-10 md:grid-cols-2">
-          {blueprint.mediaSide === "left" ? <>{media}{column}</> : <>{column}{media}</>}
+        <div className="mx-auto flex max-w-6xl flex-col gap-12">
+          <div className="grid items-center gap-10 md:grid-cols-2">
+            {blueprint.mediaSide === "left" ? <>{media}{textCol}</> : <>{textCol}{media}</>}
+          </div>
+          {below.length > 0 && <div className="flex flex-col items-center gap-6">{below.map(renderBlock)}</div>}
         </div>
       </section>
     );

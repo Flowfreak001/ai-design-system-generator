@@ -5,6 +5,7 @@
 // placeholder assets + AI image prompts — never a copy).
 
 import { getVariantMetas, resolveVariantMeta } from "@/components/sections/catalog";
+import { normalizeBlueprint } from "./blueprint";
 import type { SectionType } from "@/components/sections/types";
 import type { ReferenceVisionResult } from "@/lib/ai/reference-vision";
 import {
@@ -284,7 +285,9 @@ export function generateSectionFromReferencePattern(
     designVariant,
     componentName,
     inspiredByComponent: inspiredBy,
-    blueprint: pattern.blueprint,
+    // Re-normalize so any stored blueprint (incl. placeholder-label junk from
+    // older analyses) is cleaned before it renders.
+    blueprint: pattern.blueprint ? (normalizeBlueprint(pattern.blueprint) ?? pattern.blueprint) : undefined,
     needsNewComponent,
     content: {
       eyebrowSlot: "Short label",

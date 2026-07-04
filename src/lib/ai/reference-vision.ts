@@ -134,7 +134,7 @@ export async function analyzeSectionReferenceImage(input: {
     " ANALYSE THE VISUAL COMPOSITION LIKE A UI DESIGNER, not just the content: where is the heading, where is the paragraph/CTA, how many columns, are cards image-on-top with text below, how much whitespace, is the background dark/black." +
     " Reproduce that composition with the blocks IN ORDER. If the heading and paragraph are on opposite sides, use splitIntro (NOT separate centred heading+paragraph). If large image cards sit in a row, use cardGrid with image:true (image on top, text below) and columns = the real count. Put a spacer where there is big vertical whitespace." +
     " Set background to the ACTUAL section background hex INCLUDING dark/black backgrounds. Do NOT flatten a rich composition into a generic centred hero or a plain icon grid." +
-    " Use ORIGINAL placeholder copy for every text/slot (never transcribe the reference's real words, brand, or logo); for any image use a placeholder — never reuse the reference's images.";
+    " Write REAL, concrete, ORIGINAL starter copy for every text slot — natural words a designer would ship, relevant to the section's purpose. Do NOT output literal template labels like 'Your Main Heading', 'Your Subheading', 'Card Title 1', 'Card description here', or 'Your Media Placeholder'. Example — good heading: 'Launch a site that converts'; bad: 'Your Main Heading'. Never transcribe the reference's exact words, brand, or logo; for any image use a placeholder — never reuse the reference's images.";
 
   const messages: ChatMessage[] = [
     { role: "system", content: system },
