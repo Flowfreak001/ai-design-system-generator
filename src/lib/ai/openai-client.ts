@@ -26,11 +26,24 @@ export type ChatMessage = {
   >;
 };
 
+export type ChatJSONOpts = { model?: string; maxTokens?: number; fallbackModel?: string };
+export type ChatJSONMeta = {
+  content: string;
+  /** The model that actually produced the response (may be the fallback). */
+  model: string;
+  /** OpenAI finish_reason ("stop" = complete, "length" = truncated). */
+  finishReason: string;
+  responseLength: number;
+  fallbackUsed: boolean;
+};
+
 export type OpenAIClient = {
   /** Chat completion constrained to a single JSON object response.
    *  `fallbackModel` is used automatically if the primary model is unknown to
    *  the account (e.g. a not-yet-available gpt-5.x). */
-  chatJSON(messages: ChatMessage[], opts?: { model?: string; maxTokens?: number; fallbackModel?: string }): Promise<string>;
+  chatJSON(messages: ChatMessage[], opts?: ChatJSONOpts): Promise<string>;
+  /** Same, but also returns call metadata for debugging. */
+  chatJSONMeta(messages: ChatMessage[], opts?: ChatJSONOpts): Promise<ChatJSONMeta>;
 };
 
 /** True for errors that mean "this model id isn't available on this project". */
@@ -58,10 +71,12 @@ export function getOpenAI(): OpenAIClient | null {
       signal: AbortSignal.timeout(90_000),
     });
 
-  return {
-    async chatJSON(messages, opts) {
+  const client: OpenAIClient = {
+    async chatJSONMeta(messages, opts) {
       const model = opts?.model ?? VISION_MODEL;
       const maxTokens = opts?.maxTokens ?? 1400;
+      let usedModel = model;
+      let fallbackUsed = false;
       let res = await call(model, messages, maxTokens);
 
       // If the configured model isn't available, retry once with the fallback.
@@ -69,6 +84,8 @@ export function getOpenAI(): OpenAIClient | null {
         const body = await res.text().catch(() => "");
         if (isModelUnavailable(res.status, body)) {
           console.warn(`[OpenAI] Model "${model}" unavailable — falling back to "${opts.fallbackModel}".`);
+          usedModel = opts.fallbackModel;
+          fallbackUsed = true;
           res = await call(opts.fallbackModel, messages, maxTokens);
         } else {
           throw new Error(`OpenAI ${res.status}: ${body.slice(0, 200)}`);
@@ -78,10 +95,15 @@ export function getOpenAI(): OpenAIClient | null {
         const body = await res.text().catch(() => "");
         throw new Error(`OpenAI ${res.status}: ${body.slice(0, 200)}`);
       }
-      const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-      return data.choices?.[0]?.message?.content ?? "";
+      const data = (await res.json()) as { choices?: { message?: { content?: string }; finish_reason?: string }[] };
+      const content = data.choices?.[0]?.message?.content ?? "";
+      return { content, model: usedModel, finishReason: data.choices?.[0]?.finish_reason ?? "unknown", responseLength: content.length, fallbackUsed };
+    },
+    async chatJSON(messages, opts) {
+      return (await this.chatJSONMeta(messages, opts)).content;
     },
   };
+  return client;
 }
 
 export function hasOpenAIKey(): boolean {

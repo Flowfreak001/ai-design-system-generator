@@ -246,6 +246,8 @@ export interface SectionPattern {
   blueprint?: SectionBlueprint;
   /** Visual-pattern detection (layout type + component detectors). */
   detected?: DetectedPattern;
+  /** Vision-call debug info (model, tokens, finish_reason, fallback). */
+  visionDebug?: VisionDebug;
   customSpec?: CustomSectionSpec | null;
   similarityRules: SimilarityRules;
   confidence: "high" | "medium" | "low";
@@ -294,6 +296,16 @@ export type BlueprintBlock =
 
 /** Structured visual-pattern detection from Vision — the "what UI pattern is
  *  this" signal, used to drive and validate the blueprint (not content category). */
+export interface VisionDebug {
+  ran: boolean;
+  model: string;
+  maxTokens: number;
+  finishReason: string;
+  responseLength: number;
+  fallbackUsed: boolean;
+  error?: string;
+}
+
 export interface DetectedPattern {
   layoutType?: string;
   patternFamily?: string;

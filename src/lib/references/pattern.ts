@@ -201,6 +201,7 @@ export function createSectionPatternFromReferenceImage(input: {
     matchedComponent,
     blueprint: v.blueprint,
     detected: v.detected,
+    visionDebug: v.debug,
     customSpec,
     similarityRules: DEFAULT_SIMILARITY_RULES,
     confidence: v.confidence,

@@ -5,7 +5,7 @@
 // API key is missing or the call fails.
 
 import { getOpenAI, REFERENCE_VISION_MODEL, REFERENCE_VISION_MAX_TOKENS, REFERENCE_MODEL_FALLBACK, type ChatMessage } from "./openai-client";
-import { VISUAL_STYLE_TAGS, LAYOUT_TAGS, INTERACTION_TAGS, type SectionBlueprint, type DetectedPattern } from "@/lib/references/types";
+import { VISUAL_STYLE_TAGS, LAYOUT_TAGS, INTERACTION_TAGS, type SectionBlueprint, type DetectedPattern, type VisionDebug } from "@/lib/references/types";
 import { normalizeBlueprint, normalizeDetected, FALLBACK_DETECTED } from "@/lib/references/blueprint";
 
 export interface ReferenceVisionResult {
@@ -37,6 +37,8 @@ export interface ReferenceVisionResult {
   blueprint?: SectionBlueprint;
   /** Visual-pattern detection (layout type + component detectors). */
   detected?: DetectedPattern;
+  /** Debug info about the Vision call (model, tokens, finish, fallback). */
+  debug?: VisionDebug;
 }
 
 /** Keep only values that exist in the given vocabulary (case-insensitive). */
@@ -88,11 +90,12 @@ export async function analyzeSectionReferenceImage(input: {
     // Safe detection so a failed/skipped Vision run never silently falls back
     // into old generic layouts.
     detected: FALLBACK_DETECTED,
+    debug: { ran: false, model: REFERENCE_VISION_MODEL, maxTokens: REFERENCE_VISION_MAX_TOKENS, finishReason: "not-run", responseLength: 0, fallbackUsed: false },
   };
 
   const client = getOpenAI();
-  if (!client) return base;
-  if (!input.imageDataUrl?.startsWith("data:image/")) return base;
+  if (!client) return { ...base, debug: { ...base.debug!, error: "OPENAI_API_KEY not set." } };
+  if (!input.imageDataUrl?.startsWith("data:image/")) return { ...base, debug: { ...base.debug!, error: "Invalid image data." } };
 
   const system =
     "You are a senior design-systems analyst building a REUSABLE PATTERN from a screenshot of ONE website section. " +
@@ -167,8 +170,11 @@ export async function analyzeSectionReferenceImage(input: {
     // analysis + blueprint + detected object never truncates (a cut-off
     // response fails JSON.parse → silent fallback to the shallow path).
     console.info("[Reference Vision] Using model:", REFERENCE_VISION_MODEL, "(fallback:", REFERENCE_MODEL_FALLBACK + ") · max tokens:", REFERENCE_VISION_MAX_TOKENS);
-    const raw = await client.chatJSON(messages, { model: REFERENCE_VISION_MODEL, fallbackModel: REFERENCE_MODEL_FALLBACK, maxTokens: REFERENCE_VISION_MAX_TOKENS });
-    const p = JSON.parse(raw) as Record<string, unknown>;
+    const meta = await client.chatJSONMeta(messages, { model: REFERENCE_VISION_MODEL, fallbackModel: REFERENCE_MODEL_FALLBACK, maxTokens: REFERENCE_VISION_MAX_TOKENS });
+    const debug: VisionDebug = { ran: true, model: meta.model, maxTokens: REFERENCE_VISION_MAX_TOKENS, finishReason: meta.finishReason, responseLength: meta.responseLength, fallbackUsed: meta.fallbackUsed };
+    if (meta.finishReason === "length") debug.error = "Response was truncated (finish_reason=length) — raise REFERENCE_VISION_MAX_TOKENS.";
+    console.info("[Reference Vision] finish_reason:", meta.finishReason, "· length:", meta.responseLength, "· fallbackUsed:", meta.fallbackUsed);
+    const p = JSON.parse(meta.content) as Record<string, unknown>;
     const conf = String(p.confidence ?? "medium").toLowerCase();
     return {
       source: "openai_vision",
@@ -196,8 +202,10 @@ export async function analyzeSectionReferenceImage(input: {
       confidence: conf === "high" || conf === "low" ? (conf as "high" | "low") : "medium",
       blueprint: normalizeBlueprint(p.blueprint) ?? undefined,
       detected: normalizeDetected(p.detected),
+      debug,
     };
   } catch (err) {
-    return { ...base, originalityWarnings: [`Vision analysis failed: ${err instanceof Error ? err.message : String(err)}`] };
+    const msg = err instanceof Error ? err.message : String(err);
+    return { ...base, originalityWarnings: [`Vision analysis failed: ${msg}`], debug: { ...base.debug!, ran: true, finishReason: "error", error: msg } };
   }
 }
