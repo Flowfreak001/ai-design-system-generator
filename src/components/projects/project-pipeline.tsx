@@ -10,7 +10,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Button } from "@/components/ui/button";
+import { Button, LinkButton } from "@/components/ui/button";
 import { ActionDialog } from "@/components/projects/action-dialog";
 import { DesignTypePicker } from "@/components/projects/design-type-picker";
 import type { ComputedStage, StageId } from "@/lib/pipeline";
@@ -100,6 +100,7 @@ export function ProjectPipeline({
   previewExists,
   producedFiles,
   exportHref,
+  editorHref,
   actions,
 }: {
   projectId: string;
@@ -117,6 +118,7 @@ export function ProjectPipeline({
   previewExists: boolean;
   producedFiles: string[];
   exportHref: string;
+  editorHref: string;
   actions: Actions;
 }) {
   const current = stages.find((s) => s.status === "active")?.id ?? "export";
@@ -134,6 +136,8 @@ export function ProjectPipeline({
         >
           <StageBody
             id={s.id}
+            stage={s}
+            editorHref={editorHref}
             projectId={projectId}
             brandExists={brandExists}
             brandApproved={brandApproved}
@@ -152,6 +156,35 @@ export function ProjectPipeline({
           />
         </StageCard>
       ))}
+    </div>
+  );
+}
+
+/** Success + "what to do next" panel shown once a stage is complete, so the
+ *  user is never left wondering where the flow continues. */
+function NextStep({ editorHref, title, body }: { editorHref: string; title: string; body: string }) {
+  return (
+    <div className="rounded-xl border border-success/30 bg-success-soft/40 p-4">
+      <div className="flex items-start gap-3">
+        <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full bg-success text-white">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="m5 13 4 4L19 7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-[13.5px] font-semibold text-ink">{title}</p>
+          <p className="mt-1 text-[12.5px] leading-relaxed text-muted">{body}</p>
+          <div className="mt-3">
+            <LinkButton href={editorHref} size="sm">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="-ml-0.5">
+                <path d="M12 20h9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              Open Design Editor
+            </LinkButton>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -226,6 +259,8 @@ function useAction() {
 
 function StageBody({
   id,
+  stage,
+  editorHref,
   projectId,
   brandExists,
   brandApproved,
@@ -243,6 +278,8 @@ function StageBody({
   actions,
 }: {
   id: StageId;
+  stage: ComputedStage;
+  editorHref: string;
   projectId: string;
   brandExists: boolean;
   brandApproved: boolean;
@@ -323,6 +360,7 @@ function StageBody({
       wireframe[0]?.sections ??
       [];
     const childPages = sitemap.filter((p) => !/^home$/i.test(p.name));
+    const approved = stage.complete;
     return (
       <div className="grid gap-4">
         <p className="text-[13px] text-body">Page structure from confirmed discovered pages + your selected page needs.</p>
@@ -331,8 +369,23 @@ function StageBody({
         ) : (
           <p className="text-[13px] text-muted">Confirm discovered pages first.</p>
         )}
-        <p className="text-[11.5px] text-faint">Once your pages look right, open the Design Editor — sections, styling and the full design all happen there.</p>
-        <div><Approve stage="sitemap" label="Approve sitemap" /></div>
+
+        {!approved ? (
+          // Not yet approved — one clear action to lock the structure.
+          <div className="grid gap-2">
+            <p className="text-[12.5px] text-muted">
+              Happy with these pages? Approve to lock the structure — then you&apos;ll design them in the editor.
+            </p>
+            <div><Approve stage="sitemap" label="Approve sitemap" /></div>
+          </div>
+        ) : (
+          // Approved — confirm success and guide the user to the next step.
+          <NextStep
+            editorHref={editorHref}
+            title="Sitemap approved — you're ready to design"
+            body="Your page structure is locked in. Open the Design Editor to build each page — add sections, apply styling, and shape the full design. Everything from here happens in the editor."
+          />
+        )}
         {error && <p className="text-xs text-danger">{error}</p>}
       </div>
     );
@@ -545,18 +598,17 @@ function EvidenceBody({
           action={crawl}
           disabledNote={hasReference ? undefined : "Add a reference URL to crawl."}
         />
-        {evidence.screenshots > 0 && (
-          <ActionDialog
-            projectId={projectId}
-            trigger="button"
-            title={evidence.visionRan ? "Re-run Image Analysis" : "Analyze Uploaded Images"}
-            description="OpenAI Vision reads the uploaded screenshots for sections, colors, and layout."
-            confirmText="Analyze the uploaded reference screenshots with OpenAI Vision to extract sections, colors, and layout clues. Run it now?"
-            runName="AI Vision analysis"
-            action={runVision}
-            disabledNote={evidence.visionKeyConfigured ? undefined : "OpenAI key not set — a labelled fallback is used."}
-          />
-        )}
+        {/* Upload reference images → the References tab (deep-linked via #hash). */}
+        <a
+          href="#references"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-line bg-surface px-3.5 py-2 text-[13px] font-semibold text-body transition-colors hover:border-accent hover:text-accent"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 15V4m0 0L8 8m4-4 4 4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+          </svg>
+          Upload Images
+        </a>
         {discovered.length > 0 && (
           <span className="text-[12px] text-muted">{discovered.length} page{discovered.length === 1 ? "" : "s"} discovered</span>
         )}
@@ -652,34 +704,37 @@ function SitemapCanvas({
   childPages: CanvasPage[];
 }) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-line bg-panel/30 p-6">
+    <div className="overflow-x-auto rounded-xl border border-line bg-panel/30 p-6 sm:p-8">
       <div className="mx-auto flex w-fit min-w-full flex-col items-center">
         {/* Project root */}
-        <div className="w-full max-w-3xl rounded-md bg-line/60 px-3 py-1.5 text-center text-[12px] font-medium text-body">
-          ▦ Project
+        <div className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-4 py-2 text-[12.5px] font-semibold text-body shadow-sm">
+          <ProjectIcon className="text-accent" />
+          Project
         </div>
         <Connector />
 
         {/* Home page with its section stack */}
-        <div className="w-64 rounded-lg border border-line bg-surface shadow-sm">
-          <div className="rounded-t-lg bg-panel px-3 py-1.5 text-[12px] font-semibold text-ink">🏠 Home</div>
-          <div className="grid gap-1.5 p-2">
+        <div className="w-72 overflow-hidden rounded-xl border border-line bg-surface shadow-sm">
+          <div className="flex items-center gap-2 border-b border-line bg-panel/60 px-3.5 py-2.5">
+            <HomeIcon className="text-accent" />
+            <span className="text-[13px] font-semibold text-ink">Home</span>
+            <span className="ml-auto rounded-full bg-panel px-2 py-0.5 text-[10px] font-medium text-muted">landing</span>
+          </div>
+          <div className="grid gap-1.5 p-2.5">
             {homeSections.length ? (
               homeSections.map((s, i) => (
-                <div key={`${s.label}-${i}`} className="rounded-md border border-line px-2.5 py-1.5">
-                  <div className="flex items-center justify-between gap-1.5">
-                    <span className="truncate text-[12px] font-medium text-ink">{s.label}</span>
-                    <SourceChip source={s.source} />
-                  </div>
+                <div key={`${s.label}-${i}`} className="flex items-center justify-between gap-1.5 rounded-lg border border-line bg-canvas px-2.5 py-1.5">
+                  <span className="truncate text-[12px] font-medium text-ink">{s.label}</span>
+                  <SourceChip source={s.source} />
                 </div>
               ))
             ) : (
               <>
-                <div className="rounded-md border border-line px-2.5 py-1.5 text-[12px] text-muted">Navbar</div>
-                <div className="rounded-md border border-dashed border-line px-2.5 py-3 text-center text-[11.5px] text-faint">
+                <div className="rounded-lg border border-line bg-canvas px-2.5 py-1.5 text-[12px] text-muted">Navbar</div>
+                <div className="rounded-lg border border-dashed border-line px-2.5 py-3 text-center text-[11.5px] text-faint">
                   Sections appear after the reference crawl
                 </div>
-                <div className="rounded-md border border-line px-2.5 py-1.5 text-[12px] text-muted">Footer</div>
+                <div className="rounded-lg border border-line bg-canvas px-2.5 py-1.5 text-[12px] text-muted">Footer</div>
               </>
             )}
           </div>
@@ -689,13 +744,17 @@ function SitemapCanvas({
         {childPages.length > 0 && (
           <>
             <Connector />
-            <div className="flex flex-wrap items-start justify-center gap-4">
+            <div className="mb-3 text-[11px] font-medium uppercase tracking-wider text-faint">
+              {childPages.length} inner page{childPages.length === 1 ? "" : "s"}
+            </div>
+            <div className="flex flex-wrap items-stretch justify-center gap-3">
               {childPages.map((p) => (
-                <div key={p.name} className="w-40">
-                  <div className="flex items-center justify-between gap-1.5 rounded-t-lg bg-panel px-3 py-1.5">
-                    <span className="truncate text-[12px] font-semibold text-ink">📄 {p.name}</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-1.5 rounded-b-lg border border-t-0 border-line bg-surface px-3 py-4">
+                <div
+                  key={p.name}
+                  className="flex w-44 flex-col justify-between rounded-xl border border-line bg-surface px-3.5 py-3 shadow-sm transition-colors hover:border-line-strong"
+                >
+                  <span className="truncate text-[12.5px] font-semibold text-ink" title={p.name}>{p.name}</span>
+                  <div className="mt-3">
                     <SourceChip source={p.source} />
                   </div>
                 </div>
@@ -708,8 +767,27 @@ function SitemapCanvas({
   );
 }
 
+function ProjectIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true" className={className}>
+      <rect x="3" y="3" width="18" height="18" rx="2.5" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M3 9h18M9 21V9" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+function HomeIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true" className={className}>
+      <path d="M4 10.5 12 4l8 6.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M6 9.5V20h12V9.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M10 20v-5h4v5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
 function Connector() {
-  return <span className="my-2 block h-5 w-px bg-line-strong/70" aria-hidden="true" />;
+  return <span className="my-3 block h-6 w-px bg-line-strong/60" aria-hidden="true" />;
 }
 
 function EvRow({ k, v, src }: { k: string; v: string; src?: string }) {

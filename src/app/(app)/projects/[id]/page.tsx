@@ -264,13 +264,6 @@ export default async function ProjectWorkspacePage({
     assumptions: multiAssumptions,
   };
 
-  const timeline = [
-    { label: "Created", done: true },
-    { label: "Files generated", done: docFiles.length > 0 },
-    { label: "Preview ready", done: Boolean(previewHtml) },
-    { label: "Exported", done: project.status === "DELIVERED" },
-  ];
-
   const overview = (
     <div className="grid gap-4">
       {/* Simple hero + a trimmed detail list. Everything after the sitemap
@@ -294,6 +287,7 @@ export default async function ProjectWorkspacePage({
           previewExists={Boolean(previewHtml)}
           producedFiles={docFiles.map((f) => f.name)}
           exportHref={`/api/projects/${id}/export`}
+          editorHref={`/projects/${id}/editor`}
           actions={{
             generateBrand,
             approveBrand,
@@ -307,25 +301,6 @@ export default async function ProjectWorkspacePage({
           }}
         />
       </SimpleSteps>
-
-      {/* Status timeline */}
-      <div className="card p-5">
-        <p className="text-sm font-semibold text-ink">Progress</p>
-        <ol className="mt-4 flex flex-wrap items-center gap-2">
-          {timeline.map((t, i) => (
-            <li key={t.label} className="flex items-center gap-2">
-              <span
-                className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${
-                  t.done ? "bg-success-soft text-success" : "bg-panel text-faint"
-                }`}
-              >
-                {t.done ? "✓" : i + 1} {t.label}
-              </span>
-              {i < timeline.length - 1 && <span className="h-px w-6 bg-line" aria-hidden="true" />}
-            </li>
-          ))}
-        </ol>
-      </div>
 
       {/* Summary */}
       <div className="card p-5">
