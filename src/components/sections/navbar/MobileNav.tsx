@@ -51,7 +51,17 @@ export function MobileNav({
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-[60] flex flex-col" style={{ background: t.backgroundColor }}>
+        <>
+          {/* Dimmed backdrop — click to close. On phones the panel is full width
+              so the backdrop is barely visible; on tablets it dims the page
+              behind the right-side drawer. */}
+          <button
+            type="button"
+            aria-label="Close menu"
+            onClick={() => setOpen(false)}
+            className="fixed inset-0 z-[59] cursor-default bg-black/40"
+          />
+          <div className="fixed inset-y-0 right-0 z-[60] flex w-full max-w-sm flex-col shadow-2xl" style={{ background: t.backgroundColor }}>
           {/* Header row mirrors the site header, with a close button. */}
           <div
             className="flex items-center justify-between px-6 py-4"
@@ -108,7 +118,8 @@ export function MobileNav({
               {primaryLabel && <span className="w-full py-2.5 text-center text-[14px] font-medium" style={fill(t)}>{primaryLabel}</span>}
             </div>
           )}
-        </div>
+          </div>
+        </>
       )}
     </div>
   );
