@@ -82,7 +82,7 @@ export function MobileNav({
           </div>
 
           {/* Links — large tap targets, active page highlighted. */}
-          <nav className="flex flex-1 flex-col overflow-y-auto px-3 py-4">
+          <nav className="flex flex-col overflow-y-auto px-3 py-4">
             {nav.map((l, i) => {
               const content = (
                 <span className="flex items-center justify-between">
