@@ -34,6 +34,8 @@ export function renderSectionByKind(
     onEditText?: (field: "title" | "description", value: string) => void;
     iconKey?: string; imageUrl?: string; onEditIcon?: (k: string) => void; onEditImage?: (v: string) => void;
     contentItems?: import("./types").SectionContentItem[]; onEditItems?: (items: import("./types").SectionContentItem[]) => void;
+    /** Real page links for navbar/footer in live preview. */
+    navLinks?: import("./types").NavLink[];
     /** Edited content from the Section Settings drawer (overrides name/note). */
     content?: { eyebrow?: string; title?: string; subtitle?: string; description?: string; primaryButtonLabel?: string; primaryButtonHref?: string; secondaryButtonLabel?: string; secondaryButtonHref?: string };
   },
@@ -81,6 +83,7 @@ export function renderSectionByKind(
       items={items}
       contentItems={props.contentItems}
       onEditItems={props.onEditItems}
+      navLinks={props.navLinks}
     />
   );
 }

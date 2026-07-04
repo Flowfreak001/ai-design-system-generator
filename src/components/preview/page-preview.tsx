@@ -43,6 +43,13 @@ export function PagePreview({ projectId, pages, style, initialPageId, framed }: 
 
   // ── Inner (iframe) mode: just the rendered sections, real window scroll. ──
   if (framed) {
+    // Real page links injected into the site's own header/footer so the
+    // rendered navbar becomes the navigation (no page menu in the preview chrome).
+    const navLinks = pages.map((p) => ({
+      label: p.name,
+      href: `/preview/${projectId}?frame=1&page=${p.id}`,
+      active: p.id === page?.id,
+    }));
     return (
       <div style={{ background: theme.backgroundColor }}>
         <main>
@@ -53,6 +60,7 @@ export function PagePreview({ projectId, pages, style, initialPageId, framed }: 
                 note: s.note,
                 theme,
                 assetSide: s.asset === "left" ? "left" : "right",
+                navLinks,
               })}
             </div>
           ))}
@@ -71,8 +79,9 @@ export function PagePreview({ projectId, pages, style, initialPageId, framed }: 
 
   return (
     <div className="flex h-[100dvh] flex-col bg-neutral-100">
-      {/* Top toolbar */}
-      <header className="flex flex-wrap items-center gap-3 border-b border-black/10 bg-white/95 px-4 py-2.5 backdrop-blur">
+      {/* Top toolbar — Editor on the left, device toggle centered. Page
+          navigation now lives in the rendered site's own header. */}
+      <header className="relative flex items-center border-b border-black/10 bg-white/95 px-4 py-2.5 backdrop-blur">
         <Link
           href={`/projects/${projectId}/editor`}
           className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[12.5px] font-medium text-neutral-600 transition-colors hover:bg-neutral-100"
@@ -83,9 +92,9 @@ export function PagePreview({ projectId, pages, style, initialPageId, framed }: 
           Editor
         </Link>
 
-        {/* Device toggle (center) */}
-        <div className="order-last flex w-full justify-center sm:order-none sm:mx-auto sm:w-auto">
-          <div className="inline-flex items-center gap-0.5 rounded-full border border-black/10 bg-neutral-100 p-0.5">
+        {/* Device toggle — absolutely centered so it stays mid-screen. */}
+        <div className="pointer-events-none absolute inset-x-0 flex justify-center">
+          <div className="pointer-events-auto inline-flex items-center gap-0.5 rounded-full border border-black/10 bg-neutral-100 p-0.5">
             {(Object.keys(DEVICE) as Device[]).map((d) => (
               <button
                 key={d}
@@ -104,21 +113,7 @@ export function PagePreview({ projectId, pages, style, initialPageId, framed }: 
           </div>
         </div>
 
-        {/* Page switcher */}
-        <div className="flex items-center gap-1 overflow-x-auto">
-          {pages.map((p) => (
-            <button
-              key={p.id}
-              type="button"
-              onClick={() => setPageId(p.id)}
-              className={`whitespace-nowrap rounded-full px-3 py-1.5 text-[12.5px] font-medium transition-colors ${
-                p.id === pageId ? "bg-neutral-900 text-white" : "text-neutral-600 hover:bg-neutral-100"
-              }`}
-            >
-              {p.name}
-            </button>
-          ))}
-        </div>
+        <span className="ml-auto truncate text-[12.5px] font-medium text-neutral-500">{page?.name}</span>
       </header>
 
       {/* Canvas: the framed page at the chosen device width. */}
@@ -132,11 +127,22 @@ export function PagePreview({ projectId, pages, style, initialPageId, framed }: 
           style={{ width: width ? `${width}px` : "100%", maxWidth: "100%" }}
         >
           <iframe
-            key={`${device}-${pageId}`}
+            key={device}
             src={src}
             title="Live preview"
             className="h-full w-full border-0"
             style={{ minHeight: isDesktop ? "100%" : `${Math.round((width ?? 390) * 1.6)}px` }}
+            onLoad={(e) => {
+              // Keep the outer state in sync when the site header navigates
+              // inside the iframe, so switching device preserves the page.
+              try {
+                const u = new URL((e.currentTarget as HTMLIFrameElement).contentWindow!.location.href);
+                const p = u.searchParams.get("page");
+                if (p && p !== pageId && pages.some((x) => x.id === p)) setPageId(p);
+              } catch {
+                /* cross-origin guard — same-origin in practice */
+              }
+            }}
           />
         </div>
       </div>

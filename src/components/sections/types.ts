@@ -112,6 +112,15 @@ export interface SectionProps {
   /** Per-section editable repeated items + a single commit for add/edit/remove. */
   contentItems?: SectionContentItem[];
   onEditItems?: (items: SectionContentItem[]) => void;
+  /** Real page links for navbar/footer in live preview (drives page nav). */
+  navLinks?: NavLink[];
+}
+
+/** A real navigation link rendered in the site header/footer during preview. */
+export interface NavLink {
+  label: string;
+  href: string;
+  active?: boolean;
 }
 
 /** An individually-editable repeated item (card/step/list row) within a section. */
