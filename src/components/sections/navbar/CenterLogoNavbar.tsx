@@ -21,7 +21,7 @@ export default function CenterLogoNavbar({ theme, title, items, navLinks }: Sect
         <NavItems nav={nav.slice(half)} />
       </div>
       {/* mobile: hamburger on the right. */}
-      <MobileNav nav={nav} theme={theme} />
+      <MobileNav nav={nav} theme={theme} title={title || "Logo"} />
     </nav>
   );
 }

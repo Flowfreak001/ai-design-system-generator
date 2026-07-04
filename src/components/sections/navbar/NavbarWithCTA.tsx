@@ -19,7 +19,7 @@ export default function NavbarWithCTA({ theme, title, items, primaryButtonLabel,
       <div className="flex items-center gap-2">
         <span className="hidden px-3.5 py-2 text-[13px] font-medium lg:inline-block" style={outline(t)}>{secondary}</span>
         <span className="hidden px-4 py-2 text-[13px] font-medium lg:inline-block" style={fill(t)}>{primary}</span>
-        <MobileNav nav={nav} theme={theme} primaryLabel={primary} secondaryLabel={secondary} />
+        <MobileNav nav={nav} theme={theme} title={title || "Logo"} primaryLabel={primary} secondaryLabel={secondary} />
       </div>
     </nav>
   );

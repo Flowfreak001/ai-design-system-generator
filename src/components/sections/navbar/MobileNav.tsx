@@ -1,96 +1,114 @@
 "use client";
 
-// Responsive mobile header menu. Real site headers collapse their nav into a
-// hamburger button that toggles a dropdown panel below a breakpoint. This is
-// shown only under `md` (links show inline at md+), so tablet/desktop keep the
-// full nav and phones get a proper hamburger → stacked menu with the CTAs.
+// Responsive mobile header menu. Below lg the inline nav collapses into a
+// hamburger that opens a full-screen overlay menu (the standard mobile pattern):
+// a header row with the logo + close, large stacked links with the active page
+// highlighted, and the CTAs pinned at the bottom. At lg+ the inline nav shows.
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { NavLink, SectionTheme } from "../types";
-import { resolveTheme, fill, outline } from "../section-theme";
+import { resolveTheme, h, fill, outline } from "../section-theme";
 
 export function MobileNav({
   nav,
   theme,
+  title,
   primaryLabel,
   secondaryLabel,
 }: {
   nav: NavLink[];
   theme?: SectionTheme;
+  title?: string;
   primaryLabel?: string;
   secondaryLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
   const t = resolveTheme(theme);
 
+  // Lock body scroll while the overlay is open.
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
+
   return (
-    <div className="relative lg:hidden">
+    <div className="lg:hidden">
       <button
         type="button"
-        aria-label={open ? "Close menu" : "Open menu"}
+        aria-label="Open menu"
         aria-expanded={open}
-        onClick={() => setOpen((o) => !o)}
-        className="grid h-9 w-9 place-items-center rounded-lg"
+        onClick={() => setOpen(true)}
+        className="grid h-10 w-10 place-items-center rounded-lg"
         style={{ color: t.textColor }}
       >
-        {open ? (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-          </svg>
-        ) : (
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-          </svg>
-        )}
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
       </button>
 
       {open && (
-        <>
-          {/* Click-away backdrop */}
-          <button
-            type="button"
-            aria-hidden="true"
-            tabIndex={-1}
-            onClick={() => setOpen(false)}
-            className="fixed inset-0 z-40 cursor-default"
-          />
+        <div className="fixed inset-0 z-[60] flex flex-col" style={{ background: t.backgroundColor }}>
+          {/* Header row mirrors the site header, with a close button. */}
           <div
-            className="absolute right-0 top-full z-50 mt-2 w-60 overflow-hidden rounded-xl shadow-xl"
-            style={{ background: t.backgroundColor, border: `1px solid ${t.borderColor}` }}
+            className="flex items-center justify-between px-6 py-4"
+            style={{ borderBottom: `1px solid ${t.borderColor}` }}
           >
-            <nav className="flex flex-col p-1.5">
-              {nav.map((l, i) =>
-                l.href ? (
-                  <a
-                    key={`${l.label}-${i}`}
-                    href={l.href}
-                    onClick={() => setOpen(false)}
-                    className="rounded-lg px-3 py-2.5 text-[14px] transition-colors"
-                    style={{
-                      color: t.textColor,
-                      fontFamily: t.bodyFont,
-                      fontWeight: l.active ? 700 : 500,
-                      background: l.active ? t.surfaceColor : "transparent",
-                    }}
-                  >
-                    {l.label}
-                  </a>
-                ) : (
-                  <span key={`${l.label}-${i}`} className="rounded-lg px-3 py-2.5 text-[14px]" style={{ color: t.textColor }}>
-                    {l.label}
-                  </span>
-                ),
-              )}
-            </nav>
-
-            {(secondaryLabel || primaryLabel) && (
-              <div className="flex flex-col gap-2 border-t p-3" style={{ borderColor: t.borderColor }}>
-                {secondaryLabel && <span className="w-full text-center text-[13px] font-medium" style={outline(t)}>{secondaryLabel}</span>}
-                {primaryLabel && <span className="w-full text-center text-[13px] font-medium" style={fill(t)}>{primaryLabel}</span>}
-              </div>
-            )}
+            <span className="text-[16px] font-bold" style={h(t)}>{title || "Logo"}</span>
+            <button
+              type="button"
+              aria-label="Close menu"
+              onClick={() => setOpen(false)}
+              className="grid h-10 w-10 place-items-center rounded-lg"
+              style={{ color: t.textColor }}
+            >
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+              </svg>
+            </button>
           </div>
-        </>
+
+          {/* Links — large tap targets, active page highlighted. */}
+          <nav className="flex flex-1 flex-col overflow-y-auto px-3 py-4">
+            {nav.map((l, i) => {
+              const content = (
+                <span className="flex items-center justify-between">
+                  <span>{l.label}</span>
+                  {l.active && (
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true" style={{ color: t.accentColor }}>
+                      <path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" />
+                    </svg>
+                  )}
+                </span>
+              );
+              const style = {
+                color: l.active ? t.accentColor : t.textColor,
+                fontFamily: t.bodyFont,
+                fontWeight: l.active ? 700 : 500,
+              } as const;
+              return l.href ? (
+                <a key={`${l.label}-${i}`} href={l.href} onClick={() => setOpen(false)} className="rounded-xl px-4 py-3.5 text-[17px]" style={style}>
+                  {content}
+                </a>
+              ) : (
+                <span key={`${l.label}-${i}`} className="rounded-xl px-4 py-3.5 text-[17px]" style={style}>
+                  {content}
+                </span>
+              );
+            })}
+          </nav>
+
+          {/* CTAs pinned at the bottom. */}
+          {(secondaryLabel || primaryLabel) && (
+            <div className="flex flex-col gap-2.5 px-6 py-5" style={{ borderTop: `1px solid ${t.borderColor}` }}>
+              {secondaryLabel && <span className="w-full py-2.5 text-center text-[14px] font-medium" style={outline(t)}>{secondaryLabel}</span>}
+              {primaryLabel && <span className="w-full py-2.5 text-center text-[14px] font-medium" style={fill(t)}>{primaryLabel}</span>}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );

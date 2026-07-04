@@ -14,7 +14,7 @@ export default function SimpleNavbar({ theme, title, items, primaryButtonLabel, 
         <NavItems nav={nav} />
       </div>
       <span className="hidden px-4 py-2 text-[13px] font-medium lg:inline-block" style={fill(t)}>{cta}</span>
-      <MobileNav nav={nav} theme={theme} primaryLabel={cta} />
+      <MobileNav nav={nav} theme={theme} title={title || "Logo"} primaryLabel={cta} />
     </nav>
   );
 }
