@@ -10,11 +10,13 @@ import { Button } from "@/components/ui/button";
 import { PageContainer } from "@/components/layout/page-container";
 import { analyzeReferenceAction, saveReferencePatternAction, deleteReferencePatternAction } from "@/app/(app)/projects/[id]/references/actions";
 import { generateSectionFromReferencePattern, filterPatterns } from "@/lib/references/pattern";
+import { RenderSection } from "@/components/sections/render-section";
+import type { SectionType } from "@/components/sections/types";
 import {
   SECTION_TYPE_OPTIONS, WEBSITE_TYPE_OPTIONS, INDUSTRY_OPTIONS,
   PURPOSE_GROUPS, PURPOSE_CATEGORY_OF,
   VISUAL_STYLE_TAGS, LAYOUT_TAGS, INTERACTION_TAGS,
-  type ReferenceSectionType, type SectionPattern,
+  type ReferenceSectionType, type SectionPattern, type GeneratedSectionSpec,
 } from "@/lib/references/types";
 
 async function downscale(file: File, max: number): Promise<string> {
@@ -51,7 +53,8 @@ export function ReferenceLibraryClient({ projectId, projectName, initialPatterns
   const [draft, setDraft] = useState<SectionPattern | null>(null);
   const [busy, start] = useTransition();
   const [err, setErr] = useState("");
-  const [genSpec, setGenSpec] = useState<string | null>(null);
+  const [created, setCreated] = useState<{ spec: GeneratedSectionSpec; pattern: SectionPattern } | null>(null);
+  const [showSpec, setShowSpec] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
 
   const closeAdd = () => { setAddOpen(false); setDraft(null); setErr(""); setShowMore(false); };
@@ -100,7 +103,7 @@ export function ReferenceLibraryClient({ projectId, projectName, initialPatterns
     });
   };
   const remove = (id: string) => start(async () => { await deleteReferencePatternAction(projectId, id); setPatterns((cur) => cur.filter((p) => p.id !== id)); });
-  const generate = (p: SectionPattern) => setGenSpec(JSON.stringify(generateSectionFromReferencePattern(p, { businessName: projectName }), null, 2));
+  const generate = (p: SectionPattern) => { setShowSpec(false); setCreated({ spec: generateSectionFromReferencePattern(p, { businessName: projectName }), pattern: p }); };
 
   return (
     <PageContainer>
@@ -164,7 +167,7 @@ export function ReferenceLibraryClient({ projectId, projectName, initialPatterns
                         {p.styleTags.slice(0, 3).map((t) => <span key={t} className="rounded bg-panel px-1.5 py-0.5 text-[10px] text-faint">{t}</span>)}
                       </div>
                       <div className="mt-3 flex items-center justify-between">
-                        <button type="button" onClick={() => generate(p)} className="text-[12px] font-medium text-accent hover:underline">Generate section →</button>
+                        <button type="button" onClick={() => generate(p)} className="text-[12px] font-medium text-accent hover:underline">Create section →</button>
                         <button type="button" onClick={() => remove(p.id)} className="text-[12px] text-faint hover:text-danger">Delete</button>
                       </div>
                     </div>
@@ -299,20 +302,66 @@ export function ReferenceLibraryClient({ projectId, projectName, initialPatterns
         </div>
       )}
 
-      {/* Generated section spec modal */}
-      {genSpec && (
-        <div className="fixed inset-0 z-[80] grid place-items-center bg-ink/30 p-6" onClick={() => setGenSpec(null)}>
-          <div className="max-h-[80vh] w-full max-w-2xl overflow-auto rounded-2xl bg-surface p-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
-            <div className="mb-2 flex items-center justify-between">
-              <p className="text-[13px] font-semibold text-ink">Generated section spec <span className="text-[11px] font-normal text-faint">· reference-inspired original (grey placeholders)</span></p>
-              <button type="button" onClick={() => setGenSpec(null)} className="text-faint hover:text-ink" aria-label="Close">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      {/* Created section — live preview of a NEW original editable section built
+          from the reference pattern (never the uploaded screenshot). */}
+      {created && (
+        <div className="fixed inset-0 z-[80] grid place-items-center bg-ink/40 p-4 sm:p-6" onClick={() => setCreated(null)}>
+          <div className="flex max-h-[88vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-surface shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-start justify-between gap-3 border-b border-line px-4 py-3">
+              <div>
+                <p className="text-[13.5px] font-semibold text-ink">Created section — {created.spec.name}</p>
+                <p className="mt-0.5 text-[11.5px] text-muted">
+                  A new original editable section, inspired by the “{created.pattern.name}” pattern. Grey placeholders only — never a copy of the uploaded screenshot.
+                </p>
+              </div>
+              <button type="button" onClick={() => setCreated(null)} className="shrink-0 text-faint hover:text-ink" aria-label="Close">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <path d="m6 6 12 12M18 6 6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
                 </svg>
               </button>
             </div>
-            <pre className="overflow-auto rounded-lg bg-panel p-3 text-[11px] leading-relaxed text-body">{genSpec}</pre>
-            <p className="mt-2 text-[11px] text-faint">TODO: “Insert into page” / “Replace section” wiring in the Design Canvas.</p>
+
+            <div className="min-h-0 flex-1 overflow-auto">
+              {/* Live rendered preview of the created section. */}
+              <div className="border-b border-line">
+                <div className="pointer-events-none select-none">
+                  <RenderSection
+                    type={created.spec.type as SectionType}
+                    variant={created.spec.designVariant}
+                    assetSide={created.spec.assetPlacement === "left" ? "left" : "right"}
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-3 p-4 sm:grid-cols-2">
+                <div className="rounded-xl border border-line p-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-faint">Component match</p>
+                  {created.spec.needsNewComponent ? (
+                    <p className="mt-1 text-[12.5px] text-warning">Needs a new component — a fallback layout is shown. Suggested: {created.spec.componentName}</p>
+                  ) : (
+                    <p className="mt-1 text-[12.5px] text-body">Uses <span className="font-medium text-ink">{created.spec.componentName}</span>{created.spec.designVariant && created.spec.designVariant !== "custom" ? ` · ${created.spec.designVariant}` : ""}</p>
+                  )}
+                  <p className="mt-2 text-[11px] text-faint">{created.spec.responsiveNotes}</p>
+                </div>
+                <div className="rounded-xl border border-line p-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-faint">Pattern</p>
+                  <p className="mt-1 line-clamp-3 text-[12.5px] text-body">{created.spec.purpose}</p>
+                  <button type="button" onClick={() => setShowSpec((s) => !s)} className="mt-2 text-[11.5px] font-medium text-accent hover:underline">{showSpec ? "Hide" : "View"} full spec (JSON)</button>
+                </div>
+                {showSpec && (
+                  <pre className="sm:col-span-2 max-h-64 overflow-auto rounded-lg bg-panel p-3 text-[11px] leading-relaxed text-body">{JSON.stringify(created.spec, null, 2)}</pre>
+                )}
+              </div>
+            </div>
+
+            {/* Actions. Add-to-page / save-to-library persistence is the next phase. */}
+            <div className="flex flex-wrap items-center justify-end gap-2 border-t border-line px-4 py-3">
+              <span className="mr-auto text-[11px] text-faint">source: reference-inspired · editable after adding</span>
+              <Button size="sm" variant="secondary" onClick={() => generate(created.pattern)}>Regenerate</Button>
+              <Link href={`/projects/${projectId}/editor`}>
+                <Button size="sm">Open Design Editor</Button>
+              </Link>
+            </div>
           </div>
         </div>
       )}
