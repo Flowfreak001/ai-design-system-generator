@@ -292,7 +292,10 @@ export type BlueprintBlock =
   /** A lead/contact/booking/newsletter form (grey inputs + submit). */
   | { type: "form"; heading?: string; fields?: string[]; submitLabel?: string }
   /** Pricing plan cards. */
-  | { type: "pricing"; plans: { name: string; price?: string; features?: string[]; featured?: boolean }[] };
+  | { type: "pricing"; plans: { name: string; price?: string; features?: string[]; featured?: boolean }[] }
+  /** Horizontal carousel of result/case-study cards (arrows + off-screen peek).
+   *  Each card can carry a logo placeholder and stat/metric tiles. */
+  | { type: "carousel"; heading?: string; cards: { title?: string; body?: string; logo?: boolean; stats?: { value: string; label: string }[] }[] };
 
 /** Structured visual-pattern detection from Vision — the "what UI pattern is
  *  this" signal, used to drive and validate the blueprint (not content category). */
@@ -309,6 +312,11 @@ export interface VisionDebug {
   /** Exact OpenAI error (code: message) that triggered the fallback. */
   fallbackReason?: string;
   error?: string;
+  /** Classification: the user's dropdown pick vs the AI's visual classification. */
+  userSectionType?: string;
+  aiSectionType?: string;
+  /** True when the AI overrode the user's section-type hint from the image. */
+  overridden?: boolean;
 }
 
 export interface DetectedPattern {
@@ -331,6 +339,8 @@ export interface DetectedPattern {
   hasLogos?: boolean;
   hasGallery?: boolean;
   hasSplitIntro?: boolean;
+  hasCarousel?: boolean;
+  hasOffscreenElements?: boolean;
   mustNotFlattenInto?: string[];
 }
 

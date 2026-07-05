@@ -128,6 +128,42 @@ function buildCustomSpec(rt: ReferenceSectionType, vision: ReferenceVisionResult
   };
 }
 
+const REF_TYPES = new Set<ReferenceSectionType>([
+  "hero", "navbar", "features", "services", "product", "gallery", "portfolio", "pricing",
+  "testimonials", "faq", "cta", "footer", "contact", "booking", "quote", "blog",
+  "directory", "dashboard", "accordion", "comparison", "process", "social-proof", "showcase", "custom",
+]);
+
+/** Map Vision's freeform classification to a valid section type. */
+function mapVisionType(raw: string): ReferenceSectionType | null {
+  const t = raw.trim().toLowerCase();
+  if (REF_TYPES.has(t as ReferenceSectionType)) return t as ReferenceSectionType;
+  if (/case.?stud|result|logo|\bstat|metric|client|review|proof|trust|award/.test(t)) return "social-proof";
+  if (/testimonial|quote/.test(t)) return "testimonials";
+  if (/faq|accordion/.test(t)) return "accordion";
+  if (/pricing|plan|tier/.test(t)) return "pricing";
+  if (/gallery|portfolio|showcase/.test(t)) return "gallery";
+  if (/contact|\bform\b|booking/.test(t)) return "contact";
+  if (/feature/.test(t)) return "features";
+  if (/service/.test(t)) return "services";
+  if (/footer/.test(t)) return "footer";
+  if (/cta|call.?to.?action/.test(t)) return "cta";
+  if (/hero|banner|intro/.test(t)) return "hero";
+  return null;
+}
+
+/** The user's dropdown type is a WEAK hint — the AI's visual classification wins
+ *  when Vision ran and the image clearly says something else. */
+function resolveSectionType(userType: ReferenceSectionType, v: ReferenceVisionResult): { type: ReferenceSectionType; overridden: boolean } {
+  if (v.source !== "openai_vision") return { type: userType, overridden: false };
+  const d = v.detected;
+  // Strong visual signals beat the dropdown outright.
+  if (d?.hasCarousel && (d.hasStats || d.hasLogos)) return { type: "social-proof", overridden: userType !== "social-proof" };
+  const mapped = mapVisionType(v.likelySectionType || "");
+  if (mapped) return { type: mapped, overridden: mapped !== userType };
+  return { type: userType, overridden: false };
+}
+
 /** Combine a Vision analysis + user inputs into a reusable SectionPattern (draft). */
 export function createSectionPatternFromReferenceImage(input: {
   sectionType: ReferenceSectionType;
@@ -146,6 +182,8 @@ export function createSectionPatternFromReferenceImage(input: {
 }): SectionPattern {
   const v = input.vision;
   const now = new Date().toISOString();
+  // Classify by the image, not the dropdown (weak hint).
+  const { type: sectionType, overridden } = resolveSectionType(input.sectionType, v);
   // Text the keyword auto-tagger scans (image-derived observations + notes).
   const visionText = [
     v.layoutPattern, v.visualHierarchy, ...v.componentStructure, ...v.interactionClues,
@@ -161,14 +199,14 @@ export function createSectionPatternFromReferenceImage(input: {
   const purposeCategory = input.primaryPurpose ? PURPOSE_CATEGORY_OF[input.primaryPurpose] ?? input.purposeCategory : input.purposeCategory;
   const allTags = [...styleTags, ...layoutTags, ...interactionTags, ...conversionTags];
   const matchText = [v.layoutPattern, v.visualHierarchy, ...v.componentStructure, ...v.interactionClues, ...allTags, input.primaryPurpose ?? "", ...secondaryPurposes, input.notes ?? ""].join(" ");
-  const matchedComponent = matchExistingVariant(input.sectionType, matchText);
-  const customSpec = matchedComponent ? null : buildCustomSpec(input.sectionType, v);
+  const matchedComponent = matchExistingVariant(sectionType, matchText);
+  const customSpec = matchedComponent ? null : buildCustomSpec(sectionType, v);
   const bestFor = [input.websiteType, input.industry, input.primaryPurpose, ...secondaryPurposes, ...allTags].filter(Boolean) as string[];
 
   return {
     id: uid("pat"),
-    name: `${input.sectionType} pattern — ${input.primaryPurpose ?? styleTags[0] ?? input.websiteType ?? "reference"}`,
-    sectionType: input.sectionType,
+    name: `${sectionType} pattern — ${input.primaryPurpose ?? styleTags[0] ?? input.websiteType ?? "reference"}`,
+    sectionType,
     source: "uploaded-reference",
     referenceImageId: uid("img"),
     referenceImageUrl: input.referenceImageUrl,
@@ -201,7 +239,7 @@ export function createSectionPatternFromReferenceImage(input: {
     matchedComponent,
     blueprint: v.blueprint,
     detected: v.detected,
-    visionDebug: v.debug,
+    visionDebug: v.debug ? { ...v.debug, userSectionType: input.sectionType, aiSectionType: sectionType, overridden } : undefined,
     customSpec,
     similarityRules: DEFAULT_SIMILARITY_RULES,
     confidence: v.confidence,

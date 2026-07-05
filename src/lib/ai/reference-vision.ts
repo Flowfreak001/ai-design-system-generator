@@ -107,15 +107,15 @@ export async function analyzeSectionReferenceImage(input: {
 
   const tagLine = (label: string, arr?: string[]) => (arr && arr.length ? ` ${label}: ${arr.join(", ")}.` : "");
   const userText =
-    `Analyse this section reference. Classification hints from the user — section type: ${input.sectionType || "unknown"}; website type: ${input.websiteType || "unknown"}; industry: ${input.industry || "unknown"}.` +
+    `Analyse this section reference. WEAK optional hints from the user (may be wrong) — section type: ${input.sectionType || "unknown"}; website type: ${input.websiteType || "unknown"}; industry: ${input.industry || "unknown"}.` +
+    " IMPORTANT: the user's selected section type is ONLY a weak hint. Classify by the VISUAL EVIDENCE in the screenshot FIRST. If the image visually contradicts the user's selected type, IGNORE the hint and classify from what you see (e.g. user picked 'Hero' but the image is a case-study/results carousel with client logos, stat tiles, arrow controls and an off-screen card → classify as social-proof / case-studies, layoutType 'case-study-results-carousel' or 'logo-stats-carousel', NOT hero/centered-hero)." +
     ` Primary purpose (what this section is mainly trying to achieve): ${input.primaryPurpose || "unknown"}${input.purposeCategory ? ` (category: ${input.purposeCategory})` : ""}.` +
     tagLine("Secondary purposes", input.secondaryPurposes) +
-    " Focus the extracted pattern on serving the PRIMARY purpose first (e.g. for 'Drive primary CTA' — emphasise CTA placement, headline hierarchy and conversion layout; for 'Build trust' — emphasise where proof/logos/stats sit), and treat secondary purposes as supporting goals." +
     tagLine("Visual style tags", input.styleTags) +
     tagLine("Layout tags", input.layoutTags) +
     tagLine("Interaction tags", input.interactionTags) +
     tagLine("Conversion tags", input.conversionTags) +
-    " Use these hints to classify the pattern more accurately and keep the extracted structure consistent with them." +
+    " Treat all of the above as weak hints; the screenshot is the source of truth." +
     (input.notes ? ` The user specifically likes: ${input.notes}.` : "") +
     " Return JSON with keys: likelySectionType (string), pageContext (string), layoutPattern (string)," +
     " visualHierarchy (string), componentStructure (array), typographyObservations (array), colorUsage (array with colour names + best-guess hex, described as DIRECTION not exact copy)," +
@@ -153,11 +153,11 @@ export async function analyzeSectionReferenceImage(input: {
     " ALSO return a `detected` object describing the VISUAL PATTERN (not the content category):" +
     ' { layoutType (one concise kebab-case pattern name, e.g. "split-media-accordion", "dark-feature-showcase", "faq-accordion", "pricing-card-comparison", "contact-form-section", "testimonial-card-row", "logo-cloud", "stats-row", "gallery-showcase", "centered-hero", "split-hero", "simple-card-grid", "media-card-grid"),' +
     " patternFamily, shortDescription, isDark (true if the section background is dark/black), mediaSide ('left'|'right'), cardCount (number of cards if any)," +
-    " hasMedia, hasImageCards (cards are large image tiles with text below), hasIconCards (small icon+text cards), hasAccordion, hasForm, hasPricing, hasTestimonials, hasStats, hasLogos, hasGallery, hasSplitIntro (all booleans for what is actually visible)," +
+    " hasMedia, hasImageCards (cards are large image tiles with text below), hasIconCards (small icon+text cards), hasAccordion, hasForm, hasPricing, hasTestimonials, hasStats (cards contain big numbers/percentages/metrics), hasLogos (client/company logos visible), hasGallery, hasSplitIntro, hasCarousel (arrow/next-prev controls or a horizontal card row), hasOffscreenElements (a card is partially cut off / peeking at an edge) (all booleans for what is actually visible)," +
     " mustNotFlattenInto (array of generic layouts this must NOT collapse into, e.g. ['simple-card-grid','centered-hero']) }." +
     " Set the booleans from what you SEE (e.g. expandable +/- rows → hasAccordion:true; input fields → hasForm:true; price tiers → hasPricing:true)." +
     " detected.layoutType is the MOST IMPORTANT field — the generated section follows it. Never return a generic content category ('services','features','grid','cards') as layoutType; if unsure use 'custom-generated-layout'." +
-    " Consistency rules: hasAccordion:true → layoutType must contain 'accordion'; hasForm:true → layoutType must contain 'form'; hasPricing:true → layoutType must contain 'pricing'; a dark/black section → isDark:true AND blueprint.background must be that dark hex; exactly N cards visible → cardCount:N and the blueprint cardGrid must have exactly N cards." +
+    " Consistency rules: hasAccordion:true → layoutType must contain 'accordion'; hasForm:true → layoutType must contain 'form'; hasPricing:true → layoutType must contain 'pricing'; hasCarousel:true → layoutType is a carousel (e.g. 'case-study-results-carousel','logo-stats-carousel','results-card-carousel','testimonial-carousel') and NEVER hero/centered-hero; hasStats && hasLogos → this is social-proof/case-studies, not a hero; a dark/black section → isDark:true AND blueprint.background must be that dark hex; exactly N cards visible → cardCount:N and the blueprint cardGrid has exactly N cards." +
     " Write REAL, concrete, ORIGINAL starter copy for every text slot — natural words a designer would ship, relevant to the section's purpose. Do NOT output literal template labels like 'Your Main Heading', 'Your Subheading', 'Card Title 1', 'Card description here', or 'Your Media Placeholder'. Example — good heading: 'Launch a site that converts'; bad: 'Your Main Heading'. Never transcribe the reference's exact words, brand, or logo; for any image use a placeholder — never reuse the reference's images.";
 
   const messages: ChatMessage[] = [

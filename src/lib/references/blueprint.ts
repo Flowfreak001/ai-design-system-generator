@@ -36,6 +36,7 @@ export function normalizeDetected(raw: unknown): DetectedPattern | undefined {
     hasAccordion: b(o.hasAccordion), hasForm: b(o.hasForm),
     hasPricing: b(o.hasPricing), hasTestimonials: b(o.hasTestimonials), hasStats: b(o.hasStats),
     hasLogos: b(o.hasLogos), hasGallery: b(o.hasGallery), hasSplitIntro: b(o.hasSplitIntro),
+    hasCarousel: b(o.hasCarousel), hasOffscreenElements: b(o.hasOffscreenElements),
     mustNotFlattenInto: Array.isArray(o.mustNotFlattenInto) ? o.mustNotFlattenInto.map((x) => String(x)).slice(0, 6) : undefined,
   };
   // Generic/content-category names are not layout types — derive a specific
@@ -49,6 +50,14 @@ export function normalizeDetected(raw: unknown): DetectedPattern | undefined {
 /** Map component evidence to a specific layout type (used when Vision returns
  *  a generic name, or none at all). General across all reference shapes. */
 export function deriveLayoutType(d: DetectedPattern): string {
+  // Carousels first — arrow controls / off-screen cards are a strong signal
+  // that this is NOT a hero or a plain grid.
+  if (d.hasCarousel) {
+    if (d.hasLogos && d.hasStats) return "logo-stats-carousel";
+    if (d.hasStats || d.hasLogos) return "case-study-results-carousel";
+    if (d.hasTestimonials) return "testimonial-carousel";
+    return "results-card-carousel";
+  }
   if (d.hasAccordion) return d.hasMedia ? "split-media-accordion" : "faq-accordion";
   if (d.hasForm) return "form-with-content";
   if (d.hasPricing) return "pricing-card-comparison";
@@ -116,10 +125,24 @@ export function buildBlueprintFromPattern(pattern: SectionPattern, content: Cont
   // references from flattening into a generic services grid. ──
   const st = String(type);
   const d = pattern.detected;
+  const wantsCarousel = d?.hasCarousel ?? has(pattern, /carousel|slider|arrow|next.?prev|off.?screen|swipe/);
   const wantsAccordion = d?.hasAccordion ?? (st === "faq" || st === "accordion" || has(pattern, /accordion|faq|expand|collapse|toggle|plus.?minus|disclosure/));
   const wantsForm = d?.hasForm ?? (st === "contact" || st === "booking" || st === "quote" || has(pattern, /\bform\b|input field|text field|email field|contact form|booking form|quote form|sign.?up form|newsletter form|message field/));
   const wantsPricing = d?.hasPricing ?? (st === "pricing" || has(pattern, /pricing|per month|\/mo\b|price plan|tier|subscription plan/));
   const wantsTestimonial = d?.hasTestimonials ?? (st === "testimonials" || st === "quote" || has(pattern, /testimonial|customer quote|review card|rating star/));
+
+  if (wantsCarousel) {
+    const n = items.length || cardCount(pattern) || 3;
+    const withLogos = d?.hasLogos ?? has(pattern, /logo|client|brand/);
+    const withStats = d?.hasStats ?? has(pattern, /stat|metric|percent|number|result|kpi/);
+    const cards = Array.from({ length: n }, (_, i) => ({
+      title: items[i]?.title ?? `Client ${i + 1}`,
+      body: items[i]?.text ?? "A short outcome or result statement.",
+      logo: withLogos,
+      stats: withStats ? [{ value: "00%", label: "Key metric" }, { value: "0×", label: "Improvement" }] : undefined,
+    }));
+    return { ...base, align: "left", blocks: [...head, { type: "carousel", cards }] };
+  }
 
   if (wantsAccordion) {
     const acc = { type: "accordion" as const, items: (items.length ? items : Array.from({ length: 4 }, (_, i) => ({ title: `Question ${i + 1}`, text: "A clear, concise answer." }))).map((it) => ({ question: it.title ?? "", answer: it.text })) };
@@ -233,6 +256,14 @@ export function enforcePattern(bp: SectionBlueprint, pattern: SectionPattern): S
     }
   }
 
+  // Carousel reference must render as a carousel (not a flat grid).
+  if (d?.hasCarousel && !hasType("carousel")) {
+    const gi = blocks.findIndex((b) => b.type === "cardGrid");
+    const cardsFrom = gi >= 0 ? (blocks[gi] as Extract<BlueprintBlock, { type: "cardGrid" }>).cards.map((c) => ({ title: c.title, body: c.body, logo: d.hasLogos, stats: d.hasStats ? [{ value: "00%", label: "Key metric" }] : undefined })) : Array.from({ length: d.cardCount ?? 3 }, (_, i) => ({ title: `Client ${i + 1}`, body: "A short outcome or result.", logo: d.hasLogos, stats: d.hasStats ? [{ value: "00%", label: "Key metric" }] : undefined }));
+    const carousel: BlueprintBlock = { type: "carousel", cards: cardsFrom };
+    if (gi >= 0) blocks[gi] = carousel; else blocks.push(carousel);
+  }
+
   // Accordion reference must not render as a card grid.
   if (wantsAccordion && !hasType("accordion")) {
     const gi = blocks.findIndex((b) => b.type === "cardGrid");
@@ -279,11 +310,15 @@ export function validateBlueprintAgainstDetected(bp: SectionBlueprint, d?: Detec
   if (!d) return [];
   const warnings: string[] = [];
   const hasType = (tp: string) => bp.blocks.some((b) => b.type === tp);
+  const carousel = bp.blocks.find((b) => b.type === "carousel") as Extract<BlueprintBlock, { type: "carousel" }> | undefined;
+  const carouselHasStats = Boolean(carousel?.cards.some((c) => c.stats?.length));
+  const carouselHasLogos = Boolean(carousel?.cards.some((c) => c.logo));
+  if (d.hasCarousel && !hasType("carousel")) warnings.push("Reference shows a carousel but the section has no carousel.");
   if (d.hasAccordion && !hasType("accordion")) warnings.push("Reference shows an accordion but the section has none.");
   if (d.hasForm && !hasType("form")) warnings.push("Reference shows a form but the section has none.");
   if (d.hasPricing && !hasType("pricing")) warnings.push("Reference shows pricing tiers but the section has none.");
-  if (d.hasStats && !hasType("stats")) warnings.push("Reference shows stats but the section has none.");
-  if (d.hasLogos && !hasType("logos")) warnings.push("Reference shows logos but the section has none.");
+  if (d.hasStats && !hasType("stats") && !carouselHasStats) warnings.push("Reference shows stats but the section has none.");
+  if (d.hasLogos && !hasType("logos") && !carouselHasLogos) warnings.push("Reference shows logos but the section has none.");
   if (d.cardCount && d.cardCount > 0) {
     const grid = bp.blocks.find((b) => b.type === "cardGrid") as Extract<BlueprintBlock, { type: "cardGrid" }> | undefined;
     if (grid && grid.cards.length > d.cardCount) warnings.push(`Reference shows ${d.cardCount} cards but the section has ${grid.cards.length}.`);
@@ -313,6 +348,11 @@ const FALLBACK: Record<string, string> = {
 const clean = (v: unknown, kind: string, max = 200) => {
   const s = typeof v === "string" ? v.trim().slice(0, max) : "";
   return s && !PLACEHOLDER.test(s) ? s : (FALLBACK[kind] ?? "");
+};
+/** Optional heading: empty or placeholder → undefined (no injected fallback). */
+const optHeading = (v: unknown) => {
+  const s = typeof v === "string" ? v.trim().slice(0, 100) : "";
+  return s && !PLACEHOLDER.test(s) ? s : undefined;
 };
 const S = (v: unknown, max = 200) => (typeof v === "string" ? v.trim().slice(0, max) : "");
 const A = <T>(v: unknown): T[] => (Array.isArray(v) ? v : []);
@@ -383,12 +423,20 @@ export function normalizeBlueprint(raw: unknown): SectionBlueprint | null {
         break;
       case "form": {
         const fields = A<unknown>(rb.fields).map((x) => S(x, 40)).filter(Boolean).slice(0, 6);
-        blocks.push({ type: "form", heading: clean(rb.heading, "heading", 80) || undefined, fields: fields.length ? fields : ["Name", "Email", "Message"], submitLabel: clean(rb.submitLabel, "button", 30) || "Submit" });
+        blocks.push({ type: "form", heading: optHeading(rb.heading), fields: fields.length ? fields : ["Name", "Email", "Message"], submitLabel: clean(rb.submitLabel, "button", 30) || "Submit" });
         break;
       }
       case "pricing": {
         const plans = A<Record<string, unknown>>(rb.plans).map((x) => ({ name: S(x.name, 30) || "Plan", price: S(x.price, 16) || undefined, features: A<unknown>(x.features).map((f) => S(f, 40)).filter(Boolean).slice(0, 6), featured: Boolean(x.featured) })).slice(0, 4);
         if (plans.length) blocks.push({ type: "pricing", plans });
+        break;
+      }
+      case "carousel": {
+        const cards = A<Record<string, unknown>>(rb.cards).map((x) => ({
+          title: clean(x.title, "cardTitle", 60), body: clean(x.body, "cardBody", 200), logo: Boolean(x.logo),
+          stats: A<Record<string, unknown>>(x.stats).map((s2) => ({ value: S(s2.value, 16), label: S(s2.label, 40) })).filter((s2) => s2.value || s2.label).slice(0, 4),
+        })).slice(0, 8);
+        if (cards.length) blocks.push({ type: "carousel", heading: optHeading(rb.heading), cards });
         break;
       }
     }

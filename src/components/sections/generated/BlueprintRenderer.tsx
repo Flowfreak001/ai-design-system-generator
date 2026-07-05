@@ -13,15 +13,15 @@ function readable(bg: string) {
   const r = parseInt(x.slice(0, 2), 16), g = parseInt(x.slice(2, 4), 16), bl = parseInt(x.slice(4, 6), 16);
   const l = (0.299 * r + 0.587 * g + 0.114 * bl) / 255;
   return l < 0.6
-    ? { fg: "#fff", muted: "rgba(255,255,255,0.72)", card: "rgba(255,255,255,0.06)", cardBorder: "rgba(255,255,255,0.14)" }
-    : { fg: "#111827", muted: "rgba(17,24,39,0.6)", card: "#ffffff", cardBorder: "rgba(0,0,0,0.08)" };
+    ? { fg: "#fff", muted: "rgba(255,255,255,0.72)", card: "rgba(255,255,255,0.06)", cardBorder: "rgba(255,255,255,0.14)", onCard: "rgba(255,255,255,0.08)" }
+    : { fg: "#111827", muted: "rgba(17,24,39,0.6)", card: "#ffffff", cardBorder: "rgba(0,0,0,0.08)", onCard: "rgba(0,0,0,0.04)" };
 }
 
 export function BlueprintRenderer({ blueprint, theme }: { blueprint: SectionBlueprint; theme?: SectionTheme }) {
   const t = resolveTheme(theme);
   const bg = blueprint.background ?? t.backgroundColor;
   const accent = blueprint.accent ?? t.accentColor;
-  const r = blueprint.background ? readable(bg) : { fg: t.textColor, muted: t.mutedTextColor, card: t.surfaceColor, cardBorder: t.borderColor };
+  const r = blueprint.background ? readable(bg) : { fg: t.textColor, muted: t.mutedTextColor, card: t.surfaceColor, cardBorder: t.borderColor, onCard: t.surfaceColor };
   const align = blueprint.align ?? "center";
   const alignCls = align === "center" ? "items-center text-center" : "items-start text-left";
 
@@ -130,6 +130,41 @@ export function BlueprintRenderer({ blueprint, theme }: { blueprint: SectionBlue
       }
       case "spacer":
         return <div key={i} aria-hidden="true" style={{ height: block.size === "large" ? 72 : block.size === "small" ? 24 : 44 }} />;
+      case "carousel":
+        return (
+          <div key={i} className="w-full max-w-6xl">
+            <div className="mb-4 flex items-center justify-between">
+              {block.heading ? <h2 className="text-[24px] font-bold sm:text-[28px]" style={{ fontFamily: t.headingFont, color: r.fg }}>{block.heading}</h2> : <span />}
+              <div className="flex gap-2">
+                {["M15 18l-6-6 6-6", "M9 18l6-6-6-6"].map((d, k) => (
+                  <span key={k} className="grid h-9 w-9 place-items-center rounded-full" style={{ border: `1px solid ${r.cardBorder}`, color: r.fg }}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d={d} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                  </span>
+                ))}
+              </div>
+            </div>
+            {/* Horizontal row with the last card peeking off the right edge. */}
+            <div className="flex gap-5 overflow-hidden">
+              {block.cards.map((card, j) => (
+                <div key={j} className="w-[300px] shrink-0 rounded-2xl p-6 text-left last:mr-[-120px]" style={{ background: r.card, border: `1px solid ${r.cardBorder}`, boxShadow: t.shadow }}>
+                  {card.logo && <div className="mb-4 h-8 w-24 rounded" style={{ background: r.onCard, border: `1px dashed ${r.cardBorder}` }} />}
+                  {card.title && <p className="text-[15px] font-semibold" style={{ fontFamily: t.headingFont, color: r.fg }}>{card.title}</p>}
+                  {card.body && <p className="mt-1.5 text-[13px] leading-relaxed" style={{ color: r.muted }}>{card.body}</p>}
+                  {card.stats?.length ? (
+                    <div className="mt-4 grid grid-cols-2 gap-3">
+                      {card.stats.map((s2, k) => (
+                        <div key={k} className="rounded-xl p-3" style={{ background: r.onCard }}>
+                          <div className="text-[20px] font-bold" style={{ color: accent }}>{s2.value}</div>
+                          <div className="text-[11px]" style={{ color: r.muted }}>{s2.label}</div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+              ))}
+            </div>
+          </div>
+        );
       case "form":
         return (
           <div key={i} className="w-full max-w-md rounded-2xl p-6 text-left" style={{ background: r.card, border: `1px solid ${r.cardBorder}`, boxShadow: t.shadow }}>

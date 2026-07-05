@@ -321,6 +321,12 @@ export function ReferenceLibraryClient({ projectId, projectName, initialPatterns
                         {" · "}finish <span className="font-mono">{draft.visionDebug.finishReason}</span>
                         {" · "}len {draft.visionDebug.responseLength}
                         {!draft.visionDebug.ran && <span> · did not run</span>}
+                        {draft.visionDebug.aiSectionType && (
+                          <div className="mt-0.5">
+                            you picked <span className="font-mono">{draft.visionDebug.userSectionType}</span> → AI classified <span className="font-mono">{draft.visionDebug.aiSectionType}</span>
+                            {draft.visionDebug.overridden && <span className="font-semibold"> · hint overridden from the image</span>}
+                          </div>
+                        )}
                         {draft.visionDebug.fallbackReason && <div className="mt-0.5">fallback reason: {draft.visionDebug.fallbackReason}</div>}
                         {draft.visionDebug.error && <div className="mt-0.5">{draft.visionDebug.error}</div>}
                       </div>
