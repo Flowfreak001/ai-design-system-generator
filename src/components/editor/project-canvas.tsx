@@ -9,6 +9,7 @@
 import { useEffect, useRef, useState } from "react";
 import { renderSectionByKind } from "@/components/sections/render-section";
 import { GeneratedSection } from "@/components/sections/generated/GeneratedSection";
+import { DynamicSectionRenderer } from "@/components/section-library/dynamic-renderer";
 import { createSectionTheme, WIREFRAME_SECTION_THEME } from "@/components/sections/section-theme";
 import type { SectionTheme, SectionContentItem } from "@/components/sections/types";
 import { sectionKind } from "@/lib/sections";
@@ -267,7 +268,22 @@ function PageFrame({
                       <button type="button" onClick={(e) => { e.stopPropagation(); onRemoveSection(page.id, s.id); }} title="Delete" className="grid h-8 w-8 place-items-center rounded-lg text-[16px] text-body hover:bg-danger-soft hover:text-danger">✕</button>
                     </span>
                   </div>
-                  {s.generated ? (
+                  {s.custom ? (
+                    <DynamicSectionRenderer
+                      code={s.custom.code}
+                      mode={s.custom.mode}
+                      theme={mode === "wireframe" ? WIREFRAME_SECTION_THEME : theme}
+                      content={{
+                        eyebrow: s.content?.eyebrow,
+                        title: s.content?.title,
+                        subtitle: s.content?.subtitle,
+                        description: s.content?.description,
+                        primaryButtonLabel: s.content?.primaryButtonLabel,
+                        secondaryButtonLabel: s.content?.secondaryButtonLabel,
+                        items: s.content?.items?.map((it) => ({ title: it.title, text: it.text })),
+                      }}
+                    />
+                  ) : s.generated ? (
                     <GeneratedSection
                       pattern={s.generated.pattern}
                       theme={mode === "wireframe" ? WIREFRAME_SECTION_THEME : theme}

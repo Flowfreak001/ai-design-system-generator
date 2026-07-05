@@ -17,6 +17,7 @@ export type SessionUser = {
   email: string;
   name: string | null;
   agencyId: string | null;
+  role: string;
 };
 
 function secret(): Uint8Array {
@@ -38,6 +39,7 @@ export async function createSession(user: SessionUser): Promise<void> {
     email: user.email,
     name: user.name,
     agencyId: user.agencyId,
+    role: user.role,
   })
     .setProtectedHeader({ alg: "HS256" })
     .setSubject(user.id)
@@ -73,6 +75,7 @@ export async function auth(): Promise<SessionUser | null> {
       email: String(payload.email ?? ""),
       name: (payload.name as string | null) ?? null,
       agencyId: (payload.agencyId as string | null) ?? null,
+      role: (payload.role as string | undefined) ?? "member",
     };
   } catch {
     return null;
@@ -111,7 +114,7 @@ export async function registerUser(input: {
     },
   });
   return {
-    user: { id: user.id, email: user.email, name: user.name, agencyId: user.agencyId },
+    user: { id: user.id, email: user.email, name: user.name, agencyId: user.agencyId, role: user.role },
   };
 }
 
@@ -124,6 +127,6 @@ export async function authenticate(
   const ok = await verifyPassword(password, user.passwordHash);
   if (!ok) return { error: "Invalid email or password." };
   return {
-    user: { id: user.id, email: user.email, name: user.name, agencyId: user.agencyId },
+    user: { id: user.id, email: user.email, name: user.name, agencyId: user.agencyId, role: user.role },
   };
 }

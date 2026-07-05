@@ -242,6 +242,22 @@ h4 {
   }
 }
 
+/* Interactive elements always show the pointer cursor on hover (Tailwind v4
+   defaults buttons to `cursor: default`). Unlayered so it wins over resets.
+   Disabled controls keep the not-allowed/default cursor. */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+a[href],
+label[for],
+summary,
+select:not([multiple]):not([size]) {
+  cursor: pointer;
+}
+button:disabled,
+[aria-disabled="true"] {
+  cursor: not-allowed;
+}
+
 /* Global dropdown affordance (UNLAYERED on purpose so it wins over `px-*`
    utilities): replace the native chevron with a consistent SVG and always keep
    a clear gap between the value text and the icon. Every native <select> gets

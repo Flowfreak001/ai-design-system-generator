@@ -334,3 +334,36 @@ model Lead {
   @@index([businessId])
   @@index([status])
 }
+
+// ---------------------------------------------------------------
+// Section Library — global, reusable catalog of admin/custom sections
+// (built-in sections stay in code; forks/custom/ai-drafts live here).
+// Agency-scoped so it's shared across all of an agency's projects.
+// ---------------------------------------------------------------
+
+model LibrarySection {
+  id            String   @id @default(cuid())
+  agencyId      String?
+  name          String
+  slug          String
+  category      String   @default("custom")
+  layoutType    String   @default("custom")
+  componentName String   @default("")
+  sourceType    String   @default("custom") // built-in | custom | forked | ai-draft
+  status        String   @default("draft") // draft | ready | archived
+  visibility    String   @default("public") // admin-only | public
+  codeMode      String   @default("studio-tsx") // built-in | studio-tsx | html-css
+  tsxCode       String?  @db.Text
+  config        Json?
+  defaultContent Json?
+  editableFields String[] @default([])
+  tags          String[] @default([])
+  originality   String   @default("")
+  version       Int      @default(1)
+  history       Json? // [{ code, at }]
+  createdBy     String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([agencyId, status])
+}

@@ -10,7 +10,6 @@ import { LinkButton } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/page-header";
 import { PageContainer } from "@/components/layout/page-container";
 import { FadeUp } from "@/components/ui/motion";
-import { SECTION_REFERENCE_LIBRARY_FILE } from "@/lib/references/types";
 
 export const dynamic = "force-dynamic";
 
@@ -18,16 +17,13 @@ export default async function LibraryPage() {
   const user = await requireUser();
   const projects = user.agencyId ? await listProjects(user.agencyId) : [];
 
-  const cards = projects.map((p) => {
-    const hasLibrary = p.files.some((f) => f.name === SECTION_REFERENCE_LIBRARY_FILE);
-    return { id: p.id, name: p.name, clientName: p.clientName, hasLibrary };
-  });
+  const cards = projects.map((p) => ({ id: p.id, name: p.name, clientName: p.clientName }));
 
   return (
     <PageContainer>
       <PageHeader
-        title="Section Reference Library"
-        description="Upload section references and extract reusable design patterns — originals only, never copies. Pick a project to open its library."
+        title="Section Library"
+        description="Browse ready-made section designs and add them to a page. Pick a project to open its library."
       />
 
       {cards.length === 0 ? (
@@ -35,8 +31,8 @@ export default async function LibraryPage() {
           <span className="grid h-12 w-12 place-items-center rounded-2xl bg-accent-soft text-lg text-accent">🖼</span>
           <h3 className="mt-5 text-lg font-semibold">No projects yet</h3>
           <p className="mt-2 max-w-md text-sm text-muted">
-            The reference library lives inside a project. Create a project first, then
-            upload section references to extract reusable design patterns.
+            The section library lives inside a project. Create a project first, then
+            browse ready-made sections and add them to a page.
           </p>
           <LinkButton href="/projects/new" size="lg" className="mt-6">New project</LinkButton>
         </FadeUp>
@@ -60,7 +56,7 @@ export default async function LibraryPage() {
                 <span className="block text-[12.5px] text-muted">{c.clientName ?? "—"}</span>
               </div>
               <span className="mt-auto text-[12px] text-faint">
-                {c.hasLibrary ? "Open reference library →" : "Start a reference library →"}
+                Open section library →
               </span>
             </Link>
           ))}

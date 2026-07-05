@@ -25,7 +25,16 @@ export interface SectionPlan {
   motion: ReturnType<typeof normalizeSectionData>["motion"];
   assets: ReturnType<typeof normalizeSectionData>["assets"];
   hiddenParts: string[];
+  /** Admin-authored component sections ship their own code — create it verbatim
+   *  at build time (it receives {content, theme}) instead of importing a catalog
+   *  component. Built-in sections leave these null/false. */
+  isCustomComponent: boolean;
+  customComponent: { mode: "react" | "html"; code: string } | null;
 }
+
+const pascalCase = (s: string) =>
+  s.replace(/[^a-zA-Z0-9]+/g, " ").split(" ").filter(Boolean)
+    .map((w) => w[0].toUpperCase() + w.slice(1)).join("") || "CustomSection";
 
 /** One edited section → its export plan entry (final content + item order). */
 export function exportSectionToPlan(s: CanvasSection): SectionPlan {
@@ -33,14 +42,17 @@ export function exportSectionToPlan(s: CanvasSection): SectionPlan {
   const sectionType = sectionTypeForKind(kind);
   const variant = resolveVariantMeta(sectionType, s.variant);
   const data = normalizeSectionData(s, kind);
+  const isCustom = Boolean(s.custom);
   return {
     name: s.name,
     kind,
     sectionType,
-    component: variant?.componentName ?? "GenericSection",
-    importPath: variant?.importPath ?? null,
-    designVariant: variant ? { id: variant.id, label: variant.label } : null,
-    exportNotes: variant?.exportNotes ?? null,
+    component: isCustom ? pascalCase(s.name) : (variant?.componentName ?? "GenericSection"),
+    importPath: isCustom ? null : (variant?.importPath ?? null),
+    designVariant: isCustom ? null : (variant ? { id: variant.id, label: variant.label } : null),
+    exportNotes: isCustom
+      ? "Admin-authored section: create the component from `customComponent.code` verbatim. It is a default-export React component receiving { content, theme }. Pass styleTokens as `theme` and this section's `content`. Do not import from componentDir."
+      : (variant?.exportNotes ?? null),
     source: s.source,
     status: s.status ?? "draft",
     global: Boolean(s.global),
@@ -50,6 +62,8 @@ export function exportSectionToPlan(s: CanvasSection): SectionPlan {
     motion: data.motion,
     assets: data.assets,
     hiddenParts: s.hidden ?? [],
+    isCustomComponent: isCustom,
+    customComponent: s.custom ? { mode: s.custom.mode, code: s.custom.code } : null,
   };
 }
 

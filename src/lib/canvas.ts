@@ -48,6 +48,17 @@ export type CanvasSection = {
     spec: import("@/lib/references/types").GeneratedSectionSpec;
     pattern: import("@/lib/references/types").SectionPattern;
   };
+  /** Admin-authored, component-based section: the canvas renders this via the
+   *  dynamic React/TSX (or HTML) engine. Content stays editable like any other. */
+  custom?: {
+    code: string;
+    mode: "react" | "html";
+  };
+  /** Library item this instance was copied from (provenance; the instance is
+   *  independent and editing it never touches the library item). */
+  sourceLibrarySectionId?: string;
+  /** User who added this instance to the page. */
+  createdByUserId?: string;
 };
 
 /** Sitemap category tabs for the Visual Sitemap board. */

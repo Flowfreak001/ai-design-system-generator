@@ -67,6 +67,7 @@ export function generateReactExportPlanMd(ctx: GeneratorContext): MdArtifact {
     exportNotes: [
       "Build each page from its `sections` array, in order.",
       "Import each section's `component` from componentDir.",
+      "Sections with `isCustomComponent: true` are admin-authored: create their `customComponent.code` as the component file verbatim (default export receiving { content, theme }); do NOT import from componentDir. Pass styleTokens as `theme` and the section's `content`.",
       "Pass styleTokens as the section theme; do not hardcode colors/fonts.",
       "Skip sections with status 'rejected'; render 'draft'/'approved'.",
       "Every value carries a `source` label — treat 'assumed' as a TODO to confirm.",

@@ -11,7 +11,6 @@ import { useEffect, useState } from "react";
 import { signOutAction } from "@/app/(app)/auth-actions";
 import type { SessionUser } from "@/lib/auth";
 import type { ReactNode } from "react";
-import { LinkButton } from "@/components/ui/button";
 
 const ICONS: Record<string, ReactNode> = {
   home: (
@@ -134,17 +133,22 @@ export function DashboardShell({
   const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   useEffect(() => {
     setCollapsed(localStorage.getItem("pos-sidebar") === "collapsed");
   }, []);
-  // Close the mobile drawer on navigation.
-  useEffect(() => setMobileOpen(false), [pathname]);
+  // Close the mobile drawer + account menu on navigation.
+  useEffect(() => { setMobileOpen(false); setUserMenuOpen(false); }, [pathname]);
   const toggle = () => {
     const next = !collapsed;
     setCollapsed(next);
     localStorage.setItem("pos-sidebar", next ? "collapsed" : "open");
   };
   const crumbs = CRUMBS.find(([re]) => re.test(pathname))?.[1] ?? ["Workspace"];
+  // Full-bleed surfaces own the viewport — the Section Library + Studio carry
+  // their own floating navigation, so hide the whole app chrome (sidebar +
+  // header) across all /references routes.
+  const hideChrome = /^\/projects\/[^/]+\/references/.test(pathname);
   // Section Reference Library is project-scoped; resolve it to the open project.
   const projectId = pathname.match(/^\/projects\/([^/]+)/)?.[1] ?? null;
   const projectIdActive = projectId && projectId !== "new" ? projectId : null;
@@ -239,7 +243,8 @@ export function DashboardShell({
 
   return (
     <div className="flex min-h-screen flex-1">
-      {/* Desktop sidebar */}
+      {/* Desktop sidebar — hidden on full-bleed editor surfaces. */}
+      {!hideChrome && (
       <aside className={`sticky top-0 hidden h-screen shrink-0 flex-col border-r border-line bg-surface transition-[width] duration-200 md:flex ${collapsed ? "w-[92px]" : "w-[216px]"}`}>
         <div className={`flex items-center pt-4 pb-3 ${collapsed ? "flex-col gap-2 px-0" : "justify-between gap-1 pl-3.5 pr-2"}`}>
           <Link href="/" className="flex min-w-0 items-center gap-2.5" aria-label="Project OS home">
@@ -262,6 +267,7 @@ export function DashboardShell({
         {nav(collapsed)}
         {userCard(collapsed)}
       </aside>
+      )}
 
       {/* Mobile drawer */}
       {mobileOpen && (
@@ -297,6 +303,7 @@ export function DashboardShell({
 
       {/* Main column */}
       <div className="flex min-w-0 flex-1 flex-col">
+        {!hideChrome && (
         <header className="sticky top-0 z-40 flex h-14 items-center justify-between gap-3 border-b border-line bg-canvas/90 px-4 backdrop-blur sm:px-8">
           <div className="flex min-w-0 items-center gap-2.5">
             <button
@@ -325,12 +332,48 @@ export function DashboardShell({
               aria-label="Search"
               className="hidden w-56 rounded-lg border border-line bg-surface px-3.5 py-1.5 text-[13px] placeholder:text-faint focus:border-accent/50 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent lg:block"
             />
-            <LinkButton href="/projects/new" size="md" className="h-8 px-3 text-[13px]">
-              <span className="hidden sm:inline">New project</span>
-              <span className="sm:hidden" aria-hidden="true">+</span>
-            </LinkButton>
+
+            {/* Account menu — avatar dropdown (industry-standard top-right). */}
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setUserMenuOpen((v) => !v)}
+                aria-haspopup="menu"
+                aria-expanded={userMenuOpen}
+                aria-label="Account menu"
+                className="grid h-8 w-8 cursor-pointer place-items-center rounded-full bg-accent text-[11px] font-semibold text-white outline-none ring-offset-2 ring-offset-canvas transition-shadow hover:ring-2 hover:ring-accent/40 focus-visible:ring-2 focus-visible:ring-accent"
+              >
+                {initials}
+              </button>
+              {userMenuOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} aria-hidden="true" />
+                  <div role="menu" className="absolute right-0 top-11 z-50 w-64 overflow-hidden rounded-xl border border-line bg-surface p-1.5 shadow-lg">
+                    <div className="flex items-center gap-2.5 px-2.5 py-2">
+                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-accent text-[12px] font-semibold text-white">{initials}</span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-[13px] font-medium leading-tight text-ink">{user.name ?? "Account"}</span>
+                        <span className="block truncate text-[11.5px] leading-tight text-muted">{user.email}</span>
+                      </span>
+                    </div>
+                    <div className="my-1 border-t border-line" />
+                    <Link href="/account" role="menuitem" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] text-body hover:bg-panel hover:text-ink">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8.5" r="3.5" stroke="currentColor" strokeWidth="1.7" /><path d="M5 19.5c1-3.4 3.6-5 7-5s6 1.6 7 5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg>
+                      Profile
+                    </Link>
+                    <form action={signOutAction}>
+                      <button type="submit" role="menuitem" className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] text-body hover:bg-panel hover:text-ink">
+                        {ICONS.logout}
+                        Sign out
+                      </button>
+                    </form>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </header>
+        )}
 
         <main className="flex-1">{children}</main>
       </div>

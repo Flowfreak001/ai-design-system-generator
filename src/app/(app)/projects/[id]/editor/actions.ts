@@ -13,6 +13,10 @@ import {
   type CanvasSection,
 } from "@/lib/canvas";
 import type { GeneratedSectionSpec, SectionPattern } from "@/lib/references/types";
+import { getLibrarySection, type LibraryDefaultContent } from "@/lib/section-library/manual-sections";
+import { type DynamicSectionDef } from "@/lib/section-library/dynamic-section";
+import { getCatalogSection, upsertCatalogSection, deleteCatalogSection } from "@/lib/section-library/catalog-store";
+import { isAdmin, canEditLibrarySection, canDeleteLibrarySection, canAddLibrarySection } from "@/lib/section-library/permissions";
 
 async function loadCanvas(projectId: string): Promise<SitemapCanvas | null> {
   const file = await prisma.generatedFile.findUnique({ where: { projectId_name: { projectId, name: SITEMAP_CANVAS_FILE } } });
@@ -96,6 +100,151 @@ export async function addGeneratedSectionToPageAction(
   revalidatePath(`/projects/${projectId}/editor`);
   revalidatePath(`/projects/${projectId}`);
   return { pageId: page.id };
+}
+
+/** Add a ready-made MANUAL library section as live, editable canvas data on a
+ *  page. No AI is involved — the section is a copy of a curated definition with
+ *  its default content, rendered by the same catalog component the preview uses. */
+export async function addLibrarySectionToPageAction(
+  projectId: string,
+  pageId: string,
+  librarySectionId: string,
+): Promise<{ error?: string; pageId?: string }> {
+  const user = await requireUser();
+  if (!user.agencyId || !(await ownsProject(projectId, user.agencyId))) return { error: "Not found" };
+
+  // Resolve the library item (shipped built-in OR catalog item). Adding creates
+  // a NEW editable page instance — it never touches the library item.
+  const builtin = getLibrarySection(librarySectionId);
+  let name = "", canvasName = "", variant = "", dc: LibraryDefaultContent = {};
+  let custom: CanvasSection["custom"];
+
+  if (builtin) {
+    if (builtin.status !== "ready") return { error: "This section is not published yet." };
+    name = builtin.canvasName; canvasName = builtin.name; variant = builtin.variant; dc = builtin.defaultContent;
+  } else {
+    const item = await getCatalogSection(librarySectionId, user.agencyId);
+    if (!item) return { error: "Section not found in the library." };
+    // Server-side gate: must be allowed to add this item.
+    if (!canAddLibrarySection(user, { sourceType: item.sourceType, createdByUserId: item.createdByUserId, status: item.status, visibility: item.visibility })) {
+      return { error: "You don't have access to add this section." };
+    }
+    name = item.name; canvasName = item.name; variant = "custom"; dc = item.defaultContent;
+    custom = { code: item.componentCode, mode: item.codeMode };
+  }
+
+  const canvas = await loadCanvas(projectId);
+  if (!canvas || !canvas.pages.length) return { error: "No pages yet — confirm your sitemap first." };
+  const page = canvas.pages.find((p) => p.id === pageId) ?? canvas.pages[0];
+
+  const section: CanvasSection = {
+    // Unique instance id so multiple copies of the same library section coexist.
+    id: `s-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
+    name,
+    note: canvasName,
+    source: "user-added",
+    variant,
+    status: "draft",
+    // Instance provenance: a copy of the library item, owned by this user/project.
+    sourceLibrarySectionId: librarySectionId,
+    createdByUserId: user.id,
+    content: {
+      eyebrow: dc.eyebrow,
+      title: dc.title,
+      subtitle: dc.subtitle,
+      description: dc.description,
+      primaryButtonLabel: dc.primaryButtonLabel,
+      secondaryButtonLabel: dc.secondaryButtonLabel,
+      items: (dc.items ?? []).map((it) => ({ title: it.title, text: it.text, href: it.href, icon: it.icon })),
+    },
+    ...(custom ? { custom } : {}),
+  };
+  page.sections.push(section);
+  await saveCanvasFile(projectId, SITEMAP_CANVAS_FILE, { ...canvas, updatedAt: new Date().toISOString() });
+  revalidatePath(`/projects/${projectId}/editor`);
+  revalidatePath(`/projects/${projectId}`);
+  return { pageId: page.id };
+}
+
+// ── Library item authoring (catalog) — permission-checked ──────────────────
+
+/** Create or update a catalog library section/component.
+ *  - Anyone may CREATE (their item becomes source "user", private).
+ *  - Admins creating → source "admin", public.
+ *  - UPDATE requires edit permission (admin on admin-items, or the creator). */
+export async function saveAdminSectionAction(
+  projectId: string,
+  def: DynamicSectionDef,
+): Promise<{ error?: string; id?: string }> {
+  const user = await requireUser();
+  if (!user.agencyId || !(await ownsProject(projectId, user.agencyId))) return { error: "Not found" };
+  if (!def.componentCode?.trim()) return { error: "Component code is required." };
+
+  const existing = await getCatalogSection(def.id, user.agencyId);
+  if (existing) {
+    if (!canEditLibrarySection(user, { sourceType: existing.sourceType, createdByUserId: existing.createdByUserId })) {
+      return { error: "You can only edit sections you created." };
+    }
+    // Preserve ownership/source on update.
+    def = { ...def, sourceType: existing.sourceType, visibility: existing.visibility, createdByUserId: existing.createdByUserId };
+  } else {
+    const admin = isAdmin(user);
+    def = {
+      ...def,
+      sourceType: admin ? "admin" : "user",
+      visibility: admin ? "public" : "private",
+      createdByUserId: user.id,
+    };
+  }
+
+  const saved = await upsertCatalogSection(user.agencyId, user.id, def);
+  revalidatePath(`/projects/${projectId}/references`);
+  return { id: saved.id };
+}
+
+/** Edit ONLY the metadata/default content of a catalog item (no code). */
+export async function updateLibrarySectionContentAction(
+  projectId: string,
+  sectionId: string,
+  patch: { name?: string; description?: string; tags?: string[]; defaultContent?: LibraryDefaultContent },
+): Promise<{ error?: string }> {
+  const user = await requireUser();
+  if (!user.agencyId || !(await ownsProject(projectId, user.agencyId))) return { error: "Not found" };
+
+  const existing = await getCatalogSection(sectionId, user.agencyId);
+  if (!existing) return { error: "Section not found." };
+  if (!canEditLibrarySection(user, { sourceType: existing.sourceType, createdByUserId: existing.createdByUserId })) {
+    return { error: "You can only edit sections you created." };
+  }
+
+  const next: DynamicSectionDef = {
+    ...existing,
+    name: patch.name ?? existing.name,
+    description: patch.description ?? existing.description,
+    tags: patch.tags ?? existing.tags,
+    defaultContent: patch.defaultContent ?? existing.defaultContent,
+  };
+  await upsertCatalogSection(user.agencyId, user.id, next);
+  revalidatePath(`/projects/${projectId}/references`);
+  return {};
+}
+
+/** Delete a catalog library section — requires delete permission. */
+export async function deleteAdminSectionAction(
+  projectId: string,
+  sectionId: string,
+): Promise<{ error?: string }> {
+  const user = await requireUser();
+  if (!user.agencyId || !(await ownsProject(projectId, user.agencyId))) return { error: "Not found" };
+
+  const existing = await getCatalogSection(sectionId, user.agencyId);
+  if (!existing) return {};
+  if (!canDeleteLibrarySection(user, { sourceType: existing.sourceType, createdByUserId: existing.createdByUserId })) {
+    return { error: "You can only delete sections you created." };
+  }
+  await deleteCatalogSection(sectionId, user.agencyId);
+  revalidatePath(`/projects/${projectId}/references`);
+  return {};
 }
 
 const STAGE_FLAGS: Record<string, string> = {
