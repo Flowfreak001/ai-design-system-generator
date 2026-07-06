@@ -108,6 +108,9 @@ export type StyleGuideCanvas = {
   host: string | null;
   approved: boolean;
   updatedAt?: string;
+  /** Semantic design tokens (colours/typography/spacing/radius/shadows).
+   *  Built from the raw colours above; see @/lib/style-guide/tokens. */
+  tokens?: import("@/lib/style-guide/tokens").SemanticTokens;
 };
 
 export const SITEMAP_CANVAS_FILE = "SITEMAP_CANVAS.json";

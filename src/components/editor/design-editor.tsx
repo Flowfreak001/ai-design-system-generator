@@ -24,6 +24,7 @@ import { ELEMENT_ICONS } from "./element-icons";
 import { SectionSettingsDrawer } from "./section-drawer/SectionSettingsDrawer";
 import { ExportPanel } from "./export-panel/ExportPanel";
 import { SectionLibraryPanel } from "./section-library-panel";
+import { StyleGuideEditor } from "./style-guide-editor";
 import type { LibrarySection } from "@/lib/section-library/manual-sections";
 import type { ElementItem, ElementLibraryContext } from "@/lib/element-library/types";
 import { arrayMove } from "@dnd-kit/sortable";
@@ -435,12 +436,13 @@ export function DesignEditor({
           )}
 
           {tab === "style" && (
-            <StyleEditor
+            <StyleGuideEditor
               style={style}
               setStyle={setStyle}
               approved={approvals.style}
               onApprove={() => approve("style")}
               busy={saving}
+              onApplyToAll={() => setPages((p) => p.map((pg) => ({ ...pg, sections: pg.sections.map((s) => ({ ...s, scheme: undefined })) })))}
             />
           )}
 
@@ -1353,112 +1355,6 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
     <div>
       <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-faint">{label}</label>
       {children}
-    </div>
-  );
-}
-
-// Plain-English labels for what each colour is used for.
-const COLOR_ROLE_LABEL: Record<string, string> = {
-  main: "Primary color",
-  accent: "Accent / Buttons",
-  text: "Font color",
-  background: "Background",
-  border: "Border / Lines",
-  neutral: "Neutral",
-};
-const COLOR_ROLE_OPTIONS = [
-  { value: "", label: "Not set" },
-  { value: "main", label: "Primary color" },
-  { value: "accent", label: "Accent / Buttons" },
-  { value: "text", label: "Font color" },
-  { value: "background", label: "Background" },
-  { value: "border", label: "Border / Lines" },
-  { value: "neutral", label: "Neutral" },
-];
-
-// ------------------------------------------------------------- Style Guide
-function StyleEditor({
-  style, setStyle, approved, onApprove, busy,
-}: {
-  style: StyleGuideCanvas;
-  setStyle: (fn: (s: StyleGuideCanvas) => StyleGuideCanvas) => void;
-  approved: boolean;
-  onApprove: () => void;
-  busy: boolean;
-}) {
-  const setColor = (i: number, patch: Partial<CanvasColor>) => setStyle((s) => ({ ...s, colors: s.colors.map((c, j) => (j === i ? { ...c, ...patch } : c)) }));
-  const addColor = () => setStyle((s) => ({ ...s, colors: [...s.colors, { name: `color-${s.colors.length + 1}`, value: "#666666", source: "user-added" }] }));
-  const removeColor = (i: number) => setStyle((s) => ({ ...s, colors: s.colors.filter((_, j) => j !== i) }));
-  return (
-    <div className="p-6">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-[15px] font-semibold text-ink">Style Guide</h2>
-          <p className="text-[12.5px] text-muted">Colors, typography, and tokens — extracted from the reference, editable here.</p>
-        </div>
-        <ApproveBar approved={approved} onApprove={onApprove} busy={busy} label="style guide" />
-      </div>
-
-      <div className="grid gap-5">
-        {/* Colors */}
-        <section className="card p-5">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-semibold text-ink">Colors</p>
-            <Button size="sm" variant="secondary" onClick={addColor}>＋ Add color</Button>
-          </div>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {style.colors.map((c, i) => (
-              <div key={`${c.name}-${i}`} className="flex flex-col rounded-xl border border-line p-3">
-                <div className="h-16 w-full rounded-lg border border-line" style={{ background: c.value }} />
-                {/* Title = the colour's purpose (falls back to its name). */}
-                <p className="mt-2.5 truncate text-[13px] font-semibold text-ink">{c.role ? COLOR_ROLE_LABEL[c.role] : (c.name || "Untitled color")}</p>
-                <div className="mt-1.5 flex items-center gap-2">
-                  <input value={c.value} onChange={(e) => setColor(i, { value: e.target.value })} className="w-full rounded-md border border-line px-2 py-1 font-mono text-[11px]" />
-                  <input type="color" value={/^#([0-9a-f]{6})$/i.test(c.value) ? c.value : "#666666"} onChange={(e) => setColor(i, { value: e.target.value })} className="h-7 w-7 shrink-0 cursor-pointer rounded border border-line" aria-label="Pick color" />
-                </div>
-                {/* Human-readable purpose so users know what the colour does. */}
-                <label className="mt-2.5 text-[10px] font-medium uppercase tracking-wide text-faint">Used for</label>
-                <select value={c.role ?? ""} onChange={(e) => setColor(i, { role: (e.target.value || undefined) as CanvasColor["role"] })} className="mt-1 w-full rounded-md border border-line bg-surface px-2 py-1 text-[11.5px] text-ink">
-                  {COLOR_ROLE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-                <label className="mt-2 text-[10px] font-medium uppercase tracking-wide text-faint">Name</label>
-                <input value={c.name} onChange={(e) => setColor(i, { name: e.target.value })} placeholder="e.g. brand-orange" className="mt-1 w-full rounded-md border border-line bg-surface px-2 py-1 text-[11.5px] text-ink placeholder:text-faint" />
-                <div className="mt-2.5 flex items-center justify-between">
-                  <SourceTag source={c.source} onClick={() => setColor(i, { source: nextSource(c.source) })} />
-                  <button type="button" onClick={() => removeColor(i)} aria-label="Remove color" className="text-faint hover:text-danger">✕</button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        {/* Typography + tokens */}
-        <section className="grid gap-4 sm:grid-cols-2">
-          <div className="card p-5">
-            <p className="text-sm font-semibold text-ink">Typography</p>
-            <label className="mt-3 block text-[12px] text-muted">Heading font</label>
-            <input value={style.headingFont ?? ""} onChange={(e) => setStyle((s) => ({ ...s, headingFont: e.target.value }))} className="mt-1 w-full rounded-lg border border-line px-2.5 py-1.5 text-[13px]" />
-            <label className="mt-3 block text-[12px] text-muted">Body font</label>
-            <input value={style.bodyFont ?? ""} onChange={(e) => setStyle((s) => ({ ...s, bodyFont: e.target.value }))} className="mt-1 w-full rounded-lg border border-line px-2.5 py-1.5 text-[13px]" />
-          </div>
-          <div className="card p-5">
-            <p className="text-sm font-semibold text-ink">Tokens</p>
-            <TokenRow label="Body size (px)" value={style.bodySizePx} onChange={(v) => setStyle((s) => ({ ...s, bodySizePx: v }))} />
-            <TokenRow label="Radius (px)" value={style.radiusPx} onChange={(v) => setStyle((s) => ({ ...s, radiusPx: v }))} />
-            <TokenRow label="Spacing base (px)" value={style.spacingPx} onChange={(v) => setStyle((s) => ({ ...s, spacingPx: v }))} />
-            <p className="mt-2 text-[11.5px] text-faint">Source: {style.source}{style.host ? ` · ${style.host}` : ""}</p>
-          </div>
-        </section>
-      </div>
-    </div>
-  );
-}
-
-function TokenRow({ label, value, onChange }: { label: string; value: number; onChange: (v: number) => void }) {
-  return (
-    <div className="mt-2 flex items-center justify-between gap-2">
-      <span className="text-[12px] text-muted">{label}</span>
-      <input type="number" value={value} onChange={(e) => onChange(Number(e.target.value) || 0)} className="w-20 rounded border border-line px-2 py-0.5 text-[12px]" />
     </div>
   );
 }

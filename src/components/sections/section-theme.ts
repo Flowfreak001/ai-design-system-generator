@@ -48,6 +48,29 @@ function buttonStyleFromRadius(px: number): ButtonStyle {
 /** Convert a StyleGuideCanvas into section theme tokens (with safe fallbacks). */
 export function createSectionTheme(styleGuide?: StyleGuideCanvas | null): SectionTheme {
   if (!styleGuide) return DEFAULT_SECTION_THEME;
+
+  // Prefer the semantic token map when present — it's the source of truth.
+  const t = styleGuide.tokens;
+  if (t?.colors) {
+    const c = t.colors;
+    const radiusPx = t.radius?.["radius.lg"] ?? styleGuide.radiusPx ?? 12;
+    return {
+      primaryColor: c["color.text.primary"] ?? DEFAULT_SECTION_THEME.primaryColor,
+      accentColor: c["color.action.primary"] ?? DEFAULT_SECTION_THEME.accentColor,
+      backgroundColor: c["color.background.page"] ?? DEFAULT_SECTION_THEME.backgroundColor,
+      surfaceColor: c["color.background.surface"] ?? DEFAULT_SECTION_THEME.surfaceColor,
+      textColor: c["color.text.primary"] ?? DEFAULT_SECTION_THEME.textColor,
+      mutedTextColor: c["color.text.muted"] ?? DEFAULT_SECTION_THEME.mutedTextColor,
+      borderColor: c["color.border.default"] ?? DEFAULT_SECTION_THEME.borderColor,
+      radius: `${radiusPx}px`,
+      shadow: t.shadows?.["shadow.md"] ?? DEFAULT_SECTION_THEME.shadow,
+      spacing: `${styleGuide.spacingPx ?? 16}px`,
+      headingFont: t.fonts?.heading ? `${t.fonts.heading}, system-ui, sans-serif` : DEFAULT_SECTION_THEME.headingFont,
+      bodyFont: t.fonts?.body ? `${t.fonts.body}, system-ui, sans-serif` : DEFAULT_SECTION_THEME.bodyFont,
+      buttonStyle: buttonStyleFromRadius(radiusPx),
+    };
+  }
+
   const colors = styleGuide.colors ?? [];
   const byRole = (role: string) => colors.find((c) => c.role === role)?.value;
   const byName = (re: RegExp) => colors.find((c) => re.test(c.name))?.value;
