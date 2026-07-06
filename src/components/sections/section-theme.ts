@@ -6,19 +6,22 @@
 import type { SectionTheme, ButtonStyle } from "./types";
 import type { StyleGuideCanvas } from "@/lib/canvas";
 
+// Default preview theme for the Section Library — uses the Flowfreak brand
+// accent (not a generic blue) and a distinctive Google-font pairing (Space
+// Grotesk display + Manrope text) so section previews look designed, not stock.
 export const DEFAULT_SECTION_THEME: SectionTheme = {
-  primaryColor: "#111827",
-  accentColor: "#2563eb",
+  primaryColor: "#141419",
+  accentColor: "#6d28d9",
   backgroundColor: "#ffffff",
-  surfaceColor: "#f6f7f9",
-  textColor: "#111827",
+  surfaceColor: "#f5f4f7",
+  textColor: "#141419",
   mutedTextColor: "#6b7280",
-  borderColor: "#e5e7eb",
-  radius: "12px",
-  shadow: "0 1px 3px rgba(17,24,39,0.08)",
+  borderColor: "#e7e5ea",
+  radius: "14px",
+  shadow: "0 1px 3px rgba(20,20,25,0.08)",
   spacing: "16px",
-  headingFont: "Inter, system-ui, sans-serif",
-  bodyFont: "Inter, system-ui, sans-serif",
+  headingFont: "'Space Grotesk', system-ui, sans-serif",
+  bodyFont: "'Manrope', system-ui, sans-serif",
   buttonStyle: "rounded",
 };
 

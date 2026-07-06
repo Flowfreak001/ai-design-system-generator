@@ -39,6 +39,15 @@ export default function RootLayout({
       lang="en"
       className={cn("h-full", "antialiased", inter.variable, mono.variable, "font-sans")}
     >
+      <head>
+        {/* Google fonts used by Section Library preview themes (heading + body). */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body className="min-h-full flex flex-col bg-canvas text-body">
         {children}
       </body>
