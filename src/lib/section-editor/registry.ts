@@ -145,3 +145,40 @@ const GENERIC: SectionEditSchema = {
 export function getEditSchema(kind: string): SectionEditSchema {
   return SECTION_EDIT_SCHEMAS.find((s) => s.kinds.includes(kind)) ?? GENERIC;
 }
+
+// Labels for the standard content field keys a custom section can declare in
+// its `editableFields`. These are exactly the keys the dynamic render contract
+// passes through to the authored component.
+const CUSTOM_FIELD_DEFS: Record<string, FieldDef> = {
+  eyebrow: t("eyebrow", "Eyebrow"),
+  title: t("title", "Title"),
+  subtitle: t("subtitle", "Subtitle"),
+  description: ta("description", "Description"),
+  primaryButtonLabel: t("primaryButtonLabel", "Primary button label"),
+  secondaryButtonLabel: t("secondaryButtonLabel", "Secondary button label"),
+};
+
+/**
+ * Build a Content-tab schema from a custom/Library section's declared
+ * `editableFields` — so the drawer shows exactly the fields the authored
+ * component reads, not fields guessed from the section name. When the section
+ * exposes "items", the repeatable-items editor is included.
+ */
+export function schemaForEditableFields(editableFields: string[] | undefined): SectionEditSchema {
+  const keys = editableFields?.length ? editableFields : Object.keys(CUSTOM_FIELD_DEFS);
+  const fields = keys.map((k) => CUSTOM_FIELD_DEFS[k]).filter((f): f is FieldDef => Boolean(f));
+  const wantsItems = keys.includes("items");
+  return {
+    kinds: ["generic"], label: "Section",
+    fields: fields.length ? fields : [CUSTOM_FIELD_DEFS.title],
+    items: wantsItems
+      ? {
+          label: "Items", itemNoun: "item",
+          fields: [it("title", "Title"), it("text", "Description", "textarea"), it("href", "Link", "href")],
+          defaultItem: { title: "New item", text: "Describe this item." },
+        }
+      : undefined,
+    mediaRoles: [],
+    motionPresets: ["none"],
+  };
+}

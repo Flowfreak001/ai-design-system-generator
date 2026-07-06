@@ -118,6 +118,46 @@ function ordered(set: Set<string>): Feature[] {
  * Everything returned is a member of FEATURE_OPTIONS so the UI can pre-select
  * chips; the user can still toggle any feature or add custom ones.
  */
+/**
+ * Suggest the pages a site should have, from website type + industry. ~90% of
+ * sites share a core (Home/About/Services/Contact); the rest depend on the type
+ * (Menu for restaurants, Shop/Cart for ecommerce, Pricing for SaaS, …). Returns
+ * an ordered, de-duped list of page names the UI can pre-select.
+ */
+export function suggestPages(industry?: string, websiteType?: string): string[] {
+  const ind = (industry ?? "").toLowerCase();
+  const wt = (websiteType ?? "").toLowerCase();
+  const has = (...keys: string[]) => keys.some((k) => ind.includes(k) || wt.includes(k));
+
+  const pages: string[] = ["Home"];
+
+  if (wt.includes("landing")) {
+    // Single-page focus — keep it lean.
+    pages.push("Contact");
+  } else if (wt.includes("ecommerce") || has("shop", "store", "retail", "boutique", "fashion", "product")) {
+    pages.push("Shop", "Product detail", "About", "Cart", "Checkout", "Contact", "FAQ");
+  } else if (wt.includes("saas") || has("saas", "software", "app", "platform", "tech")) {
+    pages.push("Features", "Pricing", "About", "Blog", "Contact", "Login / dashboard");
+  } else if (wt.includes("directory") || wt.includes("marketplace")) {
+    pages.push("Listings", "Categories", "About", "Contact", "Login / dashboard");
+  } else if (wt.includes("booking") || has("clinic", "salon", "spa", "gym", "fitness", "beauty", "therapy")) {
+    pages.push("Services", "Booking", "Pricing", "About", "Contact");
+  } else if (wt.includes("blog") || wt.includes("content")) {
+    pages.push("Blog", "Categories", "About", "Contact");
+  } else {
+    // Marketing / service site (default) + industry extras.
+    pages.push("About", "Services", "Service detail", "Contact");
+    if (has("restaurant", "cafe", "food", "catering", "bakery", "bar")) pages.push("Menu", "Reservations", "Gallery");
+    if (has("real estate", "property", "estate", "letting")) pages.push("Listings", "Gallery");
+    if (has("agency", "portfolio", "studio", "design", "creative", "marketing")) pages.push("Portfolio / case studies");
+    if (has("law", "legal", "account", "consult", "finance", "insurance")) pages.push("Team", "FAQ");
+    pages.push("Blog");
+  }
+
+  // De-dupe, preserving order.
+  return [...new Set(pages)];
+}
+
 export function suggestFeatures(industry?: string, websiteType?: string): Feature[] {
   const ind = (industry ?? "").toLowerCase();
   const wt = (websiteType ?? "").toLowerCase();

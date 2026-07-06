@@ -232,7 +232,7 @@ export function DesignEditor({
         secondaryButtonLabel: dc.secondaryButtonLabel,
         items: (dc.items ?? []).map((it) => ({ title: it.title, text: it.text, href: it.href, icon: it.icon })),
       },
-      ...(item.componentCode ? { custom: { code: item.componentCode, mode: item.codeMode ?? "react" } } : {}),
+      ...(item.componentCode ? { custom: { code: item.componentCode, mode: item.codeMode ?? "react" }, editableFields: item.editableFields } : {}),
     };
     patchPage(pageId, (pg) => ({ ...pg, sections: [...pg.sections, section] }));
   };

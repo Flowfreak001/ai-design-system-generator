@@ -11,6 +11,8 @@ import { LinkButton } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/page-header";
 import { FadeUp, Stagger, StaggerItem } from "@/components/ui/motion";
 import { deriveStatus, recommendedNextAction, STATUS_STYLES } from "@/lib/status";
+import { ModuleCard } from "@/components/shared/module-card";
+import { MODULES } from "@/data/flowfreak";
 import type { ProjectBrief } from "@/types";
 
 export const dynamic = "force-dynamic";
@@ -96,7 +98,19 @@ export default async function DashboardPage() {
         ))}
       </Stagger>
 
-      <div className="mt-6 grid items-start gap-4 lg:grid-cols-[1.7fr_1fr]">
+      {/* Platform modules */}
+      <div className="mt-8">
+        <p className="mb-3 text-[15px] font-semibold text-ink">Platform</p>
+        <Stagger className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {MODULES.map((m) => (
+            <StaggerItem key={m.key}>
+              <ModuleCard module={m} />
+            </StaggerItem>
+          ))}
+        </Stagger>
+      </div>
+
+      <div className="mt-8 grid items-start gap-4 lg:grid-cols-[1.7fr_1fr]">
         {/* Needs attention — the actionable core */}
         <FadeUp className="card">
           <div className="flex items-center justify-between px-5 pt-5">

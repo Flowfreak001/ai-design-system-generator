@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
-import { createClient } from "@/lib/clients";
+import { createClient, ownsClient } from "@/lib/clients";
+import { linkProjectToClient } from "@/lib/projects";
 
 export type FormState = { error?: string } | undefined;
 
@@ -44,4 +45,22 @@ export async function createClientAction(
   const client = await createClient(user.agencyId, parsed.data);
   revalidatePath("/clients");
   redirect(`/clients/${client.id}`);
+}
+
+/** Attach an existing (unlinked) project to this client. */
+export async function linkProjectAction(
+  clientId: string,
+  projectId: string,
+): Promise<{ error?: string }> {
+  const user = await requireUser();
+  if (!user.agencyId) return { error: "No agency workspace found." };
+  if (!projectId) return { error: "Select a project to link." };
+  if (!(await ownsClient(clientId, user.agencyId))) return { error: "Client not found." };
+  try {
+    await linkProjectToClient(projectId, clientId, user.agencyId);
+  } catch {
+    return { error: "Could not link that project." };
+  }
+  revalidatePath(`/clients/${clientId}`);
+  return {};
 }

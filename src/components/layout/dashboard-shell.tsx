@@ -9,6 +9,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { signOutAction } from "@/app/(app)/auth-actions";
+import { FlowfreakMark, FlowfreakLogo } from "@/components/layout/logo";
 import type { SessionUser } from "@/lib/auth";
 import type { ReactNode } from "react";
 
@@ -65,6 +66,30 @@ const ICONS: Record<string, ReactNode> = {
       <path d="M12 3.5v2m0 13v2m8.5-8.5h-2m-13 0h-2m14.6-6.1-1.4 1.4M6.3 17.7l-1.4 1.4m14.2 0-1.4-1.4M6.3 6.3 4.9 4.9" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
     </svg>
   ),
+  studio: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M4 16.5 14.5 6a2.1 2.1 0 0 1 3 3L7 19.5l-4 1 1-4Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+      <path d="M12.5 8 16 11.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
+  ),
+  seo: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="10.5" cy="10.5" r="6" stroke="currentColor" strokeWidth="1.7" />
+      <path d="m15 15 4.5 4.5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <path d="M8 11.5v-2m2.5 2v-3.5m2.5 3.5v-1.5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  ),
+  automations: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M13 3 5 13h5l-1 8 8-10h-5l1-8Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+    </svg>
+  ),
+  mcp: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M9 8V5.5a2.5 2.5 0 0 1 5 0V8m-5 8v2.5a2.5 2.5 0 0 0 5 0V16" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+      <rect x="6" y="8" width="11" height="8" rx="2" stroke="currentColor" strokeWidth="1.7" />
+    </svg>
+  ),
   logout: (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path d="M14 5V4a1.5 1.5 0 0 0-1.5-1.5h-7A1.5 1.5 0 0 0 4 4v16a1.5 1.5 0 0 0 1.5 1.5h7A1.5 1.5 0 0 0 14 20v-1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
@@ -76,30 +101,36 @@ const ICONS: Record<string, ReactNode> = {
 type NavItem = { label: string; href?: string; icon: string; soon?: boolean; dynamic?: "references" };
 const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
   {
-    title: "Workspace",
+    title: "Platform",
     items: [
       { label: "Dashboard", href: "/dashboard", icon: "home" },
-      { label: "Clients", href: "/clients", icon: "clients" },
-      { label: "Projects", href: "/projects", icon: "projects" },
+      { label: "Studio", href: "/studio", icon: "studio" },
       { label: "Library", icon: "library", dynamic: "references" },
+      { label: "SEO", href: "/seo", icon: "seo" },
+      { label: "Automations", href: "/automations", icon: "automations" },
+      { label: "MCP", href: "/mcp", icon: "mcp" },
     ],
   },
   {
-    title: "Automation",
+    title: "Workspace",
     items: [
-      { label: "Workflows", icon: "workflows", soon: true },
-      { label: "Approvals", icon: "approvals", soon: true },
-      { label: "Leads", icon: "leads", soon: true },
+      { label: "Projects", href: "/projects", icon: "projects" },
+      { label: "Clients", href: "/clients", icon: "clients" },
     ],
   },
   {
     title: "Account",
-    items: [{ label: "Settings", icon: "settings", soon: true }],
+    items: [{ label: "Settings", href: "/settings", icon: "settings" }],
   },
 ];
 
 const CRUMBS: [RegExp, string[]][] = [
   [/^\/dashboard/, ["Dashboard"]],
+  [/^\/studio/, ["Studio"]],
+  [/^\/seo/, ["SEO"]],
+  [/^\/automations/, ["Automations"]],
+  [/^\/mcp/, ["MCP"]],
+  [/^\/settings/, ["Settings"]],
   [/^\/library/, ["Library"]],
   [/^\/clients\/new/, ["Clients", "Add client"]],
   [/^\/clients\/[^/]+/, ["Clients", "Client"]],
@@ -131,19 +162,12 @@ export function DashboardShell({
   children: ReactNode;
 }) {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
+  // The desktop sidebar is a fixed icon rail — no expand/collapse toggle.
+  const collapsed = true;
   const [mobileOpen, setMobileOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
-  useEffect(() => {
-    setCollapsed(localStorage.getItem("pos-sidebar") === "collapsed");
-  }, []);
   // Close the mobile drawer + account menu on navigation.
   useEffect(() => { setMobileOpen(false); setUserMenuOpen(false); }, [pathname]);
-  const toggle = () => {
-    const next = !collapsed;
-    setCollapsed(next);
-    localStorage.setItem("pos-sidebar", next ? "collapsed" : "open");
-  };
   const crumbs = CRUMBS.find(([re]) => re.test(pathname))?.[1] ?? ["Workspace"];
   // Full-bleed surfaces own the viewport — the Section Library + Studio carry
   // their own floating navigation, so hide the whole app chrome (sidebar +
@@ -242,28 +266,87 @@ export function DashboardShell({
   );
 
   return (
-    <div className="flex min-h-screen flex-1">
-      {/* Desktop sidebar — hidden on full-bleed editor surfaces. */}
+    <div className="flex min-h-screen flex-col">
+      {/* Full-width top header (white) — spans above the sidebar. */}
       {!hideChrome && (
-      <aside className={`sticky top-0 hidden h-screen shrink-0 flex-col border-r border-line bg-surface transition-[width] duration-200 md:flex ${collapsed ? "w-[92px]" : "w-[216px]"}`}>
-        <div className={`flex items-center pt-4 pb-3 ${collapsed ? "flex-col gap-2 px-0" : "justify-between gap-1 pl-3.5 pr-2"}`}>
-          <Link href="/" className="flex min-w-0 items-center gap-2.5" aria-label="Project OS home">
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-accent text-[15px] text-white">◆</span>
-            {!collapsed && <span className="truncate text-[14px] font-semibold text-ink">Project OS</span>}
-          </Link>
+      <header className="sticky top-0 z-50 flex h-14 shrink-0 items-center justify-between gap-3 border-b border-line bg-surface px-4 sm:px-6">
+        <div className="flex min-w-0 items-center gap-2.5">
           <button
             type="button"
-            onClick={toggle}
-            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            className="grid h-7 w-7 shrink-0 cursor-pointer place-items-center rounded-md text-muted transition-colors hover:bg-panel hover:text-ink"
+            onClick={() => setMobileOpen(true)}
+            aria-label="Open navigation"
+            className="grid h-8 w-8 shrink-0 cursor-pointer place-items-center rounded-lg text-body hover:bg-panel md:hidden"
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-              <rect x="3.5" y="4.5" width="17" height="15" rx="2.5" stroke="currentColor" strokeWidth="1.7" />
-              <path d="M9.5 4.5v15" stroke="currentColor" strokeWidth="1.7" />
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M4 6.5h16M4 12h16M4 17.5h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
             </svg>
           </button>
+          <Link href="/" aria-label="Flowfreak home" className="shrink-0">
+            <FlowfreakLogo />
+          </Link>
+          <span className="mx-1 hidden h-5 w-px shrink-0 bg-line sm:block" />
+          <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1.5 truncate text-[13.5px]">
+            {crumbs.map((c, i) => (
+              <span key={c} className="flex min-w-0 items-center gap-1.5">
+                {i > 0 && <span className="text-faint">/</span>}
+                <span className={`truncate ${i === crumbs.length - 1 ? "font-medium text-ink" : "text-muted"}`}>{c}</span>
+              </span>
+            ))}
+          </nav>
         </div>
+        <div className="flex shrink-0 items-center gap-3">
+          <input
+            type="search"
+            placeholder="Search…"
+            aria-label="Search"
+            className="hidden w-56 rounded-lg border border-line bg-surface px-3.5 py-1.5 text-[13px] placeholder:text-faint focus:border-accent/50 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent lg:block"
+          />
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setUserMenuOpen((v) => !v)}
+              aria-haspopup="menu"
+              aria-expanded={userMenuOpen}
+              aria-label="Account menu"
+              className="grid h-8 w-8 cursor-pointer place-items-center rounded-full bg-accent text-[11px] font-semibold text-white outline-none ring-offset-2 ring-offset-canvas transition-shadow hover:ring-2 hover:ring-accent/40 focus-visible:ring-2 focus-visible:ring-accent"
+            >
+              {initials}
+            </button>
+            {userMenuOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} aria-hidden="true" />
+                <div role="menu" className="absolute right-0 top-11 z-50 w-64 overflow-hidden rounded-xl border border-line bg-surface p-1.5 shadow-lg">
+                  <div className="flex items-center gap-2.5 px-2.5 py-2">
+                    <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-accent text-[12px] font-semibold text-white">{initials}</span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-[13px] font-medium leading-tight text-ink">{user.name ?? "Account"}</span>
+                      <span className="block truncate text-[11.5px] leading-tight text-muted">{user.email}</span>
+                    </span>
+                  </div>
+                  <div className="my-1 border-t border-line" />
+                  <Link href="/account" role="menuitem" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] text-body hover:bg-panel hover:text-ink">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8.5" r="3.5" stroke="currentColor" strokeWidth="1.7" /><path d="M5 19.5c1-3.4 3.6-5 7-5s6 1.6 7 5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg>
+                    Profile
+                  </Link>
+                  <form action={signOutAction}>
+                    <button type="submit" role="menuitem" className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] text-body hover:bg-panel hover:text-ink">
+                      {ICONS.logout}
+                      Sign out
+                    </button>
+                  </form>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      </header>
+      )}
+
+      <div className="flex min-h-0 flex-1">
+      {/* Desktop sidebar — hidden on full-bleed editor surfaces. */}
+      {!hideChrome && (
+      <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-[92px] shrink-0 flex-col border-r border-line bg-surface md:flex">
+        <div className="pt-3" />
         {nav(collapsed)}
         {userCard(collapsed)}
       </aside>
@@ -280,9 +363,9 @@ export function DashboardShell({
           />
           <aside className="absolute inset-y-0 left-0 flex w-[260px] max-w-[85vw] flex-col border-r border-line bg-surface shadow-xl animate-in slide-in-from-left duration-200">
             <div className="flex items-center justify-between pt-4 pb-3 pl-3.5 pr-2">
-              <Link href="/" className="flex min-w-0 items-center gap-2.5" aria-label="Project OS home">
-                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-accent text-[15px] text-white">◆</span>
-                <span className="truncate text-[14px] font-semibold text-ink">Project OS</span>
+              <Link href="/" className="flex min-w-0 items-center gap-2" aria-label="Flowfreak home">
+                <FlowfreakMark className="shrink-0 text-ink" />
+                <span className="truncate text-[16px] font-bold tracking-[-0.02em] text-ink">Flowfreak</span>
               </Link>
               <button
                 type="button"
@@ -301,81 +384,7 @@ export function DashboardShell({
         </div>
       )}
 
-      {/* Main column */}
-      <div className="flex min-w-0 flex-1 flex-col">
-        {!hideChrome && (
-        <header className="sticky top-0 z-40 flex h-14 items-center justify-between gap-3 border-b border-line bg-canvas/90 px-4 backdrop-blur sm:px-8">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <button
-              type="button"
-              onClick={() => setMobileOpen(true)}
-              aria-label="Open navigation"
-              className="grid h-8 w-8 shrink-0 cursor-pointer place-items-center rounded-lg text-body hover:bg-panel md:hidden"
-            >
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <path d="M4 6.5h16M4 12h16M4 17.5h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-              </svg>
-            </button>
-            <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1.5 truncate text-[13.5px]">
-              {crumbs.map((c, i) => (
-                <span key={c} className="flex min-w-0 items-center gap-1.5">
-                  {i > 0 && <span className="text-faint">/</span>}
-                  <span className={`truncate ${i === crumbs.length - 1 ? "font-medium text-ink" : "text-muted"}`}>{c}</span>
-                </span>
-              ))}
-            </nav>
-          </div>
-          <div className="flex shrink-0 items-center gap-3">
-            <input
-              type="search"
-              placeholder="Search…"
-              aria-label="Search"
-              className="hidden w-56 rounded-lg border border-line bg-surface px-3.5 py-1.5 text-[13px] placeholder:text-faint focus:border-accent/50 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-accent lg:block"
-            />
-
-            {/* Account menu — avatar dropdown (industry-standard top-right). */}
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setUserMenuOpen((v) => !v)}
-                aria-haspopup="menu"
-                aria-expanded={userMenuOpen}
-                aria-label="Account menu"
-                className="grid h-8 w-8 cursor-pointer place-items-center rounded-full bg-accent text-[11px] font-semibold text-white outline-none ring-offset-2 ring-offset-canvas transition-shadow hover:ring-2 hover:ring-accent/40 focus-visible:ring-2 focus-visible:ring-accent"
-              >
-                {initials}
-              </button>
-              {userMenuOpen && (
-                <>
-                  <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} aria-hidden="true" />
-                  <div role="menu" className="absolute right-0 top-11 z-50 w-64 overflow-hidden rounded-xl border border-line bg-surface p-1.5 shadow-lg">
-                    <div className="flex items-center gap-2.5 px-2.5 py-2">
-                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-accent text-[12px] font-semibold text-white">{initials}</span>
-                      <span className="min-w-0">
-                        <span className="block truncate text-[13px] font-medium leading-tight text-ink">{user.name ?? "Account"}</span>
-                        <span className="block truncate text-[11.5px] leading-tight text-muted">{user.email}</span>
-                      </span>
-                    </div>
-                    <div className="my-1 border-t border-line" />
-                    <Link href="/account" role="menuitem" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] text-body hover:bg-panel hover:text-ink">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8.5" r="3.5" stroke="currentColor" strokeWidth="1.7" /><path d="M5 19.5c1-3.4 3.6-5 7-5s6 1.6 7 5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg>
-                      Profile
-                    </Link>
-                    <form action={signOutAction}>
-                      <button type="submit" role="menuitem" className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] text-body hover:bg-panel hover:text-ink">
-                        {ICONS.logout}
-                        Sign out
-                      </button>
-                    </form>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </header>
-        )}
-
-        <main className="flex-1">{children}</main>
+        <main className="min-w-0 flex-1">{children}</main>
       </div>
     </div>
   );

@@ -11,6 +11,7 @@ import { runPreviewGeneration } from "@/lib/preview";
 import { runAiVisionAnalysis } from "@/lib/ai/ai-flow";
 import { DESIGN_TYPES } from "@/lib/validators/project";
 import { requireUser } from "@/lib/auth";
+import { deriveSitemapCanvas, SITEMAP_CANVAS_FILE } from "@/lib/canvas";
 import { prisma } from "@/lib/db/client";
 import { Prisma } from "@/generated/prisma/client";
 import { z } from "zod";
@@ -21,6 +22,17 @@ const str = (fd: FormData, k: string) => {
   const v = fd.get(k);
   return typeof v === "string" ? v : undefined;
 };
+
+/** Persist a canvas document as a versioned GeneratedFile JSON record. */
+async function saveGeneratedCanvas(projectId: string, name: string, data: unknown) {
+  const content = JSON.stringify(data, null, 2);
+  const saved = await prisma.generatedFile.upsert({
+    where: { projectId_name: { projectId, name } },
+    create: { projectId, name, type: "markdown", content },
+    update: { content },
+  });
+  await prisma.fileVersion.create({ data: { fileId: saved.id, version: 1, content } });
+}
 
 export async function createProjectAction(
   _prev: FormState,
@@ -81,6 +93,17 @@ export async function createProjectAction(
   }
 
   const project = await createProject(parsed.data, user.agencyId ?? undefined);
+
+  // Auto-build the sitemap from the selected pages so the very next step is a
+  // ready-to-edit sitemap (each page pre-populated with default sections),
+  // rather than an empty canvas the user has to assemble by hand.
+  const pages = (parsed.data.keyItems ?? []).map((p) => String(p).trim()).filter(Boolean);
+  if (pages.length) {
+    try {
+      const sitemap = deriveSitemapCanvas(pages, null);
+      await saveGeneratedCanvas(project.id, SITEMAP_CANVAS_FILE, { ...sitemap, updatedAt: new Date().toISOString() });
+    } catch { /* sitemap can still be derived lazily in the editor */ }
+  }
 
   // Persist any reference screenshots captured during onboarding as evidence.
   const shotsRaw = str(formData, "screenshots");

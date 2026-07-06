@@ -17,6 +17,25 @@ export async function listProjects(agencyId: string) {
   });
 }
 
+/** Projects in the agency not yet linked to any client — candidates to attach. */
+export async function listUnlinkedProjects(agencyId: string) {
+  return prisma.project.findMany({
+    where: { agencyId, businessId: null },
+    orderBy: { updatedAt: "desc" },
+    select: { id: true, name: true, type: true },
+  });
+}
+
+/** Attach an existing project to a client (sets businessId + clientName). */
+export async function linkProjectToClient(projectId: string, clientId: string, agencyId: string) {
+  const client = await prisma.business.findFirst({ where: { id: clientId, agencyId }, select: { name: true } });
+  if (!client) throw new Error("Client not found");
+  await prisma.project.update({
+    where: { id: projectId, agencyId },
+    data: { businessId: clientId, clientName: client.name },
+  });
+}
+
 export async function getProject(id: string, agencyId: string) {
   return prisma.project.findUnique({
     where: { id, agencyId },

@@ -17,11 +17,11 @@ export type ProjectCardData = {
 
 export function ProjectCard({ project }: { project: ProjectCardData }) {
   return (
-    <div className="card flex h-full flex-col p-5 transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-1 hover:border-line-strong">
+    <div className="card flex h-full min-h-[220px] flex-col p-6 transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-1 hover:border-line-strong">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 className="truncate text-[15px] font-semibold text-ink">{project.name}</h3>
-          <p className="mt-0.5 truncate text-sm text-muted">
+          <h3 className="truncate text-[16px] font-semibold text-ink">{project.name}</h3>
+          <p className="mt-1 truncate text-sm text-muted">
             {project.clientName || "—"}
             {project.businessType ? ` · ${project.businessType}` : ""}
           </p>

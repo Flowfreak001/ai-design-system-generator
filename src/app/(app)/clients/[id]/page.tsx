@@ -2,7 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { getClient } from "@/lib/clients";
+import { listUnlinkedProjects } from "@/lib/projects";
 import { ProjectCard } from "@/components/projects/project-card";
+import { LinkProject } from "@/components/clients/link-project";
 import { deriveStatus } from "@/lib/status";
 import type { ProjectBrief } from "@/types";
 import { LinkButton } from "@/components/ui/button";
@@ -27,6 +29,7 @@ export default async function ClientDetailPage({
   if (!user.agencyId) notFound();
   const client = await getClient(id, user.agencyId);
   if (!client) notFound();
+  const unlinked = await listUnlinkedProjects(user.agencyId);
 
   return (
     <div className="px-5 py-8 sm:px-8">
@@ -36,23 +39,36 @@ export default async function ClientDetailPage({
         <span className="text-ink">{client.name}</span>
       </nav>
 
-      {/* Header */}
-      <FadeUp className="mt-4 flex flex-wrap items-start justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <span className="grid h-12 w-12 place-items-center rounded-xl bg-accent-soft text-lg font-semibold text-accent">
-            {client.name[0]?.toUpperCase()}
-          </span>
-          <div>
-            <h2 className="text-[26px] font-semibold tracking-[-0.02em]">{client.name}</h2>
+      {/* Header — clean surface pill (matches the Section Library header),
+          with services shown inline beside the company name. */}
+      <FadeUp className="mt-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-line bg-surface px-4 py-2.5 shadow-sm">
+          <div className="pr-1">
+            <h2 className="text-[18px] font-semibold leading-tight tracking-[-0.01em] text-ink">{client.name}</h2>
             <div className="mt-1 flex flex-wrap items-center gap-2">
-              <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-[12px] ${STAGE_STYLES[client.stage] ?? STAGE_STYLES.Onboarding}`}>
+              <span className={`inline-flex rounded-full border px-2 py-0.5 text-[11px] font-medium ${STAGE_STYLES[client.stage] ?? STAGE_STYLES.Onboarding}`}>
                 {client.stage}
               </span>
-              {client.type && <span className="text-sm text-muted">{client.type}</span>}
+              {client.type && <span className="text-[12.5px] text-muted">{client.type}</span>}
             </div>
           </div>
+          {client.services.length > 0 && (
+            <>
+              <span className="hidden h-8 w-px bg-line sm:block" />
+              <div className="flex flex-wrap items-center gap-1.5">
+                {client.services.map((s) => (
+                  <span key={s} className="rounded-full border border-success/25 bg-success-soft px-2.5 py-1 text-[12.5px] font-medium text-success">
+                    {s}
+                  </span>
+                ))}
+              </div>
+            </>
+          )}
         </div>
-        <LinkButton href={`/projects/new?client=${client.id}`}>+ New project</LinkButton>
+        <div className="flex flex-wrap items-center gap-2">
+          <LinkProject clientId={client.id} options={unlinked} />
+          <LinkButton href={`/projects/new?client=${client.id}`}>+ New project</LinkButton>
+        </div>
       </FadeUp>
 
       {/* Contact cards */}
@@ -67,20 +83,6 @@ export default async function ClientDetailPage({
         />
       </div>
 
-      {/* Services */}
-      {client.services.length > 0 && (
-        <div className="mt-6">
-          <p className="text-[15px] font-semibold text-ink">Services</p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {client.services.map((s) => (
-              <span key={s} className="rounded-full border border-success/25 bg-success-soft px-3 py-1 text-sm text-success">
-                {s}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Projects under this client */}
       <div className="mt-10">
         <div className="flex items-center justify-between">
@@ -91,12 +93,15 @@ export default async function ClientDetailPage({
         {client.projects.length === 0 ? (
           <div className="card mt-4 flex flex-col items-center px-6 py-14 text-center">
             <p className="text-sm text-muted">No projects for this client yet.</p>
-            <LinkButton href={`/projects/new?client=${client.id}`} className="mt-4">
-              Create the first project
-            </LinkButton>
+            <div className="mt-4 flex flex-wrap items-center justify-center gap-2">
+              <LinkProject clientId={client.id} options={unlinked} />
+              <LinkButton href={`/projects/new?client=${client.id}`}>
+                Create the first project
+              </LinkButton>
+            </div>
           </div>
         ) : (
-          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-4 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {client.projects.map((p) => {
               const brief = (p.inputs[0]?.data ?? {}) as Partial<ProjectBrief>;
               const hasReferenceUrls = Boolean(
