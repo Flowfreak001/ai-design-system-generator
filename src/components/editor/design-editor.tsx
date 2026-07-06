@@ -384,6 +384,8 @@ export function DesignEditor({
               schemes={style.colors}
               previewTheme={createSectionTheme(style)}
               recommendCtx={recommendCtx}
+              librarySections={librarySections}
+              onAddLibrarySection={addLibrarySection}
               onAddPage={addPageInCategory}
               onRemovePage={removePage}
               onRenamePage={renamePage}
@@ -411,6 +413,8 @@ export function DesignEditor({
               selectedPage={selectedPage}
               style={style}
               recommendCtx={recommendCtx}
+              librarySections={librarySections}
+              onAddLibrarySection={addLibrarySection}
               onSelect={setSelectedPageId}
               onAddPage={addPage}
               onRenamePage={renamePage}
@@ -573,7 +577,7 @@ function SectionFrameIcon() {
 }
 
 function SitemapEditor({
-  pages, schemes, previewTheme, recommendCtx, onAddPage, onRemovePage, onRenamePage, onDuplicatePage, onPatchPageMeta,
+  pages, schemes, previewTheme, recommendCtx, librarySections, onAddLibrarySection, onAddPage, onRemovePage, onRenamePage, onDuplicatePage, onPatchPageMeta,
   onAddSection, onRemoveSection, onPatchSection, onMoveSection, onDuplicateSection,
   onGeneratePage, onGenerateAll, onApplyGlobal, onMarkApproved, onOpenWireframe, approved, onApprove, busy,
 }: {
@@ -581,6 +585,8 @@ function SitemapEditor({
   schemes: CanvasColor[];
   previewTheme: SectionTheme;
   recommendCtx: ElementLibraryContext;
+  librarySections: LibrarySection[];
+  onAddLibrarySection: (pageId: string, item: LibrarySection) => void;
   onAddPage: (category: PageCategory, parentId?: string) => void;
   onRemovePage: (id: string) => void;
   onRenamePage: (id: string, name: string) => void;
@@ -714,7 +720,7 @@ function SitemapEditor({
       </div>
 
       {/* Add section drawer for the chosen page */}
-      <AddSectionDrawer open={Boolean(addForPage)} previewTheme={previewTheme} recommendCtx={{ ...recommendCtx, pageName: pages.find((p) => p.id === addForPage)?.name, presentKinds: pages.find((p) => p.id === addForPage)?.sections.map((s) => sectionTypeForKind(sectionKind(s.name))) }} onClose={() => setAddForPage(null)} onAdd={(name, keepOpen, variant) => { if (addForPage) onAddSection(addForPage, name, variant); if (!keepOpen) setAddForPage(null); }} />
+      <AddSectionDrawer open={Boolean(addForPage)} previewTheme={previewTheme} librarySections={librarySections} recommendCtx={{ ...recommendCtx, pageName: pages.find((p) => p.id === addForPage)?.name, presentKinds: pages.find((p) => p.id === addForPage)?.sections.map((s) => sectionTypeForKind(sectionKind(s.name))) }} onClose={() => setAddForPage(null)} onAdd={(name, keepOpen, variant) => { if (addForPage) onAddSection(addForPage, name, variant); if (!keepOpen) setAddForPage(null); }} onAddLibrary={(item, keepOpen) => { if (addForPage) onAddLibrarySection(addForPage, item); if (!keepOpen) setAddForPage(null); }} />
 
       {/* Section edit drawer */}
       <Drawer open={Boolean(editSection)} onClose={() => setEditing(null)} title="Section" subtitle={editSection ? `Type: ${sectionKind(editSection.name)}` : undefined} width={340}>
@@ -851,13 +857,15 @@ function SitemapPageMenu({ onGenerate, onAddChild, onDuplicate, onRename, onDele
 // ----------------------------------------- Wireframe (real page canvas)
 
 function WireframeEditor({
-  pages, selectedPage, style, recommendCtx, onSelect, onAddPage, onRenamePage, onRemovePage, onDuplicatePage, onCyclePageSource, onPatchPageMeta,
+  pages, selectedPage, style, recommendCtx, librarySections, onAddLibrarySection, onSelect, onAddPage, onRenamePage, onRemovePage, onDuplicatePage, onCyclePageSource, onPatchPageMeta,
   onAddSection, onRemoveSection, onPatchSection, onMoveSection, onDuplicateSection, onAutoWireframe, approved, onApprove, busy,
 }: {
   pages: CanvasPage[];
   selectedPage?: CanvasPage;
   style: StyleGuideCanvas;
   recommendCtx: ElementLibraryContext;
+  librarySections: LibrarySection[];
+  onAddLibrarySection: (pageId: string, item: LibrarySection) => void;
   onSelect: (id: string) => void;
   onAddPage: () => void;
   onRenamePage: (id: string, name: string) => void;
@@ -952,7 +960,7 @@ function WireframeEditor({
       </div>
 
       {/* ---------- Add Section drawer ---------- */}
-      <AddSectionDrawer open={addOpen} previewTheme={createSectionTheme(style)} recommendCtx={{ ...recommendCtx, pageName: selectedPage?.name, pageType: selectedPage?.pageType, presentKinds: selectedPage?.sections.map((s) => sectionTypeForKind(sectionKind(s.name))) }} onClose={() => setAddOpen(false)} onAdd={addSectionFromLibrary} />
+      <AddSectionDrawer open={addOpen} previewTheme={createSectionTheme(style)} librarySections={librarySections} recommendCtx={{ ...recommendCtx, pageName: selectedPage?.name, pageType: selectedPage?.pageType, presentKinds: selectedPage?.sections.map((s) => sectionTypeForKind(sectionKind(s.name))) }} onClose={() => setAddOpen(false)} onAdd={addSectionFromLibrary} onAddLibrary={(item, keepOpen) => { if (pageId) onAddLibrarySection(pageId, item); if (!keepOpen) setAddOpen(false); }} />
 
       {/* ---------- Section Settings drawer ---------- */}
       <Drawer
@@ -995,19 +1003,22 @@ function VariantThumbPreview({ Comp, theme, label, onClick }: { Comp: SectionCom
   );
 }
 
-type DrawerTab = "recommended" | "sections" | "globals";
+type DrawerTab = "library" | "recommended" | "sections" | "globals";
 const DRAWER_TABS: { id: DrawerTab; label: string }[] = [
+  { id: "library", label: "Library" },
   { id: "recommended", label: "Recommended" },
   { id: "sections", label: "Sections" },
   { id: "globals", label: "Globals" },
 ];
 
-function AddSectionDrawer({ open, previewTheme, recommendCtx = {}, onClose, onAdd }: { open: boolean; previewTheme: SectionTheme; recommendCtx?: ElementLibraryContext; onClose: () => void; onAdd: (name: string, keepOpen: boolean, variant?: string) => void }) {
+function AddSectionDrawer({ open, previewTheme, recommendCtx = {}, librarySections = [], onClose, onAdd, onAddLibrary }: { open: boolean; previewTheme: SectionTheme; recommendCtx?: ElementLibraryContext; librarySections?: LibrarySection[]; onClose: () => void; onAdd: (name: string, keepOpen: boolean, variant?: string) => void; onAddLibrary?: (item: LibrarySection, keepOpen: boolean) => void }) {
   const [q, setQ] = useState("");
   const [multi, setMulti] = useState(false);
-  const [tab, setTab] = useState<DrawerTab>("recommended");
+  const [tab, setTab] = useState<DrawerTab>(librarySections.length ? "library" : "recommended");
   const [expanded, setExpanded] = useState<string | null>(null);
   const query = q.trim().toLowerCase();
+
+  const libFiltered = librarySections.filter((s) => !query || [s.name, s.category, ...(s.tags ?? [])].join(" ").toLowerCase().includes(query));
 
   const groups = SECTION_CATEGORIES.map((g) => ({
     ...g,
@@ -1044,6 +1055,26 @@ function AddSectionDrawer({ open, previewTheme, recommendCtx = {}, onClose, onAd
       </div>
 
       <div className="p-3">
+        {tab === "library" && (
+          <>
+            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-accent">Section Library</p>
+            {libFiltered.length > 0 ? (
+              <div className="grid gap-2">
+                {libFiltered.map((s) => (
+                  <button key={s.id} type="button" onClick={() => onAddLibrary?.(s, multi)}
+                    className="group flex items-center justify-between gap-2 rounded-lg border border-line px-3 py-2.5 text-left transition-colors hover:border-accent hover:bg-accent-soft/30">
+                    <span className="min-w-0">
+                      <span className="block truncate text-[13px] font-medium text-ink">{s.name}</span>
+                      <span className="block truncate text-[11px] capitalize text-faint">{s.category}</span>
+                    </span>
+                    <span className="shrink-0 text-[11px] font-medium text-accent opacity-0 transition-opacity group-hover:opacity-100">Add</span>
+                  </button>
+                ))}
+              </div>
+            ) : <p className="px-1 text-[12.5px] text-faint">{librarySections.length ? "No library sections match your search." : "No library sections yet."}</p>}
+          </>
+        )}
+
         {tab === "recommended" && (
           <>
             <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-accent">Recommended for this page</p>
