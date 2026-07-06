@@ -10,7 +10,10 @@ import {
   type SitemapCanvas,
   type StyleGuideCanvas,
 } from "@/lib/canvas";
-import { SECTION_REFERENCE_LIBRARY_FILE, type ReferenceLibrary } from "@/lib/references/types";
+import { listCatalogSections } from "@/lib/section-library/catalog-store";
+import { seedBuiltinsForAgency } from "@/lib/section-library/builtin-seeds";
+import { dynamicToLibrarySection } from "@/lib/section-library/dynamic-section";
+import { isAdmin, canViewLibrarySection } from "@/lib/section-library/permissions";
 import {
   saveSitemapCanvasAction,
   saveStyleGuideCanvasAction,
@@ -48,9 +51,17 @@ export default async function EditorPage({ params }: { params: Promise<{ id: str
     parse<StyleGuideCanvas>(STYLE_GUIDE_CANVAS_FILE) ??
     deriveStyleGuideCanvas(tokens, { primaryColor: b.primaryColor, secondaryColor: b.secondaryColor });
 
-  // Approved section reference patterns — insertable directly from the editor.
-  const refLib = parse<ReferenceLibrary>(SECTION_REFERENCE_LIBRARY_FILE);
-  const referencePatterns = (refLib?.patterns ?? []).filter((p) => p.approved);
+  // Section Library catalog — surfaced as an in-editor panel so ready sections
+  // drop straight onto the current page (same visibility rules as /references).
+  const admin = isAdmin(user);
+  if (user.agencyId) await seedBuiltinsForAgency(user.agencyId);
+  const catalog = user.agencyId ? await listCatalogSections(user.agencyId) : [];
+  const librarySections = catalog.filter((d) => {
+    if (admin) return true;
+    const auth = { sourceType: d.sourceType, createdByUserId: d.createdByUserId, status: d.status, visibility: d.visibility };
+    if (d.status === "ready") return canViewLibrarySection(user, auth);
+    return d.createdByUserId === user.id;
+  }).map(dynamicToLibrarySection);
 
   return (
     <DesignEditor
@@ -58,7 +69,7 @@ export default async function EditorPage({ params }: { params: Promise<{ id: str
       projectName={project.name}
       initialSitemap={sitemap}
       initialStyle={style}
-      referencePatterns={referencePatterns}
+      librarySections={librarySections}
       features={b.features ?? []}
       siteContext={{ websiteType: b.websiteType, industry: b.industry, businessType: b.businessType, goals: b.goals }}
       approvals={{

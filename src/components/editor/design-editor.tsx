@@ -12,18 +12,19 @@ import { sectionKind } from "./wireframe-block";
 import { Drawer, Popover } from "./overlays";
 import { ProjectCanvas } from "./project-canvas";
 import { SECTION_CATEGORIES, suggestSectionsForPage } from "@/lib/sections";
-import { getSectionVariants, sectionTypeForKind, getBestVariantId, getSectionComponent } from "@/components/sections/registry";
+import { getSectionVariants, sectionTypeForKind, getBestVariantId } from "@/components/sections/registry";
 import { createSectionTheme } from "@/components/sections/section-theme";
-import type { SectionTheme, SectionComponent, SectionType } from "@/components/sections/types";
+import type { SectionTheme, SectionComponent } from "@/components/sections/types";
 import type { SectionContext } from "@/lib/sections";
-import type { SectionPattern } from "@/lib/references/types";
-import { searchElements, groupElements } from "@/lib/element-library/search";
+import { searchElements } from "@/lib/element-library/search";
 import { recommendElements } from "@/lib/element-library/recommendations";
 import { isReady } from "@/lib/element-library/registry";
 import { KIND_LABEL, KIND_BADGE } from "@/lib/element-library/categories";
 import { ELEMENT_ICONS } from "./element-icons";
 import { SectionSettingsDrawer } from "./section-drawer/SectionSettingsDrawer";
 import { ExportPanel } from "./export-panel/ExportPanel";
+import { SectionLibraryPanel } from "./section-library-panel";
+import type { LibrarySection } from "@/lib/section-library/manual-sections";
 import type { ElementItem, ElementLibraryContext } from "@/lib/element-library/types";
 import { arrayMove } from "@dnd-kit/sortable";
 import type {
@@ -83,7 +84,7 @@ export function DesignEditor({
   initialStyle,
   features = [],
   siteContext = {},
-  referencePatterns = [],
+  librarySections = [],
   approvals: initialApprovals,
   saveSitemap,
   saveStyle,
@@ -95,7 +96,7 @@ export function DesignEditor({
   initialStyle: StyleGuideCanvas;
   features?: string[];
   siteContext?: SectionContext;
-  referencePatterns?: SectionPattern[];
+  librarySections?: LibrarySection[];
   approvals: Approvals;
   saveSitemap: (projectId: string, canvas: SitemapCanvas) => Promise<{ error?: string }>;
   saveStyle: (projectId: string, canvas: StyleGuideCanvas) => Promise<{ error?: string }>;
@@ -201,12 +202,39 @@ export function DesignEditor({
   // Any canvas edit makes previously generated files stale (outdated-files rule).
   const [filesOutdated, setFilesOutdated] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
   const patchPage = (pageId: string, fn: (pg: CanvasPage) => CanvasPage) => {
     setPages((p) => p.map((x) => (x.id === pageId ? fn(x) : x)));
     if (approvals.design) setFilesOutdated(true);
   };
   const addSection = (pageId: string, name: string, variant?: string) =>
     patchPage(pageId, (pg) => ({ ...pg, sections: [...pg.sections, { id: uid("s"), name, source: "user-added", variant }] }));
+  // Add a section from the Section Library onto a page. Builds an independent
+  // instance (copy) of the library item — mirrors addLibrarySectionToPageAction,
+  // but client-side so it lands on the canvas live (persisted on next Save).
+  const addLibrarySection = (pageId: string, item: LibrarySection) => {
+    const dc = item.defaultContent ?? {};
+    const section: CanvasSection = {
+      id: uid("s"),
+      name: item.canvasName || item.name,
+      note: item.name,
+      source: "user-added",
+      variant: item.variant || "custom",
+      status: "draft",
+      sourceLibrarySectionId: item.id,
+      content: {
+        eyebrow: dc.eyebrow,
+        title: dc.title,
+        subtitle: dc.subtitle,
+        description: dc.description,
+        primaryButtonLabel: dc.primaryButtonLabel,
+        secondaryButtonLabel: dc.secondaryButtonLabel,
+        items: (dc.items ?? []).map((it) => ({ title: it.title, text: it.text, href: it.href, icon: it.icon })),
+      },
+      ...(item.componentCode ? { custom: { code: item.componentCode, mode: item.codeMode ?? "react" } } : {}),
+    };
+    patchPage(pageId, (pg) => ({ ...pg, sections: [...pg.sections, section] }));
+  };
   const removeSection = (pageId: string, sid: string) =>
     patchPage(pageId, (pg) => ({ ...pg, sections: pg.sections.filter((s) => s.id !== sid) }));
   const patchSection = (pageId: string, sid: string, patch: Partial<CanvasSection>) =>
@@ -317,13 +345,14 @@ export function DesignEditor({
           <span className="hidden text-[12px] text-faint sm:inline">
             {saving ? "Saving…" : dirty ? "Unsaved changes" : "All changes saved"}
           </span>
-          <Button size="sm" variant="secondary" title="Section Reference Library — upload references, extract patterns" onClick={() => window.open(`/projects/${projectId}/references`, "_blank", "noreferrer")}>
+          <Button size="sm" variant="secondary" title="Section Library — add a ready section onto the current page" onClick={() => setLibraryOpen(true)}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="-ml-0.5">
-              <rect x="3.5" y="4.5" width="17" height="15" rx="2.5" stroke="currentColor" strokeWidth="1.7" />
-              <circle cx="9" cy="10" r="1.6" stroke="currentColor" strokeWidth="1.7" />
-              <path d="m4.5 17 4.2-4.2a1.5 1.5 0 0 1 2.1 0L15 16.5m-1.5-1.5 1.7-1.7a1.5 1.5 0 0 1 2.1 0l2.2 2.2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+              <rect x="3.5" y="4.5" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.7" />
+              <rect x="13.5" y="4.5" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.7" />
+              <rect x="3.5" y="14.5" width="7" height="5" rx="1.5" stroke="currentColor" strokeWidth="1.7" />
+              <path d="M17 14v5m-2.5-2.5h5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
             </svg>
-            References
+            Add section
           </Button>
           <Button size="sm" variant="secondary" title="Open a full-page live preview (scroll animations work here)" onClick={() => window.open(`/preview/${projectId}?page=${selectedPageId}`, "_blank", "noreferrer")}>
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true" className="-ml-0.5">
@@ -354,7 +383,6 @@ export function DesignEditor({
               pages={pages}
               schemes={style.colors}
               previewTheme={createSectionTheme(style)}
-              referencePatterns={referencePatterns}
               recommendCtx={recommendCtx}
               onAddPage={addPageInCategory}
               onRemovePage={removePage}
@@ -382,7 +410,6 @@ export function DesignEditor({
               pages={pages}
               selectedPage={selectedPage}
               style={style}
-              referencePatterns={referencePatterns}
               recommendCtx={recommendCtx}
               onSelect={setSelectedPageId}
               onAddPage={addPage}
@@ -431,6 +458,18 @@ export function DesignEditor({
           )}
         </main>
       </div>
+
+      {/* Section Library drawer — add a ready section straight onto the page. */}
+      <Drawer open={libraryOpen} onClose={() => setLibraryOpen(false)} title="Section Library" subtitle="Add a ready section onto the current page" width={420}>
+        <SectionLibraryPanel
+          sections={librarySections}
+          theme={createSectionTheme(style)}
+          pageName={selectedPage?.name ?? null}
+          canAdd={!!selectedPage}
+          onAdd={(item) => { if (selectedPage) addLibrarySection(selectedPage.id, item); }}
+          onManage={() => window.open(`/projects/${projectId}/references`, "_blank", "noreferrer")}
+        />
+      </Drawer>
 
       {/* Export drawer — copy-ready prompts from the FINAL edited canvas state. */}
       <Drawer open={exportOpen} onClose={() => setExportOpen(false)} title="Export" subtitle="Build-ready prompts from your edited Design Canvas" width={620}>
@@ -534,14 +573,13 @@ function SectionFrameIcon() {
 }
 
 function SitemapEditor({
-  pages, schemes, previewTheme, referencePatterns, recommendCtx, onAddPage, onRemovePage, onRenamePage, onDuplicatePage, onPatchPageMeta,
+  pages, schemes, previewTheme, recommendCtx, onAddPage, onRemovePage, onRenamePage, onDuplicatePage, onPatchPageMeta,
   onAddSection, onRemoveSection, onPatchSection, onMoveSection, onDuplicateSection,
   onGeneratePage, onGenerateAll, onApplyGlobal, onMarkApproved, onOpenWireframe, approved, onApprove, busy,
 }: {
   pages: CanvasPage[];
   schemes: CanvasColor[];
   previewTheme: SectionTheme;
-  referencePatterns: SectionPattern[];
   recommendCtx: ElementLibraryContext;
   onAddPage: (category: PageCategory, parentId?: string) => void;
   onRemovePage: (id: string) => void;
@@ -676,7 +714,7 @@ function SitemapEditor({
       </div>
 
       {/* Add section drawer for the chosen page */}
-      <AddSectionDrawer open={Boolean(addForPage)} previewTheme={previewTheme} patterns={referencePatterns} recommendCtx={{ ...recommendCtx, pageName: pages.find((p) => p.id === addForPage)?.name, presentKinds: pages.find((p) => p.id === addForPage)?.sections.map((s) => sectionTypeForKind(sectionKind(s.name))) }} onClose={() => setAddForPage(null)} onAdd={(name, keepOpen, variant) => { if (addForPage) onAddSection(addForPage, name, variant); if (!keepOpen) setAddForPage(null); }} />
+      <AddSectionDrawer open={Boolean(addForPage)} previewTheme={previewTheme} recommendCtx={{ ...recommendCtx, pageName: pages.find((p) => p.id === addForPage)?.name, presentKinds: pages.find((p) => p.id === addForPage)?.sections.map((s) => sectionTypeForKind(sectionKind(s.name))) }} onClose={() => setAddForPage(null)} onAdd={(name, keepOpen, variant) => { if (addForPage) onAddSection(addForPage, name, variant); if (!keepOpen) setAddForPage(null); }} />
 
       {/* Section edit drawer */}
       <Drawer open={Boolean(editSection)} onClose={() => setEditing(null)} title="Section" subtitle={editSection ? `Type: ${sectionKind(editSection.name)}` : undefined} width={340}>
@@ -813,13 +851,12 @@ function SitemapPageMenu({ onGenerate, onAddChild, onDuplicate, onRename, onDele
 // ----------------------------------------- Wireframe (real page canvas)
 
 function WireframeEditor({
-  pages, selectedPage, style, referencePatterns, recommendCtx, onSelect, onAddPage, onRenamePage, onRemovePage, onDuplicatePage, onCyclePageSource, onPatchPageMeta,
+  pages, selectedPage, style, recommendCtx, onSelect, onAddPage, onRenamePage, onRemovePage, onDuplicatePage, onCyclePageSource, onPatchPageMeta,
   onAddSection, onRemoveSection, onPatchSection, onMoveSection, onDuplicateSection, onAutoWireframe, approved, onApprove, busy,
 }: {
   pages: CanvasPage[];
   selectedPage?: CanvasPage;
   style: StyleGuideCanvas;
-  referencePatterns: SectionPattern[];
   recommendCtx: ElementLibraryContext;
   onSelect: (id: string) => void;
   onAddPage: () => void;
@@ -915,7 +952,7 @@ function WireframeEditor({
       </div>
 
       {/* ---------- Add Section drawer ---------- */}
-      <AddSectionDrawer open={addOpen} previewTheme={createSectionTheme(style)} patterns={referencePatterns} recommendCtx={{ ...recommendCtx, pageName: selectedPage?.name, pageType: selectedPage?.pageType, presentKinds: selectedPage?.sections.map((s) => sectionTypeForKind(sectionKind(s.name))) }} onClose={() => setAddOpen(false)} onAdd={addSectionFromLibrary} />
+      <AddSectionDrawer open={addOpen} previewTheme={createSectionTheme(style)} recommendCtx={{ ...recommendCtx, pageName: selectedPage?.name, pageType: selectedPage?.pageType, presentKinds: selectedPage?.sections.map((s) => sectionTypeForKind(sectionKind(s.name))) }} onClose={() => setAddOpen(false)} onAdd={addSectionFromLibrary} />
 
       {/* ---------- Section Settings drawer ---------- */}
       <Drawer
@@ -958,28 +995,14 @@ function VariantThumbPreview({ Comp, theme, label, onClick }: { Comp: SectionCom
   );
 }
 
-// A representative section name per SectionType — its sectionKind() maps back to
-// the same type, so a reference pattern's chosen variant renders correctly.
-const NAME_FOR_TYPE: Record<string, string> = {
-  navbar: "Navbar", hero: "Hero", features: "Features", services: "Services",
-  "social-proof": "Social Proof", workflow: "Product Workflow", showcase: "Showcase",
-  "use-cases": "Use Cases", comparison: "Comparison", integrations: "Integrations",
-  "booking-form": "Booking Form", "contact-form": "Contact Form", "quote-form": "Quote Form",
-  pricing: "Pricing", testimonials: "Testimonials", faq: "FAQ", cta: "CTA", footer: "Footer",
-  gallery: "Gallery", dashboard: "Dashboard Preview", directory: "Listings", "scroll-media": "Sticky Media",
-};
-
-type DrawerTab = "recommended" | "sections" | "blocks" | "atomic" | "globals" | "references";
+type DrawerTab = "recommended" | "sections" | "globals";
 const DRAWER_TABS: { id: DrawerTab; label: string }[] = [
   { id: "recommended", label: "Recommended" },
   { id: "sections", label: "Sections" },
-  { id: "blocks", label: "Blocks" },
-  { id: "atomic", label: "Elements" },
   { id: "globals", label: "Globals" },
-  { id: "references", label: "References" },
 ];
 
-function AddSectionDrawer({ open, previewTheme, patterns = [], recommendCtx = {}, onClose, onAdd }: { open: boolean; previewTheme: SectionTheme; patterns?: SectionPattern[]; recommendCtx?: ElementLibraryContext; onClose: () => void; onAdd: (name: string, keepOpen: boolean, variant?: string) => void }) {
+function AddSectionDrawer({ open, previewTheme, recommendCtx = {}, onClose, onAdd }: { open: boolean; previewTheme: SectionTheme; recommendCtx?: ElementLibraryContext; onClose: () => void; onAdd: (name: string, keepOpen: boolean, variant?: string) => void }) {
   const [q, setQ] = useState("");
   const [multi, setMulti] = useState(false);
   const [tab, setTab] = useState<DrawerTab>("recommended");
@@ -990,18 +1013,9 @@ function AddSectionDrawer({ open, previewTheme, patterns = [], recommendCtx = {}
     ...g,
     items: g.items.filter((i) => !query || i.toLowerCase().includes(query)),
   })).filter((g) => g.items.length);
-  const refs = patterns.filter((p) => !query || p.name.toLowerCase().includes(query) || p.sectionType.includes(query) || p.styleTags.some((t) => t.toLowerCase().includes(query)));
   const recommended = recommendElements(recommendCtx, 6).filter((e) => !query || e.name.toLowerCase().includes(query));
-  const blockGroups = groupElements(searchElements({ text: query, kind: "block" }));
-  const atomicGroups = groupElements(searchElements({ text: query, kind: "atomic" }));
   const globalItems = searchElements({ text: query, kind: "global" });
 
-  // Insert a saved reference pattern as a section with its matched variant.
-  const addPattern = (p: SectionPattern) => {
-    const type = p.matchedComponent?.type ?? sectionTypeForKind(sectionKind(p.sectionType));
-    const name = NAME_FOR_TYPE[type] ?? "Content Block";
-    onAdd(name, multi, p.matchedComponent?.variantId);
-  };
   // Insert a ready library item (section/block that maps to a section component).
   const addItem = (e: ElementItem) => { if (isReady(e) && e.insertName) onAdd(e.insertName, multi, e.variant); };
 
@@ -1075,14 +1089,6 @@ function AddSectionDrawer({ open, previewTheme, patterns = [], recommendCtx = {}
           </>
         )}
 
-        {tab === "blocks" && <ElementGroupList groups={blockGroups} onAdd={addItem} />}
-        {tab === "atomic" && (
-          <>
-            <p className="mb-2 rounded-lg bg-panel px-2.5 py-1.5 text-[11.5px] text-muted">Atomic elements help build custom sections. Insertion into a section is coming soon.</p>
-            <ElementGroupList groups={atomicGroups} onAdd={addItem} />
-          </>
-        )}
-
         {tab === "globals" && (
           <>
             <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-faint">Site-wide globals</p>
@@ -1092,42 +1098,6 @@ function AddSectionDrawer({ open, previewTheme, patterns = [], recommendCtx = {}
           </>
         )}
 
-        {tab === "references" && (
-          <div className="rounded-xl border border-accent/30 bg-accent-soft/40 p-2.5">
-            <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-accent">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                <rect x="3.5" y="4.5" width="17" height="15" rx="2.5" stroke="currentColor" strokeWidth="1.7" />
-                <circle cx="9" cy="10" r="1.6" stroke="currentColor" strokeWidth="1.7" />
-                <path d="m4.5 17 4.2-4.2a1.5 1.5 0 0 1 2.1 0L15 16.5m-1.5-1.5 1.7-1.7a1.5 1.5 0 0 1 2.1 0l2.2 2.2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              From your Reference Library
-            </p>
-            {refs.length > 0 ? (
-              <div className="grid gap-2">
-                {refs.map((p) => {
-                  const type = (p.matchedComponent?.type ?? sectionTypeForKind(sectionKind(p.sectionType))) as SectionType;
-                  const Comp = getSectionComponent(type, p.matchedComponent?.variantId);
-                  return (
-                    <button key={p.id} type="button" onClick={() => addPattern(p)} className="group overflow-hidden rounded-lg border border-line bg-surface text-left transition-colors hover:border-accent">
-                      <div className="pointer-events-none overflow-hidden bg-surface" style={{ height: 96 }}>
-                        {Comp ? <div style={{ width: 1100, zoom: 0.26 } as React.CSSProperties}><Comp theme={previewTheme} /></div>
-                          : <div className="grid h-full place-items-center text-[11px] text-faint">{p.customSpec?.suggestedComponentName ?? "Custom section"} · needs build</div>}
-                      </div>
-                      <div className="flex items-center justify-between border-t border-line px-2.5 py-1.5">
-                        <span className="truncate text-[11.5px] font-medium text-body">{p.name}</span>
-                        <span className="shrink-0 text-[11px] font-medium text-accent opacity-0 transition-opacity group-hover:opacity-100">Add</span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <p className="px-0.5 py-1 text-[11.5px] text-muted">
-                {query ? "No saved references match your search." : <>No saved references yet. <a href="references" className="font-medium text-accent hover:underline">Add one in the Library →</a></>}
-              </p>
-            )}
-          </div>
-        )}
       </div>
     </Drawer>
   );
@@ -1150,22 +1120,6 @@ function ElementCard({ item, onAdd }: { item: ElementItem; onAdd: () => void }) 
           : <span className="shrink-0 rounded-full border border-line px-1.5 text-[9px] font-medium uppercase text-faint">soon</span>}
       </div>
     </button>
-  );
-}
-
-function ElementGroupList({ groups, onAdd }: { groups: { group: string; items: ElementItem[] }[]; onAdd: (e: ElementItem) => void }) {
-  if (groups.length === 0) return <p className="px-1 text-[13px] text-faint">No matches.</p>;
-  return (
-    <>
-      {groups.map((g) => (
-        <div key={g.group} className="mb-3">
-          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-faint">{g.group}</p>
-          <div className="grid grid-cols-2 gap-2">
-            {g.items.map((e) => <ElementCard key={e.id} item={e} onAdd={() => onAdd(e)} />)}
-          </div>
-        </div>
-      ))}
-    </>
   );
 }
 

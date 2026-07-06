@@ -24,6 +24,7 @@ import {
 } from "@/lib/section-library/manual-sections";
 import { type DynamicSectionDef } from "@/lib/section-library/dynamic-section";
 import { saveAdminSectionAction, deleteAdminSectionAction } from "@/app/(app)/projects/[id]/editor/actions";
+import { saveLibrarySectionAction, deleteLibrarySectionAction } from "@/app/(app)/library/actions";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
 
@@ -50,14 +51,17 @@ declare interface SectionProps { content: SectionContent; theme: SectionTheme; i
 export function SectionStudio({
   projectId, initial, sections, style,
 }: {
-  projectId: string;
+  /** When absent, the Studio runs standalone under /library (no project). */
+  projectId?: string | null;
   initial: DynamicSectionDef;
   sections: DynamicSectionDef[];
   style?: StyleGuideCanvas | null;
 }) {
   const router = useRouter();
   const theme = useMemo(() => createSectionTheme(style ?? undefined), [style]);
-  const backHref = `/projects/${projectId}/references`;
+  const base = projectId ? `/projects/${projectId}/references` : "/library";
+  const backHref = base;
+  const studioBase = `${base}/studio`;
 
   const [draft, setDraft] = useState<DynamicSectionDef>(initial);
   const [previewCode, setPreviewCode] = useState(initial.componentCode);
@@ -87,7 +91,7 @@ export function SectionStudio({
   const save = (thenBack: boolean) => {
     setMsg(null);
     start(async () => {
-      const res = await saveAdminSectionAction(projectId, draft);
+      const res = projectId ? await saveAdminSectionAction(projectId, draft) : await saveLibrarySectionAction(draft);
       if (res.error) { setMsg(res.error); return; }
       if (thenBack) { router.push(backHref); router.refresh(); }
       else { setMsg("Saved."); router.refresh(); }
@@ -95,7 +99,7 @@ export function SectionStudio({
   };
   const remove = () => {
     if (sections.every((s) => s.id !== draft.id)) { router.push(backHref); return; }
-    start(async () => { await deleteAdminSectionAction(projectId, draft.id); router.push(backHref); router.refresh(); });
+    start(async () => { if (projectId) await deleteAdminSectionAction(projectId, draft.id); else await deleteLibrarySectionAction(draft.id); router.push(backHref); router.refresh(); });
   };
   const restore = (code: string) => { setDraft((d) => ({ ...d, componentCode: code })); setPreviewCode(code); };
 
@@ -161,13 +165,13 @@ export function SectionStudio({
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setSectionMenu(false)} />
                 <div className="absolute right-0 top-10 z-50 max-h-[70vh] w-64 overflow-auto rounded-xl border border-line bg-surface py-1 shadow-lg">
-                  <Link href={`/projects/${projectId}/references/studio`} onClick={() => setSectionMenu(false)} className="flex items-center gap-2 px-3 py-2 text-[12.5px] font-medium text-accent hover:bg-panel">
+                  <Link href={studioBase} onClick={() => setSectionMenu(false)} className="flex items-center gap-2 px-3 py-2 text-[12.5px] font-medium text-accent hover:bg-panel">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" /></svg>
                     New section
                   </Link>
                   {sections.length > 0 && <div className="my-1 border-t border-line" />}
                   {sections.map((s) => (
-                    <Link key={s.id} href={`/projects/${projectId}/references/studio/${s.id}`} onClick={() => setSectionMenu(false)}
+                    <Link key={s.id} href={`${studioBase}/${s.id}`} onClick={() => setSectionMenu(false)}
                       className={`flex items-center justify-between gap-2 px-3 py-2 text-[12.5px] hover:bg-panel ${s.id === draft.id ? "text-accent" : "text-ink"}`}>
                       <span className="truncate">{s.name}</span>
                       <span className="shrink-0 text-[10.5px] uppercase tracking-wide text-muted">{s.status}</span>

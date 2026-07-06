@@ -18,6 +18,7 @@ import { createSectionTheme } from "@/components/sections/section-theme";
 import type { SectionTheme } from "@/components/sections/types";
 import type { StyleGuideCanvas } from "@/lib/canvas";
 import { SectionErrorBoundary, renderLibrarySection as renderSection } from "@/components/section-library/section-render";
+import { ExportModal } from "@/components/section-library/export-modal";
 import {
   SECTION_LIBRARY_CATEGORIES, type LibrarySection, type SectionLibraryCategory,
 } from "@/lib/section-library/manual-sections";
@@ -46,9 +47,8 @@ function CardThumb({ section, theme }: { section: LibrarySection; theme: Section
   }, []);
 
   return (
-    <div className="pointer-events-none bg-line/60 p-4">
-      {/* Grey well behind the white device — a distinct shade from the page so
-          the preview reads as a framed screen (Relume-style). */}
+    <div className="pointer-events-none overflow-hidden rounded-2xl bg-line/60 p-4">
+      {/* Grey well behind the white device, inset with white padding on the card. */}
       <div ref={vpRef} className="relative h-[212px] w-full overflow-hidden rounded-xl border border-line bg-white">
         <div className="absolute left-0 top-0 origin-top-left" style={{ width: BASE, transform: `scale(${scale})` }}>
           <SectionErrorBoundary>{renderSection(section, theme, false)}</SectionErrorBoundary>
@@ -178,6 +178,7 @@ export function SectionLibraryClient({
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
+  const [exportSel, setExportSel] = useState<LibrarySection | null>(null);
   const [selected, setSelected] = useState<LibrarySection | null>(null);
   const [menuId, setMenuId] = useState<string | null>(null);
 
@@ -293,7 +294,7 @@ export function SectionLibraryClient({
                   )}
                 </div>
               )}
-              <div className="border-b border-line">
+              <div className="px-3 pt-3">
                 <CardThumb section={s} theme={theme} />
               </div>
               <div className="flex flex-1 flex-col gap-1 p-4">
@@ -306,11 +307,14 @@ export function SectionLibraryClient({
                     <svg className="-ml-0.5" width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" stroke="currentColor" strokeWidth="1.7" /><circle cx="12" cy="12" r="2.5" stroke="currentColor" strokeWidth="1.7" /></svg>
                     Preview
                   </Button>
-                  <Button onClick={() => setSelected(s)} aria-label="Add to page" title="Add to page" className="px-3">
+                  <Button variant="secondary" onClick={() => setSelected(s)} aria-label="Add to page" title="Add to page" className="px-3">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" /></svg>
                   </Button>
                   <Button variant="secondary" onClick={() => toggleSave(s.id)} aria-label={saved.has(s.id) ? "Saved" : "Save"} aria-pressed={saved.has(s.id)} title="Save" className="px-3">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill={saved.has(s.id) ? "currentColor" : "none"} className={saved.has(s.id) ? "text-accent" : ""}><path d="M6.5 4h11a1 1 0 0 1 1 1v15l-6.5-4.2L5.5 20V5a1 1 0 0 1 1-1Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" /></svg>
+                  </Button>
+                  <Button variant="secondary" onClick={() => setExportSel(s)} aria-label="Export prompt" title="Export prompt for any AI tool" className="px-3">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3v12M12 3 8 7M12 3l4 4M5 15v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
                   </Button>
                 </div>
               </div>
@@ -327,6 +331,10 @@ export function SectionLibraryClient({
           projectId={projectId}
           onClose={() => setSelected(null)}
         />
+      )}
+
+      {exportSel && (
+        <ExportModal section={exportSel} theme={theme} onClose={() => setExportSel(null)} />
       )}
       </PageContainer>
     </div>

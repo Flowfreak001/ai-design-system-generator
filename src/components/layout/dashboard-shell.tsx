@@ -148,7 +148,7 @@ export function DashboardShell({
   // Full-bleed surfaces own the viewport — the Section Library + Studio carry
   // their own floating navigation, so hide the whole app chrome (sidebar +
   // header) across all /references routes.
-  const hideChrome = /^\/projects\/[^/]+\/references/.test(pathname);
+  const hideChrome = /^\/projects\/[^/]+\/references/.test(pathname) || /^\/library/.test(pathname);
   // Section Reference Library is project-scoped; resolve it to the open project.
   const projectId = pathname.match(/^\/projects\/([^/]+)/)?.[1] ?? null;
   const projectIdActive = projectId && projectId !== "new" ? projectId : null;
