@@ -46,7 +46,12 @@ export function StyleGuideEditor({
   const setType = (key: string, p: Partial<TypographyToken>) => patch((tk) => ({ ...tk, typography: { ...tk.typography, [key]: { ...tk.typography[key], ...p } } }));
   const setFont = (which: "heading" | "body", v: string) => patch((tk) => ({ ...tk, fonts: { ...tk.fonts, [which]: v } }));
   const setUsage = (k: keyof SemanticTokens["spacingUsage"], v: number) => patch((tk) => ({ ...tk, spacingUsage: { ...tk.spacingUsage, [k]: v } }));
-  const reset = () => setStyle((s) => ({ ...s, tokens: buildSemanticTokens(s) }));
+  const [resetMsg, setResetMsg] = useState<string | null>(null);
+  const reset = () => {
+    setStyle((s) => ({ ...s, tokens: buildSemanticTokens(s) }));
+    setResetMsg("Style guide rebuilt from the extracted colours.");
+    setTimeout(() => setResetMsg(null), 2500);
+  };
 
   const c = t.colors;
   const fontFor = (key: string) => t.typography[key]?.fontFamily || (["h1", "h2", "h3"].includes(key) ? t.fonts.heading : t.fonts.body);
@@ -59,7 +64,7 @@ export function StyleGuideEditor({
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-[15px] font-semibold text-ink">Style Guide</h2>
-          <p className="text-[12.5px] text-muted">Your website theme — semantic colours, typography, spacing and components.</p>
+          <p className="text-[12.5px] text-muted">{resetMsg ?? "Your website theme — semantic colours, typography, spacing and components."}</p>
         </div>
         <div className="flex items-center gap-2">
           <Button size="sm" variant="secondary" onClick={reset}>Reset extraction</Button>
