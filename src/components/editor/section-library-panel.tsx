@@ -14,27 +14,39 @@ import { SECTION_LIBRARY_CATEGORIES } from "@/lib/section-library/manual-section
 import { WIREFRAME_SECTION_THEME } from "@/components/sections/section-theme";
 import { SectionErrorBoundary, renderLibrarySection } from "@/components/section-library/section-render";
 
-/** Uniform, low-fidelity wireframe thumbnail: the section rendered at page width
- *  in the neutral grayscale theme, scaled to a fixed-height frame. */
+/** Full-section wireframe thumbnail: renders the section at page width in the
+ *  neutral grayscale theme and scales it to fit the panel — the whole section is
+ *  visible (auto height), never cropped. Height is clamped so it stays compact. */
 function WireframeThumb({ section }: { section: LibrarySection }) {
   const BASE = 1280;
   const boxRef = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(0.2);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(0.28);
+  const [height, setHeight] = useState(120);
 
   useLayoutEffect(() => {
-    const el = boxRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver(() => setScale(el.clientWidth / BASE));
-    ro.observe(el);
+    const box = boxRef.current;
+    const content = contentRef.current;
+    if (!box || !content) return;
+    const measure = () => {
+      const s = box.clientWidth / BASE;
+      setScale(s);
+      // Full section height, scaled, clamped so tall sections stay reasonable.
+      const h = content.offsetHeight * s;
+      setHeight(Math.max(64, Math.min(h, 300)));
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(box);
+    ro.observe(content);
     return () => ro.disconnect();
-  }, []);
+  }, [section]);
 
   return (
-    <div ref={boxRef} className="pointer-events-none relative h-[92px] w-full overflow-hidden rounded-md bg-white">
-      <div style={{ width: BASE, transform: `scale(${scale})`, transformOrigin: "top left" }}>
+    <div ref={boxRef} className="pointer-events-none relative w-full overflow-hidden rounded-md bg-white" style={{ height }}>
+      <div ref={contentRef} style={{ width: BASE, transform: `scale(${scale})`, transformOrigin: "top left" }}>
         <SectionErrorBoundary>{renderLibrarySection(section, WIREFRAME_SECTION_THEME, false)}</SectionErrorBoundary>
       </div>
-      {/* Faint grid tint sells the "wireframe" read. */}
       <div className="pointer-events-none absolute inset-0 rounded-md ring-1 ring-inset ring-line/70" />
     </div>
   );
