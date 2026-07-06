@@ -439,6 +439,7 @@ export function DesignEditor({
             <StyleGuideEditor
               style={style}
               setStyle={setStyle}
+              pages={pages}
               approved={approvals.style}
               onApprove={() => approve("style")}
               busy={saving}

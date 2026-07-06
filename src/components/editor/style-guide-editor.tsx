@@ -4,9 +4,16 @@
 // theme: theme overview, grouped semantic colours, typography scale, live button
 // + surface previews, spacing/radius/shadow scales. Backed by @/lib/style-guide.
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState, useLayoutEffect } from "react";
 import { Button } from "@/components/ui/button";
-import type { StyleGuideCanvas } from "@/lib/canvas";
+import type { StyleGuideCanvas, CanvasPage, CanvasSection } from "@/lib/canvas";
+import { createSectionTheme } from "@/components/sections/section-theme";
+import { renderSectionByKind } from "@/components/sections/render-section";
+import { GeneratedSection } from "@/components/sections/generated/GeneratedSection";
+import { DynamicSectionRenderer } from "@/components/section-library/dynamic-renderer";
+import { SectionErrorBoundary } from "@/components/section-library/section-render";
+import { sectionKind } from "@/lib/sections";
+import type { SectionTheme } from "@/components/sections/types";
 import {
   COLOR_TOKENS, COLOR_GROUPS, TYPE_TOKENS, SPACING_STEPS, RADIUS_STEPS, SHADOW_STEPS,
   buildSemanticTokens, tokensOf, contrastWarnings, type SemanticTokens, type TypographyToken,
@@ -15,7 +22,7 @@ import {
 const NAME_OF = Object.fromEntries(COLOR_TOKENS.map((c) => [c.key, c.name]));
 
 export function StyleGuideEditor({
-  style, setStyle, approved, onApprove, busy, onApplyToAll,
+  style, setStyle, approved, onApprove, busy, onApplyToAll, pages,
 }: {
   style: StyleGuideCanvas;
   setStyle: (fn: (s: StyleGuideCanvas) => StyleGuideCanvas) => void;
@@ -23,8 +30,10 @@ export function StyleGuideEditor({
   onApprove: () => void;
   busy: boolean;
   onApplyToAll?: () => void;
+  pages?: CanvasPage[];
 }) {
   const t = useMemo(() => tokensOf(style), [style]);
+  const homePage = useMemo(() => (pages ?? []).find((p) => /^home/i.test(p.name)) ?? (pages ?? [])[0], [pages]);
 
   // Convert a legacy (raw-colours) guide to the semantic token system on open.
   useEffect(() => {
@@ -240,10 +249,60 @@ export function StyleGuideEditor({
         {/* Live website preview — reflects the tokens in real time. */}
         <aside className="order-1 lg:order-2">
           <div className="lg:sticky lg:top-4">
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-faint">Live preview</p>
-            <ThemePreview t={t} />
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-faint">Live preview{homePage ? ` · ${homePage.name}` : ""}</p>
+            {homePage && homePage.sections.length > 0
+              ? <HomePreview page={homePage} style={style} />
+              : <ThemePreview t={t} />}
           </div>
         </aside>
+      </div>
+    </div>
+  );
+}
+
+// Renders one canvas section with the live theme — mirrors the Design canvas.
+function renderCanvasSection(s: CanvasSection, theme: SectionTheme) {
+  if (s.custom) {
+    return <DynamicSectionRenderer code={s.custom.code} mode={s.custom.mode} theme={theme} content={{
+      eyebrow: s.content?.eyebrow, title: s.content?.title, subtitle: s.content?.subtitle, description: s.content?.description,
+      primaryButtonLabel: s.content?.primaryButtonLabel, secondaryButtonLabel: s.content?.secondaryButtonLabel,
+      items: s.content?.items?.map((it) => ({ title: it.title, text: it.text })),
+    }} />;
+  }
+  if (s.generated) {
+    return <GeneratedSection pattern={s.generated.pattern} theme={theme} spec={s.generated.spec} />;
+  }
+  return renderSectionByKind(sectionKind(s.name), s.variant, {
+    name: s.name, note: s.note, theme, mobile: false,
+    assetSide: s.asset === "left" ? "left" : "right", hidden: s.hidden,
+    iconKey: s.icon, imageUrl: s.image, contentItems: s.content?.items, content: s.content,
+  });
+}
+
+// The actual home page, rendered at page width and scaled to fit the panel — so
+// the preview is the real design with the live Style Guide tokens applied.
+function HomePreview({ page, style }: { page: CanvasPage; style: StyleGuideCanvas }) {
+  const BASE = 1100;
+  const theme = useMemo(() => createSectionTheme(style), [style]);
+  const boxRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(0.34);
+  const [height, setHeight] = useState(600);
+  useLayoutEffect(() => {
+    const box = boxRef.current, content = contentRef.current;
+    if (!box || !content) return;
+    const measure = () => { const s = box.clientWidth / BASE; setScale(s); setHeight(content.offsetHeight * s); };
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(box); ro.observe(content);
+    return () => ro.disconnect();
+  }, [page, theme]);
+  return (
+    <div ref={boxRef} className="overflow-hidden rounded-2xl border border-line bg-white shadow-lg" style={{ height }}>
+      <div ref={contentRef} style={{ width: BASE, transform: `scale(${scale})`, transformOrigin: "top left" }}>
+        {page.sections.map((s) => (
+          <SectionErrorBoundary key={s.id}>{renderCanvasSection(s, theme)}</SectionErrorBoundary>
+        ))}
       </div>
     </div>
   );
