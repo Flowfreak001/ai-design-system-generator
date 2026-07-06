@@ -28,11 +28,14 @@ export async function createProjectAction(
 ): Promise<FormState> {
   const user = await requireUser();
 
+  // Minimal-onboarding defaults: only a project name is truly required. Business
+  // name falls back to the project name; business type to a neutral default.
+  const projName = str(formData, "name");
   const parsed = createProjectSchema.safeParse({
     // Required
-    name: str(formData, "name"),
-    businessName: str(formData, "businessName"),
-    businessType: str(formData, "businessType"),
+    name: projName,
+    businessName: str(formData, "businessName") || projName,
+    businessType: str(formData, "businessType") || "Website",
     industry: str(formData, "industry"),
     goal: str(formData, "goal"),
     websiteType: str(formData, "websiteType"),
@@ -94,6 +97,13 @@ export async function createProjectAction(
     } catch {
       // Ignore malformed screenshot payloads — they are optional evidence.
     }
+  }
+
+  // Auto-build: if a reference URL was given, analyse it now so the user lands
+  // on a project that's already learned the brand (best-effort — never blocks).
+  const ref = str(formData, "mainReferenceUrl") || str(formData, "existingWebsiteUrl");
+  if (ref) {
+    try { await runWebsiteAnalysis(project.id); } catch { /* analysis can be re-run from the project */ }
   }
 
   revalidatePath("/projects");

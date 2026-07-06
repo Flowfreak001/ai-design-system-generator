@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { requireUser } from "@/lib/auth";
 import { listClients } from "@/lib/clients";
-import { ProjectWizard } from "@/components/projects/project-wizard";
+import { QuickStart } from "@/components/projects/quick-start";
 
 export const metadata: Metadata = { title: "New design system" };
 
@@ -20,16 +20,13 @@ export default async function NewProjectPage({
       <Link href="/projects" className="text-sm text-muted transition-colors hover:text-ink">
         ← Projects
       </Link>
-      <h2 className="mt-3 text-[26px] font-semibold tracking-[-0.02em]">Create New Design System</h2>
+      <h2 className="mt-3 text-[26px] font-semibold tracking-[-0.02em]">Start a website</h2>
       <p className="mt-1 text-sm text-muted">
-        Just the basics, then the website to learn from. Everything else is
-        optional — the design system is built from what the pages actually show.
+        Name it and (optionally) point us at a site to learn from — we build the
+        pages, sections and brand for you. Everything else is optional.
       </p>
       <div className="mt-8">
-        <ProjectWizard
-          clients={clients.map((c) => ({ id: c.id, name: c.name }))}
-          defaultClientId={client}
-        />
+        <QuickStart clients={clients.map((c) => ({ id: c.id, name: c.name }))} />
       </div>
     </div>
   );
