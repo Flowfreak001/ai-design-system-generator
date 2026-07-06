@@ -90,7 +90,9 @@ export type SitemapCanvas = {
 export type CanvasColor = {
   name: string;
   value: string;
-  role?: "main" | "accent" | "neutral";
+  // What the colour is used for. "main" = primary, "text" = font colour,
+  // "background" = page background, "border" = lines/dividers.
+  role?: "main" | "accent" | "text" | "background" | "border" | "neutral";
   source: CanvasSource;
 };
 

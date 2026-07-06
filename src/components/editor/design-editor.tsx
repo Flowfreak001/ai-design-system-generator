@@ -1389,24 +1389,27 @@ function StyleEditor({
           </div>
           <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {style.colors.map((c, i) => (
-              <div key={`${c.name}-${i}`} className="rounded-xl border border-line p-3">
-                <div className="h-14 w-full rounded-lg border border-line" style={{ background: c.value }} />
-                <input value={c.name} onChange={(e) => setColor(i, { name: e.target.value })} className="mt-2 w-full bg-transparent text-[12px] font-medium text-ink outline-none" />
+              <div key={`${c.name}-${i}`} className="flex flex-col rounded-xl border border-line p-3">
+                <div className="h-16 w-full rounded-lg border border-line" style={{ background: c.value }} />
+                <input value={c.name} onChange={(e) => setColor(i, { name: e.target.value })} placeholder="Color name" className="mt-2 w-full bg-transparent text-[12.5px] font-semibold text-ink outline-none placeholder:text-faint" />
                 <div className="mt-1 flex items-center gap-2">
-                  <input value={c.value} onChange={(e) => setColor(i, { value: e.target.value })} className="w-full rounded border border-line px-1.5 py-0.5 font-mono text-[11px]" />
-                  <input type="color" value={/^#([0-9a-f]{6})$/i.test(c.value) ? c.value : "#666666"} onChange={(e) => setColor(i, { value: e.target.value })} className="h-6 w-6 shrink-0 cursor-pointer rounded border border-line" />
+                  <input value={c.value} onChange={(e) => setColor(i, { value: e.target.value })} className="w-full rounded border border-line px-1.5 py-1 font-mono text-[11px]" />
+                  <input type="color" value={/^#([0-9a-f]{6})$/i.test(c.value) ? c.value : "#666666"} onChange={(e) => setColor(i, { value: e.target.value })} className="h-7 w-7 shrink-0 cursor-pointer rounded border border-line" aria-label="Pick color" />
                 </div>
-                <div className="mt-1.5 flex items-center justify-between">
-                  <select value={c.role ?? ""} onChange={(e) => setColor(i, { role: (e.target.value || undefined) as CanvasColor["role"] })} className="rounded border border-line bg-surface px-1 py-0.5 text-[10px]">
-                    <option value="">role…</option>
-                    <option value="main">main</option>
-                    <option value="accent">accent</option>
-                    <option value="neutral">neutral</option>
-                  </select>
-                  <div className="flex items-center gap-1">
-                    <SourceTag source={c.source} onClick={() => setColor(i, { source: nextSource(c.source) })} />
-                    <button type="button" onClick={() => removeColor(i)} className="text-faint hover:text-danger">✕</button>
-                  </div>
+                {/* Human-readable purpose so users know what the colour does. */}
+                <label className="mt-2.5 text-[10px] font-medium uppercase tracking-wide text-faint">Used for</label>
+                <select value={c.role ?? ""} onChange={(e) => setColor(i, { role: (e.target.value || undefined) as CanvasColor["role"] })} className="mt-1 w-full rounded-md border border-line bg-surface px-2 py-1 text-[11.5px] text-ink">
+                  <option value="">Not set</option>
+                  <option value="main">Primary color</option>
+                  <option value="accent">Accent / Buttons</option>
+                  <option value="text">Font color</option>
+                  <option value="background">Background</option>
+                  <option value="border">Border / Lines</option>
+                  <option value="neutral">Neutral</option>
+                </select>
+                <div className="mt-2 flex items-center justify-between">
+                  <SourceTag source={c.source} onClick={() => setColor(i, { source: nextSource(c.source) })} />
+                  <button type="button" onClick={() => removeColor(i)} aria-label="Remove color" className="text-faint hover:text-danger">✕</button>
                 </div>
               </div>
             ))}
