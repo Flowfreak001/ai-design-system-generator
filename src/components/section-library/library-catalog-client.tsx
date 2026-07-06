@@ -88,7 +88,7 @@ function PreviewModule({ section, theme, onClose }: { section: LibrarySection; t
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
           </button>
         </div>
-        <div ref={areaRef} className="min-h-0 flex-1 overflow-auto bg-panel p-6">
+        <div ref={areaRef} className="flex-1 overflow-auto bg-panel p-6" style={{ minHeight: 400 }}>
           <div className="mx-auto" style={{ width: width * scale, height: scaledH }}>
             <div ref={contentRef} className="overflow-hidden rounded-xl border border-line bg-white shadow-sm" style={{ width, transform: `scale(${scale})`, transformOrigin: "top left" }}>
               <SectionErrorBoundary>{renderSection(section, theme, device === "mobile")}</SectionErrorBoundary>
