@@ -68,6 +68,7 @@ export function SectionStudio({
   const [device, setDevice] = useState<Device>("desktop");
   const [status, setStatus] = useState<SectionRenderStatus>({ state: "ok" });
   const [showDetails, setShowDetails] = useState(false);
+  const [catOpen, setCatOpen] = useState(false);
   const [sectionMenu, setSectionMenu] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -177,6 +178,45 @@ export function SectionStudio({
                       <span className="shrink-0 text-[10.5px] uppercase tracking-wide text-muted">{s.status}</span>
                     </Link>
                   ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          {/* Category — custom dropdown that always opens BELOW the field. */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setCatOpen((v) => !v)}
+              title="Section category"
+              className="flex h-8 items-center gap-1.5 rounded-lg border border-line bg-surface px-2.5 text-[12.5px] font-medium capitalize text-ink hover:bg-panel"
+            >
+              {draft.category}
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className={`text-muted transition-transform ${catOpen ? "rotate-180" : ""}`}><path d="m6 9 6 6 6-6" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            </button>
+            {catOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setCatOpen(false)} />
+                <div className="absolute left-0 top-9 z-50 max-h-72 w-44 overflow-auto rounded-xl border border-line bg-surface py-1 shadow-lg">
+                  {!SECTION_LIBRARY_CATEGORIES.includes(draft.category) && (
+                    <CatItem label={draft.category} active onClick={() => setCatOpen(false)} />
+                  )}
+                  {SECTION_LIBRARY_CATEGORIES.map((cat) => (
+                    <CatItem key={cat} label={cat} active={cat === draft.category} onClick={() => { set("category", cat); setCatOpen(false); }} />
+                  ))}
+                  <div className="my-1 border-t border-line" />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const custom = (typeof window !== "undefined" ? window.prompt("New category name") : "")?.trim().toLowerCase();
+                      if (custom) set("category", custom as SectionLibraryCategory);
+                      setCatOpen(false);
+                    }}
+                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12.5px] font-medium text-accent hover:bg-panel"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" /></svg>
+                    Add category…
+                  </button>
                 </div>
               </>
             )}
@@ -337,5 +377,18 @@ export function SectionStudio({
       )}
       </div>
     </div>
+  );
+}
+
+function CatItem({ label, active, onClick }: { label: string; active?: boolean; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-[12.5px] capitalize hover:bg-panel ${active ? "font-semibold text-accent" : "text-ink"}`}
+    >
+      {label}
+      {active && <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="m5 12.5 4 4 10-10" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>}
+    </button>
   );
 }
