@@ -1007,18 +1007,17 @@ function VariantThumbPreview({ Comp, theme, label, onClick }: { Comp: SectionCom
   );
 }
 
+// Design is built only from Section Library components — the old generic
+// "recommended / sections / globals" template tabs are retired.
 type DrawerTab = "library" | "recommended" | "sections" | "globals";
 const DRAWER_TABS: { id: DrawerTab; label: string }[] = [
   { id: "library", label: "Library" },
-  { id: "recommended", label: "Recommended" },
-  { id: "sections", label: "Sections" },
-  { id: "globals", label: "Globals" },
 ];
 
 function AddSectionDrawer({ open, previewTheme, recommendCtx = {}, librarySections = [], onClose, onAdd, onAddLibrary }: { open: boolean; previewTheme: SectionTheme; recommendCtx?: ElementLibraryContext; librarySections?: LibrarySection[]; onClose: () => void; onAdd: (name: string, keepOpen: boolean, variant?: string) => void; onAddLibrary?: (item: LibrarySection, keepOpen: boolean) => void }) {
   const [q, setQ] = useState("");
   const [multi, setMulti] = useState(false);
-  const [tab, setTab] = useState<DrawerTab>(librarySections.length ? "library" : "recommended");
+  const [tab, setTab] = useState<DrawerTab>("library");
   const [expanded, setExpanded] = useState<string | null>(null);
   const query = q.trim().toLowerCase();
 

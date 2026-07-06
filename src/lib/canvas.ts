@@ -154,47 +154,10 @@ type Tokens = {
   metrics?: { headingWeight?: number; bodyFontSizePx?: number; spacingBase?: number; radiusPx?: number };
 };
 
-// Default section blueprint per page. Every page starts with a real, editable
-// structure so the sitemap is usable the moment a project is created — the user
-// tweaks from here instead of building each page from an empty node.
-const DEFAULT_SECTIONS: Record<string, string[]> = {
-  home: ["Header / Navigation", "Hero", "Feature highlights", "Services", "Social proof", "Call to action", "Footer"],
-  about: ["Header / Navigation", "Page hero", "Our story", "Team", "Values", "Call to action", "Footer"],
-  services: ["Header / Navigation", "Hero", "Services grid", "Process", "Pricing", "Call to action", "Footer"],
-  "service detail": ["Header / Navigation", "Hero", "Overview", "Key features", "FAQ", "Call to action", "Footer"],
-  contact: ["Header / Navigation", "Page hero", "Contact form", "Map / location", "Footer"],
-  blog: ["Header / Navigation", "Page hero", "Post grid", "Newsletter signup", "Footer"],
-  pricing: ["Header / Navigation", "Hero", "Pricing tiers", "Comparison", "FAQ", "Call to action", "Footer"],
-  faq: ["Header / Navigation", "Page hero", "FAQ accordion", "Call to action", "Footer"],
-  features: ["Header / Navigation", "Hero", "Feature grid", "Highlights", "Call to action", "Footer"],
-  shop: ["Header / Navigation", "Hero", "Category tiles", "Product grid", "Footer"],
-  "product detail": ["Header / Navigation", "Product gallery", "Product details", "Reviews", "Related products", "Footer"],
-  cart: ["Header / Navigation", "Cart items", "Order summary", "Footer"],
-  checkout: ["Header / Navigation", "Checkout form", "Order summary", "Footer"],
-  listings: ["Header / Navigation", "Page hero", "Filters", "Listings grid", "Footer"],
-  categories: ["Header / Navigation", "Page hero", "Category grid", "Footer"],
-  menu: ["Header / Navigation", "Page hero", "Menu categories", "Menu items", "Call to action", "Footer"],
-  reservations: ["Header / Navigation", "Page hero", "Reservation form", "Footer"],
-  booking: ["Header / Navigation", "Page hero", "Booking form", "Availability", "Footer"],
-  gallery: ["Header / Navigation", "Page hero", "Gallery grid", "Call to action", "Footer"],
-  "portfolio / case studies": ["Header / Navigation", "Page hero", "Work grid", "Call to action", "Footer"],
-  portfolio: ["Header / Navigation", "Page hero", "Work grid", "Call to action", "Footer"],
-  team: ["Header / Navigation", "Page hero", "Team grid", "Call to action", "Footer"],
-  testimonials: ["Header / Navigation", "Page hero", "Testimonials", "Call to action", "Footer"],
-  "login / dashboard": ["Header / Navigation", "Auth form", "Footer"],
-  login: ["Header / Navigation", "Auth form", "Footer"],
-  dashboard: ["Sidebar", "Topbar", "Overview cards", "Data table"],
-};
-const GENERIC_SECTIONS = ["Header / Navigation", "Page hero", "Content", "Call to action", "Footer"];
-
-/** Default editable sections for a page, keyed by its friendly name. */
-function defaultSectionsFor(pageName: string): CanvasSection[] {
-  const key = pageName.trim().toLowerCase();
-  const names = DEFAULT_SECTIONS[key] ?? GENERIC_SECTIONS;
-  return names.map((name) => ({ id: nodeId("s"), name, source: "assumed" as CanvasSource }));
-}
-
-/** Build the initial sitemap canvas from selected pages + detected sections. */
+/** Build the initial sitemap canvas from selected pages + detected sections.
+ *  Pages start EMPTY (no generic template sections) — the design is built purely
+ *  from Section Library components the user adds. Only reference-detected sections
+ *  (from an analysed site) are pre-populated. */
 export function deriveSitemapCanvas(keyItems: string[], multi: MultiPage | null): SitemapCanvas {
   const detectedNames = new Set(
     (multi?.pagesAnalyzed ?? []).filter((p) => p.ok).map((p) => friendlyPageName(p.pageType).toLowerCase()),
@@ -220,7 +183,7 @@ export function deriveSitemapCanvas(keyItems: string[], multi: MultiPage | null)
     if (!name.trim() || seen.has(key)) return;
     seen.add(key);
     const detected = sectionsByPage.get(key);
-    pages.push({ id: nodeId("p"), name: name.trim(), source, sections: detected?.length ? detected : defaultSectionsFor(name) });
+    pages.push({ id: nodeId("p"), name: name.trim(), source, sections: detected?.length ? detected : [] });
   };
 
   for (const p of keyItems) add(p, detectedNames.has(p.toLowerCase()) ? "detected" : "user-added");
