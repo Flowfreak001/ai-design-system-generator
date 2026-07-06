@@ -732,6 +732,7 @@ function SitemapEditor({
           <SectionSettingsContent
             section={editSection}
             schemes={schemes}
+            baseTheme={previewTheme}
             onPatch={(patch) => onPatchSection(editing.pageId, editing.sid, patch)}
             onDuplicate={() => onDuplicateSection(editing.pageId, editing.sid)}
             onDelete={() => { onRemoveSection(editing.pageId, editing.sid); setEditing(null); }}
@@ -1319,10 +1320,11 @@ function suggestCopy(kind: string, name: string): string {
 }
 
 function SectionSettingsContent({
-  section, schemes, onPatch, onDuplicate, onDelete, onClose, onApplyGlobal,
+  section, schemes, baseTheme, onPatch, onDuplicate, onDelete, onClose, onApplyGlobal,
 }: {
   section: CanvasSection;
   schemes: CanvasColor[];
+  baseTheme?: SectionTheme;
   onPatch: (patch: Partial<CanvasSection>) => void;
   onDuplicate: () => void;
   onDelete: () => void;
@@ -1337,6 +1339,7 @@ function SectionSettingsContent({
           section={section}
           kind={kind}
           schemes={schemes}
+          baseTheme={baseTheme}
           onPatch={onPatch}
           onDuplicate={onDuplicate}
           onDelete={onDelete}

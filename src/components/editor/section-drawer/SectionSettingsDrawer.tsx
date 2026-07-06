@@ -35,11 +35,12 @@ const CUSTOM_TABS: { id: TabId; label: string }[] = [
   { id: "advanced", label: "Advanced" },
 ];
 
-export function SectionSettingsDrawer({ section, kind, schemes, industry, onPatch, onDuplicate, onDelete, onApplyGlobal }: {
+export function SectionSettingsDrawer({ section, kind, schemes, industry, baseTheme, onPatch, onDuplicate, onDelete, onApplyGlobal }: {
   section: CanvasSection;
   kind: string;
   schemes: CanvasColor[];
   industry?: string;
+  baseTheme?: import("@/components/sections/types").SectionTheme;
   onPatch: (patch: Partial<CanvasSection>) => void;
   onDuplicate: () => void;
   onDelete: () => void;
@@ -75,7 +76,7 @@ export function SectionSettingsDrawer({ section, kind, schemes, industry, onPatc
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto p-4">
         {activeTab === "content" && <ContentTab sectionId={section.id} schema={schema} content={data.content} onCommit={commitContent} />}
-        {activeTab === "style" && <StyleTab section={section} onPatch={onPatch} />}
+        {activeTab === "style" && <StyleTab section={section} onPatch={onPatch} base={baseTheme} />}
         {activeTab === "layout" && <LayoutTab kind={kind} variant={section.variant} layout={data.layout} onVariant={(variant) => onPatch({ variant })} onCommit={commitLayout} />}
         {activeTab === "media" && <MediaTab assets={data.assets} sectionName={section.name} industry={industry} onCommit={commitAssets} />}
         {activeTab === "motion" && <MotionTab schema={schema} motion={data.motion} onCommit={commitMotion} />}
