@@ -6,24 +6,26 @@
 import type { SectionTheme, ButtonStyle } from "./types";
 import type { StyleGuideCanvas } from "@/lib/canvas";
 
-// Default preview theme for the Section Library — uses the Flowfreak brand
-// accent (not a generic blue) and a distinctive Google-font pairing (Space
-// Grotesk display + Manrope text) so section previews look designed, not stock.
+// NEUTRAL default theme for the GLOBAL Section Library. The Library is a global
+// reusable-asset system — its previews must stay clean/neutral and NEVER inherit
+// a project's brand fonts or colours. Brand fonts/colours/spacing are applied at
+// the project/Studio level via the project's Style Guide (createSectionTheme
+// receives that styleGuide), and per-section overrides live only inside a project.
 export const DEFAULT_SECTION_THEME: SectionTheme = {
-  primaryColor: "#141419",
-  accentColor: "#6d28d9",
+  primaryColor: "#111827",
+  accentColor: "#2563eb",
   backgroundColor: "#ffffff",
-  surfaceColor: "#f5f4f7",
-  textColor: "#141419",
+  surfaceColor: "#f6f7f9",
+  textColor: "#111827",
   mutedTextColor: "#6b7280",
-  borderColor: "#e7e5ea",
-  buttonBgColor: "#6d28d9",
+  borderColor: "#e5e7eb",
+  buttonBgColor: "#2563eb",
   buttonTextColor: "#ffffff",
-  radius: "14px",
-  shadow: "0 1px 3px rgba(20,20,25,0.08)",
+  radius: "12px",
+  shadow: "0 1px 3px rgba(17,24,39,0.08)",
   spacing: "16px",
-  headingFont: "'Space Grotesk', system-ui, sans-serif",
-  bodyFont: "'Manrope', system-ui, sans-serif",
+  headingFont: "Inter, system-ui, sans-serif",
+  bodyFont: "Inter, system-ui, sans-serif",
   buttonStyle: "rounded",
   animationStyle: "smooth",
 };
