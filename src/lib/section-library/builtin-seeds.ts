@@ -21,8 +21,17 @@ export async function seedBuiltinsForAgency(agencyId: string): Promise<void> {
   const first = SECTIONS[0];
   if (!first) return;
   // Version marker — bump the suffix if the built-in set changes so agencies re-seed.
-  const marker = `seed-${agencyId}-v2-${first.id}`;
+  const prefix = `seed-${agencyId}-`;
+  const v2Prefix = `${prefix}v2-`;
+  const marker = `${v2Prefix}${first.id}`;
   if (await prisma.librarySection.findUnique({ where: { id: marker } })) return;
+
+  // Not on the current set yet — remove any PREVIOUS built-in seeds for this
+  // agency (auto-seeded rows have createdBy: null). User-authored sections
+  // (createdBy set) are never touched.
+  await prisma.librarySection.deleteMany({
+    where: { agencyId, createdBy: null, id: { startsWith: prefix }, NOT: { id: { startsWith: v2Prefix } } },
+  });
 
   for (const b of SECTIONS) {
     const id = `seed-${agencyId}-v2-${b.id}`;
