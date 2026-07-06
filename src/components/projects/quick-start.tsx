@@ -76,9 +76,6 @@ export function QuickStart({ clients }: { clients: { id: string; name: string }[
                   {INDUSTRIES.map((i) => <option key={i} value={i}>{i}</option>)}
                 </select>
               </label>
-              <label className="text-[12px] font-medium text-muted sm:col-span-2">Target audience
-                <input name="targetAudience" placeholder="Who is this site for?" className={`mt-1 ${INPUT}`} />
-              </label>
               {clients.length > 0 && (
                 <label className="text-[12px] font-medium text-muted">Link to client
                   <select name="businessId" defaultValue="" className={`mt-1 ${INPUT}`}>
