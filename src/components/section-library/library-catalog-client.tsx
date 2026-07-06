@@ -12,7 +12,7 @@ import { PageContainer } from "@/components/layout/page-container";
 import type { SectionTheme } from "@/components/sections/types";
 import type { LibrarySection } from "@/lib/section-library/manual-sections";
 import { SECTION_LIBRARY_CATEGORIES } from "@/lib/section-library/manual-sections";
-import { createSectionTheme } from "@/components/sections/section-theme";
+import { DEFAULT_SECTION_THEME } from "@/components/sections/section-theme";
 import { SectionErrorBoundary, renderLibrarySection as renderSection } from "@/components/section-library/section-render";
 import { ExportModal } from "@/components/section-library/export-modal";
 import { deleteLibrarySectionAction } from "@/app/(app)/library/actions";
@@ -111,7 +111,9 @@ export function LibraryCatalogClient({
   currentUserId: string;
 }) {
   const router = useRouter();
-  const theme = useMemo(() => createSectionTheme(undefined), []);
+  // Library previews are ALWAYS the default brand theme — never a project's
+  // branding — so the catalog looks consistent no matter which project you're in.
+  const theme = DEFAULT_SECTION_THEME;
   const [q, setQ] = useState("");
   const [cat, setCat] = useState("all");
   const [selected, setSelected] = useState<LibrarySection | null>(null);
