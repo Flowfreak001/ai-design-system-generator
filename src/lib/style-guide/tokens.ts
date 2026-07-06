@@ -146,32 +146,66 @@ const DEFAULT_TYPO: Record<string, TypographyToken> = {
 /** Classify raw extracted colours into semantic roles, generating safe defaults
  *  for anything missing. Returns a complete token map. */
 export function buildSemanticTokens(style: StyleGuideCanvas): SemanticTokens {
-  const raw = dedupe((style.colors ?? []).map((c) => c.value).filter((v) => /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(v)));
+  const valid = (style.colors ?? []).filter((c) => /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(c.value));
   const rgbOf = (h: string) => hexToRgb(h)!;
   const lumOf = (h: string) => relLum(rgbOf(h));
+  const raw = dedupe(valid.map((c) => c.value));
 
   const colors: Record<string, string> = { ...DEFAULTS };
 
+  // ── Role-based classification first (matches the Design preview generator) ──
+  // The analysis assigns each colour a role via its NAME (ink/background/accent/
+  // surface/neutral-*) or explicit role field. Honour that before falling back
+  // to luminance heuristics, so the Style Guide and Design preview agree.
+  const nm = (re: RegExp) => valid.find((c) => re.test(c.name.toLowerCase()) || re.test(c.role ?? ""))?.value;
+  const accentByName = valid.find((c) => /^accent|accent[-\s]?\d|primary|brand|cta|action/.test(c.name.toLowerCase()) || c.role === "accent")?.value;
+  const neutrals = valid.filter((c) => /neutral|gray|grey/.test(c.name.toLowerCase()) || c.role === "neutral").map((c) => c.value);
+
+  const byNameText = nm(/^ink$|(^|[^a-z])text|body|foreground|content/);
+  const byNameHeading = nm(/ink[-\s]?heading|heading/);
+  const byNameBg = nm(/^bg$|background|canvas|page|surface[-\s]?0|white/);
+  const byNameSurface = nm(/surface|panel|subtle|muted[-\s]?bg|100|200/);
+  const byNameBorder = nm(/border|line|divider|300|400/);
+  const byNameMuted = nm(/muted|secondary[-\s]?text|500|600/);
+
+  if (byNameText) colors["color.text.primary"] = byNameText;
+  if (byNameBg) colors["color.background.page"] = byNameBg;
+  if (byNameSurface) colors["color.background.surface"] = byNameSurface;
+  if (byNameBorder) colors["color.border.default"] = byNameBorder;
+  if (byNameMuted) colors["color.text.muted"] = byNameMuted;
+  if (accentByName) {
+    colors["color.action.primary"] = accentByName;
+    colors["color.action.primaryHover"] = shade(accentByName, -0.12);
+  }
+  // Strong/inverse surface: heading ink or the darkest neutral.
+  if (byNameHeading) colors["color.background.inverse"] = byNameHeading;
+  else if (neutrals.length) colors["color.background.inverse"] = [...neutrals].sort((a, b) => lumOf(a) - lumOf(b))[0];
+  // Border from the lightest neutral if the analysis didn't name one.
+  if (!byNameBorder && neutrals.length) {
+    const light = [...neutrals].filter((h) => lumOf(h) > 0.5 && lumOf(h) < 0.95).sort((a, b) => lumOf(b) - lumOf(a))[0];
+    if (light) colors["color.border.default"] = light;
+  }
+
+  // ── Heuristic fallback for anything the names didn't cover ──
   if (raw.length) {
     const sorted = [...raw].sort((a, b) => lumOf(a) - lumOf(b));
     const darkest = sorted[0];
     const lightest = sorted[sorted.length - 1];
-    // Most saturated, mid-luminance → the accent.
     const accent = [...raw].sort((a, b) => saturation(rgbOf(b)) - saturation(rgbOf(a)))[0];
-    // A light-but-not-white neutral → default border.
     const border = [...raw].filter((h) => { const l = lumOf(h); return l > 0.55 && l < 0.95 && saturation(rgbOf(h)) < 0.2; }).sort((a, b) => lumOf(b) - lumOf(a))[0];
-    // A near-black that isn't the primary text → strong/inverse surface.
     const inverse = [...raw].filter((h) => h !== darkest && lumOf(h) < 0.08).sort((a, b) => lumOf(a) - lumOf(b))[0];
 
-    if (accent && saturation(rgbOf(accent)) > 0.25) {
+    if (!accentByName && accent && saturation(rgbOf(accent)) > 0.25) {
       colors["color.action.primary"] = accent;
       colors["color.action.primaryHover"] = shade(accent, -0.12);
     }
-    if (darkest && lumOf(darkest) < 0.25) colors["color.text.primary"] = darkest;
-    if (lightest && lumOf(lightest) > 0.9) colors["color.background.page"] = lightest;
-    if (border) colors["color.border.default"] = border;
-    if (inverse) colors["color.background.inverse"] = inverse;
-    else if (darkest) colors["color.background.inverse"] = darkest;
+    if (!byNameText && darkest && lumOf(darkest) < 0.25) colors["color.text.primary"] = darkest;
+    if (!byNameBg && lightest && lumOf(lightest) > 0.9) colors["color.background.page"] = lightest;
+    if (!byNameBorder && !neutrals.length && border) colors["color.border.default"] = border;
+    if (!byNameHeading && !neutrals.length) {
+      if (inverse) colors["color.background.inverse"] = inverse;
+      else if (darkest) colors["color.background.inverse"] = darkest;
+    }
   }
 
   const headingFont = style.headingFont || "Inter";
