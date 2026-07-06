@@ -309,13 +309,17 @@ export default async function ProjectWorkspacePage({
           <span className="font-mono text-[10px] uppercase tracking-wider text-faint">from onboarding</span>
         </div>
         <dl className="mt-2 divide-y divide-line">
-          <Row label="Business" value={`${gen.clientName ?? ""}${b.businessType ? ` · ${b.businessType}` : ""}`} />
-          <Row label="Industry" value={b.industry} />
-          <Row label="Website type" value={b.websiteType} />
-          <Row label="Goals" value={b.goals.join(", ")} />
-          <Row label="Features" value={b.features.join(", ")} />
-          <Row label="Pages" value={b.keyItems.join(", ")} />
-          <Row label="Audience" value={b.targetAudience} />
+          {([
+            ["Business", [gen.clientName, b.businessType].filter(Boolean).join(" · ")],
+            ["Industry", b.industry],
+            ["Website type", b.websiteType],
+            ["Goals", b.goals.join(", ")],
+            ["Features", b.features.join(", ")],
+            ["Pages", b.keyItems.join(", ")],
+            ["Audience", b.targetAudience],
+          ] as [string, string | undefined | null][])
+            .filter(([, v]) => v && String(v).trim())
+            .map(([label, value]) => <Row key={label} label={label} value={value} />)}
         </dl>
       </div>
 
