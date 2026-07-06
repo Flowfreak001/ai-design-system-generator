@@ -72,9 +72,10 @@ export function StyleGuideEditor({
         </div>
       )}
 
-      {/* Two columns: controls (left) + sticky live website preview (right). */}
-      <div className="grid gap-6 xl:grid-cols-[1fr_minmax(340px,400px)]">
-      <div className="grid min-w-0 gap-5">
+      {/* Two columns: controls (left) + sticky live website preview (right).
+          Side-by-side on lg+, stacked (preview on top) on narrow screens. */}
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(300px,380px)]">
+      <div className="order-2 grid min-w-0 gap-5 lg:order-1">
         {/* 1. Theme Overview */}
         <section className="card p-5">
           <p className="text-sm font-semibold text-ink">Theme Overview</p>
@@ -237,8 +238,8 @@ export function StyleGuideEditor({
       </div>
 
         {/* Live website preview — reflects the tokens in real time. */}
-        <aside className="hidden xl:block">
-          <div className="sticky top-4">
+        <aside className="order-1 lg:order-2">
+          <div className="lg:sticky lg:top-4">
             <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-faint">Live preview</p>
             <ThemePreview t={t} />
           </div>
