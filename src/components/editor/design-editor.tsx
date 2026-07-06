@@ -440,6 +440,7 @@ export function DesignEditor({
               style={style}
               setStyle={setStyle}
               pages={pages}
+              brandMeta={{ brandName: projectName, industry: siteContext.industry, businessType: siteContext.businessType }}
               approved={approvals.style}
               onApprove={() => approve("style")}
               busy={saving}

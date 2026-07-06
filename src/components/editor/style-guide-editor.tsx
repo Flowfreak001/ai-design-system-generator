@@ -18,11 +18,12 @@ import {
   COLOR_TOKENS, COLOR_GROUPS, TYPE_TOKENS, SPACING_STEPS, RADIUS_STEPS, SHADOW_STEPS,
   buildSemanticTokens, tokensOf, contrastWarnings, type SemanticTokens, type TypographyToken,
 } from "@/lib/style-guide/tokens";
+import { buildBrandProfile } from "@/lib/style-guide/brand-profile";
 
 const NAME_OF = Object.fromEntries(COLOR_TOKENS.map((c) => [c.key, c.name]));
 
 export function StyleGuideEditor({
-  style, setStyle, approved, onApprove, busy, onApplyToAll, pages,
+  style, setStyle, approved, onApprove, busy, onApplyToAll, pages, brandMeta,
 }: {
   style: StyleGuideCanvas;
   setStyle: (fn: (s: StyleGuideCanvas) => StyleGuideCanvas) => void;
@@ -31,9 +32,12 @@ export function StyleGuideEditor({
   busy: boolean;
   onApplyToAll?: () => void;
   pages?: CanvasPage[];
+  brandMeta?: { brandName?: string; industry?: string; businessType?: string };
 }) {
   const t = useMemo(() => tokensOf(style), [style]);
+  const profile = useMemo(() => buildBrandProfile(style, { ...brandMeta, host: style.host }), [style, brandMeta]);
   const homePage = useMemo(() => (pages ?? []).find((p) => /^home/i.test(p.name)) ?? (pages ?? [])[0], [pages]);
+  const [previewMode, setPreviewMode] = useState<"brand" | "home">("brand");
 
   // Convert a legacy (raw-colours) guide to the semantic token system on open.
   useEffect(() => {
@@ -90,6 +94,26 @@ export function StyleGuideEditor({
           Side-by-side on lg+, stacked (preview on top) on narrow screens. */}
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(300px,380px)]">
       <div className="order-2 grid min-w-0 gap-5 lg:order-1">
+        {/* 0. Brand Summary */}
+        <section className="card p-5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <p className="text-sm font-semibold text-ink">Brand Summary</p>
+            <span className={`rounded-full px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide ${profile.confidence === "high" ? "bg-success-soft text-success" : profile.confidence === "medium" ? "bg-warning-soft text-warning" : "bg-panel text-muted"}`}>{profile.confidence} confidence</span>
+          </div>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <Meta label="Brand" value={profile.brandName} />
+            <Meta label="Industry" value={profile.industryGuess} />
+            <Meta label="Personality" value={profile.brandPersonality.join(" · ")} />
+            <Meta label="Visual tone" value={profile.visualTone} />
+          </div>
+          <p className="mt-3 text-[12px] leading-relaxed text-muted">{profile.evidenceSummary}</p>
+          {profile.extractionWarnings.length > 0 && (
+            <ul className="mt-2 list-disc pl-5 text-[11.5px] text-warning">
+              {profile.extractionWarnings.slice(0, 4).map((w, i) => <li key={i}>{w}</li>)}
+            </ul>
+          )}
+        </section>
+
         {/* 1. Theme Overview */}
         <section className="card p-5">
           <p className="text-sm font-semibold text-ink">Theme Overview</p>
@@ -204,6 +228,21 @@ export function StyleGuideEditor({
           </div>
         </section>
 
+        {/* 5b. Inputs */}
+        <section className="card p-5">
+          <p className="text-sm font-semibold text-ink">Inputs</p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2" style={{ fontFamily: t.fonts.body }}>
+            <div>
+              <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: c["color.text.muted"], marginBottom: 6 }}>Email address</label>
+              <div style={{ border: `1px solid ${c["color.border.default"]}`, borderRadius: radius("radius.md"), padding: "11px 13px", color: c["color.text.muted"], fontSize: 13, background: c["color.background.card"] }}>you@company.com</div>
+            </div>
+            <div>
+              <label style={{ display: "block", fontSize: 11, fontWeight: 600, color: c["color.text.muted"], marginBottom: 6 }}>Focused</label>
+              <div style={{ border: `2px solid ${c["color.focus.ring"]}`, borderRadius: radius("radius.md"), padding: "10px 12px", color: c["color.text.primary"], fontSize: 13, background: c["color.background.card"], boxShadow: `0 0 0 3px ${c["color.focus.ring"]}33` }}>Typing…</div>
+            </div>
+          </div>
+        </section>
+
         {/* 6. Spacing */}
         <section className="card p-5">
           <p className="text-sm font-semibold text-ink">Spacing</p>
@@ -251,13 +290,19 @@ export function StyleGuideEditor({
         </section>
       </div>
 
-        {/* Live website preview — reflects the tokens in real time. */}
+        {/* Live preview — Brand kit showcase or the real home page. */}
         <aside className="order-1 lg:order-2">
           <div className="lg:sticky lg:top-4">
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-faint">Live preview{homePage ? ` · ${homePage.name}` : ""}</p>
-            {homePage && homePage.sections.length > 0
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-faint">Brand preview</p>
+              <div className="inline-flex items-center gap-0.5 rounded-full border border-line bg-panel p-0.5 text-[11px]">
+                <button type="button" onClick={() => setPreviewMode("brand")} className={`rounded-full px-2 py-0.5 font-medium ${previewMode === "brand" ? "bg-surface text-ink shadow-sm" : "text-muted"}`}>Brand kit</button>
+                <button type="button" onClick={() => setPreviewMode("home")} disabled={!homePage?.sections.length} className={`rounded-full px-2 py-0.5 font-medium disabled:opacity-40 ${previewMode === "home" ? "bg-surface text-ink shadow-sm" : "text-muted"}`}>Home page</button>
+              </div>
+            </div>
+            {previewMode === "home" && homePage && homePage.sections.length > 0
               ? <HomePreview page={homePage} style={style} />
-              : <ThemePreview t={t} />}
+              : <BrandPreview t={t} />}
           </div>
         </aside>
       </div>
@@ -355,6 +400,90 @@ function ThemePreview({ t }: { t: SemanticTokens }) {
       <div style={{ background: c["color.background.inverse"], color: c["color.text.inverse"], padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
         <span style={{ fontFamily: heading, fontWeight: 700, fontSize: 13 }}>Ready to start?</span>
         <span style={{ ...btn, background: c["color.action.primary"], color: c["color.text.inverse"] }}>Contact us</span>
+      </div>
+    </div>
+  );
+}
+
+function Meta({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-[10px] font-medium uppercase tracking-wide text-faint">{label}</p>
+      <p className="text-[13px] font-medium text-ink">{value}</p>
+    </div>
+  );
+}
+
+// A brand-kit showcase built entirely from the semantic tokens — mini hero,
+// buttons, card, input, typography, light + dark sections, and a CTA. Shows how
+// the brand looks on a real website (placeholder media only).
+function BrandPreview({ t }: { t: SemanticTokens }) {
+  const c = t.colors;
+  const heading = t.fonts.heading || "Inter";
+  const body = t.fonts.body || "Inter";
+  const rl = (k: string) => `${t.radius[k] ?? 12}px`;
+  const chip = { fontFamily: body, fontWeight: 700, fontSize: 12, borderRadius: rl("radius.md"), padding: "8px 14px", border: "1px solid transparent", cursor: "default" } as const;
+  const label = { fontSize: 10, fontWeight: 700, letterSpacing: "0.04em", textTransform: "uppercase" as const, color: c["color.text.muted"], margin: "0 0 8px" };
+  return (
+    <div className="grid gap-3">
+      {/* Hero + nav */}
+      <div style={{ border: `1px solid ${c["color.border.default"]}`, borderRadius: rl("radius.lg"), overflow: "hidden", background: c["color.background.page"], boxShadow: t.shadows["shadow.md"], fontFamily: body }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", borderBottom: `1px solid ${c["color.border.subtle"]}` }}>
+          <span style={{ fontFamily: heading, fontWeight: 800, fontSize: 14, color: c["color.text.primary"] }}>Logo</span>
+          <span style={{ ...chip, background: c["color.action.primary"], color: c["color.text.inverse"], padding: "6px 12px", fontSize: 11 }}>Sign up</span>
+        </div>
+        <div style={{ background: c["color.background.surface"], padding: "26px 18px", textAlign: "center" }}>
+          <h1 style={{ fontFamily: heading, fontWeight: t.typography.h1?.fontWeight ?? 800, fontSize: 24, lineHeight: 1.1, letterSpacing: t.typography.h1?.letterSpacing, color: c["color.text.primary"], margin: 0 }}>Your headline here</h1>
+          <p style={{ color: c["color.text.muted"], fontSize: 12.5, lineHeight: 1.6, margin: "8px auto 0", maxWidth: 280 }}>Supporting copy that sells the value in a line or two.</p>
+          <div style={{ display: "flex", gap: 8, justifyContent: "center", marginTop: 14 }}>
+            <span style={{ ...chip, background: c["color.action.primary"], color: c["color.text.inverse"] }}>Get started</span>
+            <span style={{ ...chip, background: c["color.background.card"], color: c["color.text.primary"], border: `1px solid ${c["color.border.default"]}` }}>Learn more</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Buttons */}
+      <div className="rounded-xl border border-line bg-surface p-3">
+        <p style={label}>Buttons</p>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 8, fontFamily: body }}>
+          <span style={{ ...chip, background: c["color.action.primary"], color: c["color.text.inverse"] }}>Primary</span>
+          <span style={{ ...chip, background: c["color.background.card"], color: c["color.text.primary"], border: `1px solid ${c["color.border.default"]}` }}>Secondary</span>
+          <span style={{ ...chip, background: "transparent", color: c["color.text.primary"] }}>Ghost</span>
+          <span style={{ ...chip, background: "transparent", color: c["color.action.primary"], textDecoration: "underline" }}>Link</span>
+          <span style={{ ...chip, background: c["color.background.surface"], color: c["color.text.muted"], opacity: 0.6 }}>Disabled</span>
+        </div>
+      </div>
+
+      {/* Card + Input */}
+      <div className="grid grid-cols-2 gap-3">
+        <div className="rounded-xl border border-line bg-surface p-3">
+          <p style={label}>Card</p>
+          <div style={{ background: c["color.background.card"], border: `1px solid ${c["color.border.default"]}`, borderRadius: rl("radius.md"), boxShadow: t.shadows["shadow.sm"], padding: 10, fontFamily: body }}>
+            <div style={{ width: 22, height: 22, borderRadius: 6, background: c["color.action.primary"] }} />
+            <p style={{ fontFamily: heading, fontWeight: 700, fontSize: 12, color: c["color.text.primary"], margin: "8px 0 3px" }}>Feature</p>
+            <p style={{ fontSize: 10.5, lineHeight: 1.5, color: c["color.text.muted"], margin: 0 }}>Short benefit copy.</p>
+          </div>
+        </div>
+        <div className="rounded-xl border border-line bg-surface p-3">
+          <p style={label}>Input</p>
+          <div style={{ border: `1px solid ${c["color.border.default"]}`, borderRadius: rl("radius.md"), padding: "10px 11px", color: c["color.text.muted"], fontSize: 12, background: c["color.background.card"], fontFamily: body }}>you@company.com</div>
+          <div style={{ marginTop: 8, border: `2px solid ${c["color.focus.ring"]}`, borderRadius: rl("radius.md"), padding: "9px 10px", color: c["color.text.primary"], fontSize: 12, background: c["color.background.card"], fontFamily: body }}>Focused…</div>
+        </div>
+      </div>
+
+      {/* Typography */}
+      <div className="rounded-xl border border-line bg-surface p-3" style={{ fontFamily: body }}>
+        <p style={label}>Typography</p>
+        <p style={{ fontFamily: heading, fontWeight: 800, fontSize: 20, color: c["color.text.primary"], margin: 0, letterSpacing: t.typography.h1?.letterSpacing }}>Heading one</p>
+        <p style={{ fontFamily: heading, fontWeight: 700, fontSize: 15, color: c["color.text.primary"], margin: "4px 0 0" }}>Heading three</p>
+        <p style={{ fontSize: 12.5, lineHeight: 1.6, color: c["color.text.muted"], margin: "6px 0 0" }}>Body text sets the reading rhythm across the site.</p>
+      </div>
+
+      {/* Dark CTA section */}
+      <div style={{ background: c["color.background.inverse"], color: c["color.text.inverse"], borderRadius: rl("radius.lg"), padding: "18px 16px", fontFamily: body }}>
+        <p style={{ fontFamily: heading, fontWeight: 800, fontSize: 15, margin: 0 }}>Ready to get started?</p>
+        <p style={{ fontSize: 12, opacity: 0.8, margin: "4px 0 12px" }}>Join teams building faster with the platform.</p>
+        <span style={{ ...chip, background: c["color.action.primary"], color: c["color.text.inverse"] }}>Contact us</span>
       </div>
     </div>
   );
