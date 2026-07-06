@@ -41,17 +41,10 @@ export function FullSectionPreview({ section }: { section: LibrarySection }) {
 
       {/* Real scrollable page. Device widths center the section in a framed column. */}
       <div className="mx-auto bg-white" style={maxWidth ? { maxWidth, boxShadow: "0 0 0 1px var(--color-line)" } : undefined}>
-        {/* Small lead-in so scroll effects have a little room to trigger. */}
-        <div className="grid place-items-center py-10 text-center text-[12.5px] text-muted">
-          <p>Scroll down ↓ — the section reacts to real page scrolling</p>
-        </div>
-
         <SectionErrorBoundary>{renderLibrarySection(section, theme, device === "mobile")}</SectionErrorBoundary>
 
-        {/* Scroll room after */}
-        <div className="grid min-h-[70vh] place-items-center text-center text-[13px] text-muted">
-          <p>End of preview — scroll up to replay ↑</p>
-        </div>
+        {/* Scroll room so scroll-linked effects have space to trigger/replay. */}
+        <div className="min-h-[70vh]" aria-hidden />
       </div>
     </div>
   );

@@ -4,6 +4,7 @@
 import { requireUser } from "@/lib/auth";
 import { LibraryCatalogClient } from "@/components/section-library/library-catalog-client";
 import { listCatalogSections } from "@/lib/section-library/catalog-store";
+import { seedBuiltinsForAgency } from "@/lib/section-library/builtin-seeds";
 import { dynamicToLibrarySection } from "@/lib/section-library/dynamic-section";
 import { isAdmin, canViewLibrarySection } from "@/lib/section-library/permissions";
 
@@ -12,6 +13,9 @@ export const dynamic = "force-dynamic";
 export default async function LibraryPage() {
   const user = await requireUser();
   const admin = isAdmin(user);
+
+  // Provision the built-in sections into this agency's catalog (idempotent).
+  if (user.agencyId) await seedBuiltinsForAgency(user.agencyId);
 
   const catalog = user.agencyId ? await listCatalogSections(user.agencyId) : [];
   const sections = catalog.filter((d) => {
