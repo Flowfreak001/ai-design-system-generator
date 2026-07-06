@@ -48,13 +48,6 @@ export function ClientForm() {
 
   return (
     <div>
-      {/* Step indicator */}
-      <div className="mb-4 flex items-center gap-2 text-[12px] font-medium">
-        <span className={step === 1 ? "text-accent" : "text-muted"}>1 · Company</span>
-        <span className="text-faint">→</span>
-        <span className={step === 2 ? "text-accent" : "text-muted"}>2 · Contact &amp; engagement</span>
-      </div>
-
       {state?.error && (
         <p role="alert" className="mb-4 rounded-xl border border-danger/30 bg-danger-soft px-4 py-3 text-sm text-danger">
           {state.error}

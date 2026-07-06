@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { createProjectAction, type FormState } from "@/app/(app)/projects/actions";
 import { INDUSTRIES, WEBSITE_TYPES, suggestPages, suggestFeatures } from "@/lib/onboarding";
 
-const INPUT = "w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-[14px] text-ink outline-none placeholder:text-faint focus:border-accent";
+const INPUT = "w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-[14px] font-normal text-ink outline-none placeholder:text-faint focus:border-accent";
 const EXTRA_PAGES = ["Home", "About", "Services", "Service detail", "Contact", "Blog", "Pricing", "FAQ", "Gallery", "Portfolio / case studies", "Team", "Testimonials", "Shop", "Menu", "Booking", "Login / dashboard"];
 
 export function QuickStart({ clients }: { clients: { id: string; name: string }[] }) {
@@ -21,7 +21,6 @@ export function QuickStart({ clients }: { clients: { id: string; name: string }[
   const [name, setName] = useState("");
   const [start, setStart] = useState<"reference" | "blank">("reference");
   const [ref, setRef] = useState("");
-  const [details, setDetails] = useState(false);
   const [businessType, setBusinessType] = useState("");
   const [industry, setIndustry] = useState("");
   const [clientId, setClientId] = useState("");
@@ -62,14 +61,7 @@ export function QuickStart({ clients }: { clients: { id: string; name: string }[
   };
 
   return (
-    <div className="max-w-2xl">
-      {/* Step indicator */}
-      <div className="mb-4 flex items-center gap-2 text-[12px] font-medium">
-        <span className={step === 1 ? "text-accent" : "text-muted"}>1 · Basics</span>
-        <span className="text-faint">→</span>
-        <span className={step === 2 ? "text-accent" : "text-muted"}>2 · Pages</span>
-      </div>
-
+    <div className="w-full">
       <div className="rounded-2xl border border-line bg-surface p-6 sm:p-8">
         {step === 1 ? (
           <>
@@ -101,31 +93,26 @@ export function QuickStart({ clients }: { clients: { id: string; name: string }[
             </div>
 
             <div className="mt-6 border-t border-line pt-4">
-              <button type="button" onClick={() => setDetails((v) => !v)} className="flex items-center gap-1.5 text-[13px] font-medium text-muted hover:text-ink">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" className={`transition-transform ${details ? "rotate-90" : ""}`}><path d="m9 6 6 6-6 6" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                Add business details <span className="text-faint">(optional)</span>
-              </button>
-              {details && (
-                <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                  <label className="text-[12px] font-medium text-muted">Business type
-                    <input value={businessType} onChange={(e) => setBusinessType(e.target.value)} placeholder="e.g. Car rental, restaurant" className={`mt-1 ${INPUT}`} />
-                  </label>
-                  <label className="text-[12px] font-medium text-muted">Industry
-                    <select value={industry} onChange={(e) => setIndustry(e.target.value)} className={`mt-1 ${INPUT}`}>
-                      <option value="">Select…</option>
-                      {INDUSTRIES.map((i) => <option key={i} value={i}>{i}</option>)}
+              <p className="text-[13px] font-semibold text-ink">Business details <span className="font-normal text-faint">(optional)</span></p>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <label className="text-[12px] font-medium text-muted">Business type
+                  <input value={businessType} onChange={(e) => setBusinessType(e.target.value)} placeholder="e.g. Car rental, restaurant" className={`mt-1 ${INPUT}`} />
+                </label>
+                <label className="text-[12px] font-medium text-muted">Industry
+                  <select value={industry} onChange={(e) => setIndustry(e.target.value)} className={`mt-1 ${INPUT}`}>
+                    <option value="">Select…</option>
+                    {INDUSTRIES.map((i) => <option key={i} value={i}>{i}</option>)}
+                  </select>
+                </label>
+                {clients.length > 0 && (
+                  <label className="text-[12px] font-medium text-muted">Link to client
+                    <select value={clientId} onChange={(e) => setClientId(e.target.value)} className={`mt-1 ${INPUT}`}>
+                      <option value="">No client link</option>
+                      {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                     </select>
                   </label>
-                  {clients.length > 0 && (
-                    <label className="text-[12px] font-medium text-muted">Link to client
-                      <select value={clientId} onChange={(e) => setClientId(e.target.value)} className={`mt-1 ${INPUT}`}>
-                        <option value="">No client link</option>
-                        {clients.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                      </select>
-                    </label>
-                  )}
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
             <div className="mt-6 flex justify-end">

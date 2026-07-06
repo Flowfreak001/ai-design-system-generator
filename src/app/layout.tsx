@@ -18,15 +18,15 @@ const mono = Geist_Mono({
 export const metadata: Metadata = {
   metadataBase: new URL("https://ai-design-system-generator-production.up.railway.app"),
   title: {
-    default: "Project OS — Agency projects & small-business automation",
-    template: "%s · Project OS",
+    default: "Flowfreak — Plan, build, optimize & automate business websites",
+    template: "%s · Flowfreak",
   },
   description:
-    "An AI-powered project workspace for freelancers and agencies to scope, organize, and deliver websites, apps, and small-business automation workflows from first client brief to final handoff.",
+    "Flowfreak is an AI platform to plan, build, optimize, and automate business websites — Studio, Library, SEO, Automations, and MCP in one workspace.",
   openGraph: {
-    title: "Project OS",
+    title: "Flowfreak",
     description:
-      "Run client projects and small-business automations from one AI-powered workspace.",
+      "An AI platform to plan, build, optimize, and automate business websites.",
     type: "website",
   },
 };

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
+import { FlowfreakLogo } from "@/components/layout/logo";
 
 // Authenticated users get the dashboard shell (sidebar + top bar).
 // Unauthenticated (signin/signup) get a minimal centered page.
@@ -17,9 +18,8 @@ export default async function AppLayout({
   return (
     <div className="flex min-h-screen flex-1 flex-col">
       <header className="flex h-16 items-center px-5 sm:px-8">
-        <Link href="/" className="flex items-center gap-2.5 font-semibold tracking-tight text-ink">
-          <span className="grid h-7 w-7 place-items-center rounded-lg bg-accent text-white text-sm">◆</span>
-          Project OS
+        <Link href="/" aria-label="Flowfreak home">
+          <FlowfreakLogo />
         </Link>
       </header>
       <main className="flex flex-1 flex-col">{children}</main>
