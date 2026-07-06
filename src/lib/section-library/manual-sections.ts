@@ -13,7 +13,7 @@ import type { SectionType } from "@/components/sections/types";
 
 /** User-facing categories the library can be grouped/filtered by. */
 export const SECTION_LIBRARY_CATEGORIES = [
-  "site header", "hero", "features", "services", "pricing", "testimonials", "case-studies",
+  "site header", "hero banner", "hero", "features", "services", "pricing", "testimonials", "case-studies",
   "logos", "stats", "faq", "contact", "cta", "gallery", "process", "footer",
   "comparison", "dashboard", "ecommerce", "custom",
 ] as const;
