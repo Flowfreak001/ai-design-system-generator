@@ -733,11 +733,27 @@ function SitemapEditor({
             section={editSection}
             schemes={schemes}
             baseTheme={previewTheme}
-            onPatch={(patch) => onPatchSection(editing.pageId, editing.sid, patch)}
+            canReset={Boolean(editSection.sourceLibrarySectionId && librarySections.some((l) => l.id === editSection.sourceLibrarySectionId))}
+            onPatch={(patch) => onPatchSection(editing.pageId, editing.sid, { ...patch, isCustomized: true })}
             onDuplicate={() => onDuplicateSection(editing.pageId, editing.sid)}
             onDelete={() => { onRemoveSection(editing.pageId, editing.sid); setEditing(null); }}
             onClose={() => setEditing(null)}
             onApplyGlobal={() => onApplyGlobal(editing.pageId, editing.sid)}
+            onResetToLibrary={() => {
+              const src = librarySections.find((l) => l.id === editSection.sourceLibrarySectionId);
+              if (!src) return;
+              const dc = src.defaultContent ?? {};
+              onPatchSection(editing.pageId, editing.sid, {
+                content: {
+                  eyebrow: dc.eyebrow, title: dc.title, subtitle: dc.subtitle, description: dc.description,
+                  primaryButtonLabel: dc.primaryButtonLabel, secondaryButtonLabel: dc.secondaryButtonLabel,
+                  items: (dc.items ?? []).map((it) => ({ title: it.title, text: it.text, href: it.href, icon: it.icon })),
+                },
+                ...(src.componentCode ? { custom: { code: src.componentCode, mode: src.codeMode ?? "react" }, editableFields: src.editableFields } : {}),
+                themeOverride: undefined,
+                isCustomized: false,
+              });
+            }}
           />
         )}
       </Drawer>
@@ -1320,16 +1336,18 @@ function suggestCopy(kind: string, name: string): string {
 }
 
 function SectionSettingsContent({
-  section, schemes, baseTheme, onPatch, onDuplicate, onDelete, onClose, onApplyGlobal,
+  section, schemes, baseTheme, canReset, onPatch, onDuplicate, onDelete, onClose, onApplyGlobal, onResetToLibrary,
 }: {
   section: CanvasSection;
   schemes: CanvasColor[];
   baseTheme?: SectionTheme;
+  canReset?: boolean;
   onPatch: (patch: Partial<CanvasSection>) => void;
   onDuplicate: () => void;
   onDelete: () => void;
   onClose: () => void;
   onApplyGlobal?: () => void;
+  onResetToLibrary?: () => void;
 }) {
   const kind = sectionKind(section.name);
   return (
@@ -1340,10 +1358,12 @@ function SectionSettingsContent({
           kind={kind}
           schemes={schemes}
           baseTheme={baseTheme}
+          canReset={canReset}
           onPatch={onPatch}
           onDuplicate={onDuplicate}
           onDelete={onDelete}
           onApplyGlobal={onApplyGlobal}
+          onResetToLibrary={onResetToLibrary}
         />
       </div>
       <div className="border-t border-line p-3">

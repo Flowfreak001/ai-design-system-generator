@@ -62,6 +62,11 @@ export type CanvasSection = {
    *  over the project theme so each section can have its own look. Edited from
    *  the Section Settings "Style" tab. */
   themeOverride?: Partial<import("@/components/sections/types").SectionTheme>;
+  /** True once the user manually edits this instance (content/style/layout) in
+   *  the UI. Manual edits live on the instance and are NEVER overwritten by
+   *  library reseeding/regeneration — only an explicit "Reset to Library default"
+   *  reverts them. */
+  isCustomized?: boolean;
   /** Library item this instance was copied from (provenance; the instance is
    *  independent and editing it never touches the library item). */
   sourceLibrarySectionId?: string;

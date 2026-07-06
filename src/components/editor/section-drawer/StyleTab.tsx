@@ -33,10 +33,12 @@ const COLORS: { key: keyof SectionTheme; label: string }[] = [
 
 const inputCls = "w-full rounded-lg border border-line bg-surface px-2.5 py-1.5 text-[13px] text-ink outline-none focus:border-accent";
 
-export function StyleTab({ section, onPatch, base }: {
+export function StyleTab({ section, onPatch, base, canReset, onResetToLibrary }: {
   section: CanvasSection;
   onPatch: (patch: Partial<CanvasSection>) => void;
   base?: SectionTheme;
+  canReset?: boolean;
+  onResetToLibrary?: () => void;
 }) {
   const ov = (section.themeOverride ?? {}) as Partial<SectionTheme>;
   const projectTheme = base ?? DEFAULT_SECTION_THEME;
@@ -129,10 +131,20 @@ export function StyleTab({ section, onPatch, base }: {
         </label>
       </div>
 
-      {Object.keys(ov).length > 0 && (
-        <button type="button" onClick={() => onPatch({ themeOverride: undefined })} className="justify-self-start rounded-lg border border-line px-3 py-1.5 text-[12.5px] font-medium text-muted hover:text-ink">
-          Clear section styles
-        </button>
+      <div className="flex flex-wrap gap-2 border-t border-line pt-3">
+        {Object.keys(ov).length > 0 && (
+          <button type="button" onClick={() => onPatch({ themeOverride: undefined })} className="rounded-lg border border-line px-3 py-1.5 text-[12.5px] font-medium text-muted hover:text-ink">
+            Clear section styles
+          </button>
+        )}
+        {canReset && onResetToLibrary && (
+          <button type="button" onClick={onResetToLibrary} title="Restore this section's content, code, and styles from its Library template" className="rounded-lg border border-line px-3 py-1.5 text-[12.5px] font-medium text-muted hover:text-danger">
+            Reset to Library default
+          </button>
+        )}
+      </div>
+      {section.isCustomized && (
+        <p className="text-[11px] text-faint">Customized — your edits are saved on this section and are never overwritten by Library updates.</p>
       )}
     </div>
   );
