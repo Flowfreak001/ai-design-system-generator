@@ -72,7 +72,9 @@ export function StyleGuideEditor({
         </div>
       )}
 
-      <div className="grid gap-5">
+      {/* Two columns: controls (left) + sticky live website preview (right). */}
+      <div className="grid gap-6 xl:grid-cols-[1fr_minmax(340px,400px)]">
+      <div className="grid min-w-0 gap-5">
         {/* 1. Theme Overview */}
         <section className="card p-5">
           <p className="text-sm font-semibold text-ink">Theme Overview</p>
@@ -232,6 +234,62 @@ export function StyleGuideEditor({
             </div>
           </div>
         </section>
+      </div>
+
+        {/* Live website preview — reflects the tokens in real time. */}
+        <aside className="hidden xl:block">
+          <div className="sticky top-4">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-faint">Live preview</p>
+            <ThemePreview t={t} />
+          </div>
+        </aside>
+      </div>
+    </div>
+  );
+}
+
+function ThemePreview({ t }: { t: SemanticTokens }) {
+  const c = t.colors;
+  const heading = t.fonts.heading || "Inter";
+  const body = t.fonts.body || "Inter";
+  const rl = (k: string) => `${t.radius[k] ?? 12}px`;
+  const btn = { borderRadius: rl("radius.md"), padding: "8px 16px", fontSize: 12, fontWeight: 700, cursor: "default", border: "1px solid transparent", fontFamily: body } as const;
+  return (
+    <div style={{ border: `1px solid ${c["color.border.default"]}`, borderRadius: rl("radius.lg"), overflow: "hidden", background: c["color.background.page"], boxShadow: t.shadows["shadow.lg"], fontFamily: body }}>
+      {/* Navbar */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 16px", borderBottom: `1px solid ${c["color.border.subtle"]}` }}>
+        <span style={{ fontFamily: heading, fontWeight: 800, fontSize: 15, color: c["color.text.primary"] }}>Logo</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 11, color: c["color.text.muted"] }}>
+          <span>Services</span><span>About</span>
+          <span style={{ ...btn, background: c["color.action.primary"], color: c["color.text.inverse"], padding: "6px 12px", fontSize: 11 }}>Sign up</span>
+        </div>
+      </div>
+      {/* Hero */}
+      <div style={{ background: c["color.background.surface"], padding: "34px 20px", textAlign: "center" }}>
+        <h1 style={{ fontFamily: heading, fontWeight: 800, fontSize: 26, lineHeight: 1.1, letterSpacing: "-0.02em", color: c["color.text.primary"], margin: 0 }}>Your headline goes right here</h1>
+        <p style={{ color: c["color.text.muted"], fontSize: 12.5, lineHeight: 1.6, margin: "10px auto 0", maxWidth: 300 }}>Supporting copy that explains the value of the product in a line or two.</p>
+        <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 18 }}>
+          <span style={{ ...btn, background: c["color.action.primary"], color: c["color.text.inverse"] }}>Get started</span>
+          <span style={{ ...btn, background: c["color.background.card"], color: c["color.text.primary"], border: `1px solid ${c["color.border.default"]}` }}>Learn more</span>
+        </div>
+      </div>
+      {/* Feature cards */}
+      <div style={{ padding: 20 }}>
+        <h2 style={{ fontFamily: heading, fontWeight: 800, fontSize: 17, color: c["color.text.primary"], margin: 0 }}>What you get</h2>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, marginTop: 12 }}>
+          {[0, 1, 2].map((i) => (
+            <div key={i} style={{ background: c["color.background.card"], border: `1px solid ${c["color.border.default"]}`, borderRadius: rl("radius.md"), boxShadow: t.shadows["shadow.sm"], padding: 10 }}>
+              <div style={{ width: 22, height: 22, borderRadius: 6, background: c["color.action.primary"], opacity: 0.9 }} />
+              <p style={{ fontFamily: heading, fontWeight: 700, fontSize: 11.5, color: c["color.text.primary"], margin: "8px 0 3px" }}>Feature {i + 1}</p>
+              <p style={{ fontSize: 10, lineHeight: 1.5, color: c["color.text.muted"], margin: 0 }}>Short benefit copy.</p>
+            </div>
+          ))}
+        </div>
+      </div>
+      {/* Dark strip */}
+      <div style={{ background: c["color.background.inverse"], color: c["color.text.inverse"], padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <span style={{ fontFamily: heading, fontWeight: 700, fontSize: 13 }}>Ready to start?</span>
+        <span style={{ ...btn, background: c["color.action.primary"], color: c["color.text.inverse"] }}>Contact us</span>
       </div>
     </div>
   );
