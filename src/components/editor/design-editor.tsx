@@ -1357,6 +1357,25 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
+// Plain-English labels for what each colour is used for.
+const COLOR_ROLE_LABEL: Record<string, string> = {
+  main: "Primary color",
+  accent: "Accent / Buttons",
+  text: "Font color",
+  background: "Background",
+  border: "Border / Lines",
+  neutral: "Neutral",
+};
+const COLOR_ROLE_OPTIONS = [
+  { value: "", label: "Not set" },
+  { value: "main", label: "Primary color" },
+  { value: "accent", label: "Accent / Buttons" },
+  { value: "text", label: "Font color" },
+  { value: "background", label: "Background" },
+  { value: "border", label: "Border / Lines" },
+  { value: "neutral", label: "Neutral" },
+];
+
 // ------------------------------------------------------------- Style Guide
 function StyleEditor({
   style, setStyle, approved, onApprove, busy,
@@ -1391,23 +1410,20 @@ function StyleEditor({
             {style.colors.map((c, i) => (
               <div key={`${c.name}-${i}`} className="flex flex-col rounded-xl border border-line p-3">
                 <div className="h-16 w-full rounded-lg border border-line" style={{ background: c.value }} />
-                <input value={c.name} onChange={(e) => setColor(i, { name: e.target.value })} placeholder="Color name" className="mt-2 w-full bg-transparent text-[12.5px] font-semibold text-ink outline-none placeholder:text-faint" />
-                <div className="mt-1 flex items-center gap-2">
-                  <input value={c.value} onChange={(e) => setColor(i, { value: e.target.value })} className="w-full rounded border border-line px-1.5 py-1 font-mono text-[11px]" />
+                {/* Title = the colour's purpose (falls back to its name). */}
+                <p className="mt-2.5 truncate text-[13px] font-semibold text-ink">{c.role ? COLOR_ROLE_LABEL[c.role] : (c.name || "Untitled color")}</p>
+                <div className="mt-1.5 flex items-center gap-2">
+                  <input value={c.value} onChange={(e) => setColor(i, { value: e.target.value })} className="w-full rounded-md border border-line px-2 py-1 font-mono text-[11px]" />
                   <input type="color" value={/^#([0-9a-f]{6})$/i.test(c.value) ? c.value : "#666666"} onChange={(e) => setColor(i, { value: e.target.value })} className="h-7 w-7 shrink-0 cursor-pointer rounded border border-line" aria-label="Pick color" />
                 </div>
                 {/* Human-readable purpose so users know what the colour does. */}
                 <label className="mt-2.5 text-[10px] font-medium uppercase tracking-wide text-faint">Used for</label>
                 <select value={c.role ?? ""} onChange={(e) => setColor(i, { role: (e.target.value || undefined) as CanvasColor["role"] })} className="mt-1 w-full rounded-md border border-line bg-surface px-2 py-1 text-[11.5px] text-ink">
-                  <option value="">Not set</option>
-                  <option value="main">Primary color</option>
-                  <option value="accent">Accent / Buttons</option>
-                  <option value="text">Font color</option>
-                  <option value="background">Background</option>
-                  <option value="border">Border / Lines</option>
-                  <option value="neutral">Neutral</option>
+                  {COLOR_ROLE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                 </select>
-                <div className="mt-2 flex items-center justify-between">
+                <label className="mt-2 text-[10px] font-medium uppercase tracking-wide text-faint">Name</label>
+                <input value={c.name} onChange={(e) => setColor(i, { name: e.target.value })} placeholder="e.g. brand-orange" className="mt-1 w-full rounded-md border border-line bg-surface px-2 py-1 text-[11.5px] text-ink placeholder:text-faint" />
+                <div className="mt-2.5 flex items-center justify-between">
                   <SourceTag source={c.source} onClick={() => setColor(i, { source: nextSource(c.source) })} />
                   <button type="button" onClick={() => removeColor(i)} aria-label="Remove color" className="text-faint hover:text-danger">✕</button>
                 </div>
