@@ -15,10 +15,12 @@ import { LayoutTab } from "./LayoutTab";
 import { MediaTab } from "./MediaTab";
 import { MotionTab } from "./MotionTab";
 import { AdvancedTab } from "./AdvancedTab";
+import { StyleTab } from "./StyleTab";
 
-type TabId = "content" | "layout" | "media" | "motion" | "advanced";
+type TabId = "content" | "style" | "layout" | "media" | "motion" | "advanced";
 const ALL_TABS: { id: TabId; label: string }[] = [
   { id: "content", label: "Content" },
+  { id: "style", label: "Style" },
   { id: "layout", label: "Layout" },
   { id: "media", label: "Media" },
   { id: "motion", label: "Motion" },
@@ -26,9 +28,10 @@ const ALL_TABS: { id: TabId; label: string }[] = [
 ];
 // Custom/Library sections render from authored code that controls its own
 // layout, media and motion — those tabs would be no-ops, so only Content
-// (driven by the section's editableFields) and Advanced apply.
+// (driven by the section's editableFields), Style, and Advanced apply.
 const CUSTOM_TABS: { id: TabId; label: string }[] = [
   { id: "content", label: "Content" },
+  { id: "style", label: "Style" },
   { id: "advanced", label: "Advanced" },
 ];
 
@@ -72,6 +75,7 @@ export function SectionSettingsDrawer({ section, kind, schemes, industry, onPatc
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto p-4">
         {activeTab === "content" && <ContentTab sectionId={section.id} schema={schema} content={data.content} onCommit={commitContent} />}
+        {activeTab === "style" && <StyleTab section={section} onPatch={onPatch} />}
         {activeTab === "layout" && <LayoutTab kind={kind} variant={section.variant} layout={data.layout} onVariant={(variant) => onPatch({ variant })} onCommit={commitLayout} />}
         {activeTab === "media" && <MediaTab assets={data.assets} sectionName={section.name} industry={industry} onCommit={commitAssets} />}
         {activeTab === "motion" && <MotionTab schema={schema} motion={data.motion} onCommit={commitMotion} />}

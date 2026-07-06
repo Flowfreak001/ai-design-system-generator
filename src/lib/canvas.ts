@@ -58,6 +58,10 @@ export type CanvasSection = {
    *  reads (from the library item's editableFields). Drives the Section
    *  Settings Content tab so only the real, editable fields are shown. */
   editableFields?: string[];
+  /** Per-section theme overrides (fonts / colours / radius / spacing), merged
+   *  over the project theme so each section can have its own look. Edited from
+   *  the Section Settings "Style" tab. */
+  themeOverride?: Partial<import("@/components/sections/types").SectionTheme>;
   /** Library item this instance was copied from (provenance; the instance is
    *  independent and editing it never touches the library item). */
   sourceLibrarySectionId?: string;

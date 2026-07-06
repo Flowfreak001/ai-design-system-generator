@@ -247,7 +247,13 @@ function PageFrame({
           <div className="flex flex-col divide-y divide-line">
             {page.sections.map((s, i) => {
               const scheme = schemes.find((c) => c.name === s.scheme)?.value;
-              const theme: SectionTheme = scheme ? { ...baseTheme, accentColor: scheme } : baseTheme;
+              // Per-section styling: project theme < scheme accent < the section's
+              // own theme overrides (fonts/colours/radius edited in the Style tab).
+              const theme: SectionTheme = {
+                ...baseTheme,
+                ...(scheme ? { accentColor: scheme } : {}),
+                ...(s.themeOverride ?? {}),
+              };
               const selected = s.id === selectedSectionId;
               return (
                 <div
