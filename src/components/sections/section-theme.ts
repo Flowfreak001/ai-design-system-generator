@@ -17,12 +17,15 @@ export const DEFAULT_SECTION_THEME: SectionTheme = {
   textColor: "#141419",
   mutedTextColor: "#6b7280",
   borderColor: "#e7e5ea",
+  buttonBgColor: "#6d28d9",
+  buttonTextColor: "#ffffff",
   radius: "14px",
   shadow: "0 1px 3px rgba(20,20,25,0.08)",
   spacing: "16px",
   headingFont: "'Space Grotesk', system-ui, sans-serif",
   bodyFont: "'Manrope', system-ui, sans-serif",
   buttonStyle: "rounded",
+  animationStyle: "smooth",
 };
 
 /** Monochrome low-fidelity theme for the Wireframe stage. */
@@ -34,12 +37,15 @@ export const WIREFRAME_SECTION_THEME: SectionTheme = {
   textColor: "#9b9b9b",
   mutedTextColor: "#bcbcbc",
   borderColor: "#e2e2e2",
+  buttonBgColor: "#cfcfcf",
+  buttonTextColor: "#ffffff",
   radius: "8px",
   shadow: "none",
   spacing: "16px",
   headingFont: "Inter, system-ui, sans-serif",
   bodyFont: "Inter, system-ui, sans-serif",
   buttonStyle: "rounded",
+  animationStyle: "none",
 };
 
 function buttonStyleFromRadius(px: number): ButtonStyle {
@@ -65,12 +71,15 @@ export function createSectionTheme(styleGuide?: StyleGuideCanvas | null): Sectio
       textColor: c["color.text.primary"] ?? DEFAULT_SECTION_THEME.textColor,
       mutedTextColor: c["color.text.muted"] ?? DEFAULT_SECTION_THEME.mutedTextColor,
       borderColor: c["color.border.default"] ?? DEFAULT_SECTION_THEME.borderColor,
+      buttonBgColor: c["color.action.primary"] ?? DEFAULT_SECTION_THEME.buttonBgColor,
+      buttonTextColor: c["color.text.inverse"] ?? DEFAULT_SECTION_THEME.buttonTextColor,
       radius: `${radiusPx}px`,
       shadow: t.shadows?.["shadow.md"] ?? DEFAULT_SECTION_THEME.shadow,
       spacing: `${styleGuide.spacingPx ?? 16}px`,
       headingFont: t.fonts?.heading ? `${t.fonts.heading}, system-ui, sans-serif` : DEFAULT_SECTION_THEME.headingFont,
       bodyFont: t.fonts?.body ? `${t.fonts.body}, system-ui, sans-serif` : DEFAULT_SECTION_THEME.bodyFont,
       buttonStyle: buttonStyleFromRadius(radiusPx),
+      animationStyle: DEFAULT_SECTION_THEME.animationStyle,
     };
   }
 
@@ -87,12 +96,15 @@ export function createSectionTheme(styleGuide?: StyleGuideCanvas | null): Sectio
     textColor: byRole("text") ?? byName(/ink|text|black|900|800/i) ?? DEFAULT_SECTION_THEME.textColor,
     mutedTextColor: DEFAULT_SECTION_THEME.mutedTextColor,
     borderColor: byRole("border") ?? byName(/border|line|200|300/i) ?? DEFAULT_SECTION_THEME.borderColor,
+    buttonBgColor: byRole("accent") ?? byName(/accent|brand|primary|cta|action/i) ?? DEFAULT_SECTION_THEME.buttonBgColor,
+    buttonTextColor: DEFAULT_SECTION_THEME.buttonTextColor,
     radius: `${radiusPx}px`,
     shadow: DEFAULT_SECTION_THEME.shadow,
     spacing: `${styleGuide.spacingPx ?? 16}px`,
     headingFont: styleGuide.headingFont ? `${styleGuide.headingFont}, system-ui, sans-serif` : DEFAULT_SECTION_THEME.headingFont,
     bodyFont: styleGuide.bodyFont ? `${styleGuide.bodyFont}, system-ui, sans-serif` : DEFAULT_SECTION_THEME.bodyFont,
     buttonStyle: buttonStyleFromRadius(radiusPx),
+    animationStyle: DEFAULT_SECTION_THEME.animationStyle,
   };
 }
 

@@ -32,7 +32,11 @@ export type SectionType =
   | "block";
 
 export type ButtonStyle = "rounded" | "pill" | "sharp" | "soft";
+export type AnimationStyle = "smooth" | "spring" | "subtle" | "none";
 
+/** Full themeable token set every section consumes. Nothing in a section should
+ *  be a hardcoded colour or font — read these values so a brand's Style Guide can
+ *  restyle every component from the UI (colours, fonts, radius, spacing, motion). */
 export interface SectionTheme {
   primaryColor: string;
   accentColor: string;
@@ -41,12 +45,17 @@ export interface SectionTheme {
   textColor: string;
   mutedTextColor: string;
   borderColor: string;
+  /** Button surface + label — editable independently of the accent. */
+  buttonBgColor: string;
+  buttonTextColor: string;
   radius: string;
   shadow: string;
   spacing: string;
-  headingFont?: string;
-  bodyFont?: string;
-  buttonStyle?: ButtonStyle;
+  headingFont: string;
+  bodyFont: string;
+  buttonStyle: ButtonStyle;
+  /** Motion preset sections use to shape their entrance animations. */
+  animationStyle: AnimationStyle;
 }
 
 /** Generic list item — components read the fields they need and ignore the rest. */
