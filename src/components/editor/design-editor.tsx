@@ -273,17 +273,10 @@ export function DesignEditor({
     });
 
   // ---- Sitemap board helpers ----
-  const recommendedFor = (pg: CanvasPage): CanvasSection[] => {
-    const existing = new Set(pg.sections.map((s) => sectionKind(s.name)));
-    return suggestSectionsForPage(pg.name, features, siteContext)
-      .filter((name) => !existing.has(sectionKind(name)))
-      .map((name) => {
-        const kind = sectionKind(name);
-        // Pick the best-fit Elementor-style variant for this site context.
-        const variant = getBestVariantId(sectionTypeForKind(kind), siteContext);
-        return { id: uid("s"), name, source: "AI-suggested" as const, status: "draft" as const, variant };
-      });
-  };
+  // Old generic template sections (Header/Hero/Services/CTA/Footer) are retired.
+  // Pages are built ONLY from Section Library components the user adds, so no
+  // section is auto-generated anymore.
+  const recommendedFor = (_pg: CanvasPage): CanvasSection[] => [];
   const addPageInCategory = (category: CanvasPage["category"], parentId?: string) =>
     setPages((p) => [...p, { id: uid("p"), name: `New page ${p.length + 1}`, source: "user-added", category, parentId, sections: [] }]);
   // Generate recommended sections for ONE page (adds only missing kinds).
@@ -656,7 +649,6 @@ function SitemapEditor({
           <p className="text-[12.5px] text-muted">Plan every page and its sections. Add, reorder, edit and approve — then generate the wireframe.</p>
         </div>
         <div className="flex items-center gap-2">
-          <Button size="sm" variant="secondary" onClick={onGenerateAll} title="Generate recommended sections for empty pages">✦ Generate sections for all pages</Button>
           <ApproveBar approved={approved} onApprove={onApprove} busy={busy} label="sitemap" />
         </div>
       </div>
@@ -809,8 +801,7 @@ function SitemapPageCard({
       {/* Section rows */}
       {page.sections.length === 0 ? (
         <div className="px-3 py-6 text-center">
-          <p className="text-[12px] text-faint">No sections yet.</p>
-          <button type="button" onClick={onGenerate} className="mt-2 text-[12px] font-medium text-accent hover:underline">✦ Generate sections</button>
+          <p className="text-[12px] text-faint">No sections yet — add from the Library.</p>
         </div>
       ) : (
         <div className="grid gap-2 p-3">
@@ -855,7 +846,6 @@ function SitemapPageMenu({ onGenerate, onAddChild, onDuplicate, onRename, onDele
     <Popover align="right" width={210} trigger={() => <span className="grid h-6 w-6 shrink-0 place-items-center rounded-md text-faint hover:bg-panel hover:text-ink">⋯</span>}>
       {(close) => (
         <div className="grid gap-0.5 text-[12.5px]">
-          <MenuItem onClick={() => { onGenerate(); close(); }}>✦ Generate sections</MenuItem>
           <MenuItem onClick={() => { onAddChild(); close(); }}>Add child page</MenuItem>
           <MenuItem onClick={() => { onDuplicate(); close(); }}>Duplicate page</MenuItem>
           <MenuItem onClick={() => { onRename(); close(); }}>Rename page</MenuItem>
