@@ -1,32 +1,26 @@
 "use client";
 
 // Editable reference URLs for the References tab: view mode lists the saved
-// links; edit mode lets the user change the existing-site URL and add/remove
-// reference + competitor URLs, save, and then re-run analysis (via the
-// confirm-first ActionDialog) against the new links.
+// inspiration links; edit mode lets the user change the existing-site URL and
+// add/remove reference + competitor URLs, then save.
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ActionDialog } from "@/components/projects/action-dialog";
 
 type SaveResult = { error?: string };
 
 export function ReferencesEditor({
-  projectId,
   existingWebsiteUrl,
   referenceUrls,
   competitorUrls,
   save,
-  analyze,
 }: {
-  projectId: string;
   existingWebsiteUrl?: string;
   referenceUrls: string[];
   competitorUrls: string[];
   save: (data: { existingWebsiteUrl?: string; referenceUrls: string[]; competitorUrls: string[] }) => Promise<SaveResult>;
-  analyze: () => Promise<void>;
 }) {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
@@ -103,13 +97,13 @@ export function ReferencesEditor({
       <div className="grid gap-4">
         {rows.length === 0 ? (
           <div className="card flex flex-col items-center p-12 text-center">
-            <p className="text-sm font-medium text-ink">No reference URLs yet</p>
+            <p className="text-sm font-medium text-ink">No inspiration links yet</p>
             <p className="mt-1 max-w-sm text-sm text-muted">
-              Add reference websites to improve design accuracy — the system
-              analyzes their colors, structure, and animation patterns.
+              Save reference and competitor websites you want to draw inspiration
+              from while designing this project.
             </p>
             <Button type="button" className="mt-5" onClick={() => setEditing(true)}>
-              Add references
+              Add links
             </Button>
           </div>
         ) : (
@@ -132,22 +126,7 @@ export function ReferencesEditor({
             </div>
           </div>
         )}
-        {saved && (
-          <p className="text-[13px] text-success">
-            Links updated — run the analysis below to regenerate from the new site.
-          </p>
-        )}
-        {rows.length > 0 && (
-          <ActionDialog
-            projectId={projectId}
-            trigger="button"
-            title="Analyze References"
-            description="Scan the reference site for tokens, metrics, and motion."
-            confirmText={`Scan ${existingWebsiteUrl ?? referenceUrls[0] ?? "the reference site"} in a real browser and refresh the four analysis files. Existing analysis is versioned, not lost. Run it now?`}
-            runName="Website analysis run"
-            action={analyze}
-          />
-        )}
+        {saved && <p className="text-[13px] text-success">Inspiration links updated.</p>}
       </div>
     );
   }
@@ -155,8 +134,7 @@ export function ReferencesEditor({
   return (
     <div className="card grid gap-5 p-5">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-semibold text-ink">Edit reference links</p>
-        <p className="text-[12px] text-muted">Analysis uses: existing website → first reference → competitor</p>
+        <p className="text-sm font-semibold text-ink">Edit inspiration links</p>
       </div>
 
       <div className="grid gap-2">
@@ -170,7 +148,7 @@ export function ReferencesEditor({
         />
       </div>
 
-      {urlList("References", refs, setRefs, "https://site-to-extract-design-from.com")}
+      {urlList("References", refs, setRefs, "https://a-site-you-like.com")}
       {urlList("Competitors", comps, setComps, "https://competitor.com")}
 
       {error && <p className="text-sm text-danger">{error}</p>}

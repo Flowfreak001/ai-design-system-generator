@@ -64,6 +64,84 @@ export async function saveStyleGuideCanvasAction(
   return {};
 }
 
+const newPageId = () => `p-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+
+/** Add a page to the project's sitemap by name. Creates the canvas if none
+ *  exists yet. Sections on other pages are never touched. */
+export async function addPageAction(
+  projectId: string,
+  name: string,
+): Promise<{ error?: string; pageId?: string }> {
+  const user = await requireUser();
+  if (!user.agencyId || !(await ownsProject(projectId, user.agencyId))) return { error: "Not found" };
+  const clean = name.trim().slice(0, 60);
+  if (!clean) return { error: "Enter a page name." };
+  const canvas: SitemapCanvas = (await loadCanvas(projectId)) ?? { pages: [], approved: false };
+  if (canvas.pages.some((p) => p.name.trim().toLowerCase() === clean.toLowerCase())) {
+    return { error: "That page already exists." };
+  }
+  const id = newPageId();
+  canvas.pages.push({ id, name: clean, source: "user-added", sections: [] });
+  await saveCanvasFile(projectId, SITEMAP_CANVAS_FILE, { ...canvas, updatedAt: new Date().toISOString() });
+  revalidatePath(`/projects/${projectId}/editor`);
+  revalidatePath(`/projects/${projectId}`);
+  return { pageId: id };
+}
+
+/** Rename a page. */
+export async function renamePageAction(
+  projectId: string,
+  pageId: string,
+  name: string,
+): Promise<{ error?: string }> {
+  const user = await requireUser();
+  if (!user.agencyId || !(await ownsProject(projectId, user.agencyId))) return { error: "Not found" };
+  const clean = name.trim().slice(0, 60);
+  if (!clean) return { error: "Enter a page name." };
+  const canvas = await loadCanvas(projectId);
+  const page = canvas?.pages.find((p) => p.id === pageId);
+  if (!canvas || !page) return { error: "Page not found." };
+  page.name = clean;
+  await saveCanvasFile(projectId, SITEMAP_CANVAS_FILE, { ...canvas, updatedAt: new Date().toISOString() });
+  revalidatePath(`/projects/${projectId}/editor`);
+  revalidatePath(`/projects/${projectId}`);
+  return {};
+}
+
+/** Remove a page and all of its sections. */
+export async function removePageAction(
+  projectId: string,
+  pageId: string,
+): Promise<{ error?: string }> {
+  const user = await requireUser();
+  if (!user.agencyId || !(await ownsProject(projectId, user.agencyId))) return { error: "Not found" };
+  const canvas = await loadCanvas(projectId);
+  if (!canvas) return { error: "Page not found." };
+  canvas.pages = canvas.pages.filter((p) => p.id !== pageId);
+  await saveCanvasFile(projectId, SITEMAP_CANVAS_FILE, { ...canvas, updatedAt: new Date().toISOString() });
+  revalidatePath(`/projects/${projectId}/editor`);
+  revalidatePath(`/projects/${projectId}`);
+  return {};
+}
+
+/** Remove a single section instance from a page. */
+export async function removeSectionFromPageAction(
+  projectId: string,
+  pageId: string,
+  sectionId: string,
+): Promise<{ error?: string }> {
+  const user = await requireUser();
+  if (!user.agencyId || !(await ownsProject(projectId, user.agencyId))) return { error: "Not found" };
+  const canvas = await loadCanvas(projectId);
+  const page = canvas?.pages.find((p) => p.id === pageId);
+  if (!canvas || !page) return { error: "Page not found." };
+  page.sections = page.sections.filter((s) => s.id !== sectionId);
+  await saveCanvasFile(projectId, SITEMAP_CANVAS_FILE, { ...canvas, updatedAt: new Date().toISOString() });
+  revalidatePath(`/projects/${projectId}/editor`);
+  revalidatePath(`/projects/${projectId}`);
+  return {};
+}
+
 /** Add a reference-inspired generated section as live, editable canvas data on
  *  a page — so it renders in the Design Canvas and can be edited before export. */
 export async function addGeneratedSectionToPageAction(

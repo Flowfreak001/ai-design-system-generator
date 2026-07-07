@@ -11,22 +11,15 @@ import { Button } from "@/components/ui/button";
 import { sectionKind } from "./wireframe-block";
 import { Drawer, Popover } from "./overlays";
 import { ProjectCanvas } from "./project-canvas";
-import { SECTION_CATEGORIES, suggestSectionsForPage } from "@/lib/sections";
-import { getSectionVariants, sectionTypeForKind, getBestVariantId } from "@/components/sections/registry";
+import { suggestSectionsForPage } from "@/lib/sections";
 import { createSectionTheme } from "@/components/sections/section-theme";
-import type { SectionTheme, SectionComponent } from "@/components/sections/types";
+import type { SectionTheme } from "@/components/sections/types";
 import type { SectionContext } from "@/lib/sections";
-import { searchElements } from "@/lib/element-library/search";
-import { recommendElements } from "@/lib/element-library/recommendations";
-import { isReady } from "@/lib/element-library/registry";
-import { KIND_LABEL, KIND_BADGE } from "@/lib/element-library/categories";
-import { ELEMENT_ICONS } from "./element-icons";
 import { SectionSettingsDrawer } from "./section-drawer/SectionSettingsDrawer";
 import { ExportPanel } from "./export-panel/ExportPanel";
 import { SectionLibraryPanel } from "./section-library-panel";
 import { StyleGuideEditor } from "./style-guide-editor";
 import type { LibrarySection } from "@/lib/section-library/manual-sections";
-import type { ElementItem, ElementLibraryContext } from "@/lib/element-library/types";
 import { arrayMove } from "@dnd-kit/sortable";
 import type {
   SitemapCanvas,
@@ -104,12 +97,6 @@ export function DesignEditor({
   approveStage: (projectId: string, stage: string) => Promise<{ error?: string }>;
 }) {
   const [tab, setTab] = useState<Tab>("sitemap");
-  // Base context for Add-Elements recommendations (enriched per page downstream).
-  const recommendCtx: ElementLibraryContext = {
-    websiteType: siteContext.websiteType,
-    industry: siteContext.industry,
-    goals: siteContext.goals,
-  };
   const [pages, setPagesState] = useState<CanvasPage[]>(initialSitemap.pages);
   const [style, setStyleState] = useState<StyleGuideCanvas>(initialStyle);
   const [approvals, setApprovals] = useState<Approvals>(initialApprovals);
@@ -377,7 +364,6 @@ export function DesignEditor({
               pages={pages}
               schemes={style.colors}
               previewTheme={createSectionTheme(style)}
-              recommendCtx={recommendCtx}
               librarySections={librarySections}
               onAddLibrarySection={addLibrarySection}
               onAddPage={addPageInCategory}
@@ -406,7 +392,6 @@ export function DesignEditor({
               pages={pages}
               selectedPage={selectedPage}
               style={style}
-              recommendCtx={recommendCtx}
               librarySections={librarySections}
               onAddLibrarySection={addLibrarySection}
               onSelect={setSelectedPageId}
@@ -574,14 +559,13 @@ function SectionFrameIcon() {
 }
 
 function SitemapEditor({
-  pages, schemes, previewTheme, recommendCtx, librarySections, onAddLibrarySection, onAddPage, onRemovePage, onRenamePage, onDuplicatePage, onPatchPageMeta,
+  pages, schemes, previewTheme, librarySections, onAddLibrarySection, onAddPage, onRemovePage, onRenamePage, onDuplicatePage, onPatchPageMeta,
   onAddSection, onRemoveSection, onPatchSection, onMoveSection, onDuplicateSection,
   onGeneratePage, onGenerateAll, onApplyGlobal, onMarkApproved, onOpenWireframe, approved, onApprove, busy,
 }: {
   pages: CanvasPage[];
   schemes: CanvasColor[];
   previewTheme: SectionTheme;
-  recommendCtx: ElementLibraryContext;
   librarySections: LibrarySection[];
   onAddLibrarySection: (pageId: string, item: LibrarySection) => void;
   onAddPage: (category: PageCategory, parentId?: string) => void;
@@ -716,7 +700,7 @@ function SitemapEditor({
       </div>
 
       {/* Add section drawer for the chosen page */}
-      <AddSectionDrawer open={Boolean(addForPage)} previewTheme={previewTheme} librarySections={librarySections} recommendCtx={{ ...recommendCtx, pageName: pages.find((p) => p.id === addForPage)?.name, presentKinds: pages.find((p) => p.id === addForPage)?.sections.map((s) => sectionTypeForKind(sectionKind(s.name))) }} onClose={() => setAddForPage(null)} onAdd={(name, keepOpen, variant) => { if (addForPage) onAddSection(addForPage, name, variant); if (!keepOpen) setAddForPage(null); }} onAddLibrary={(item, keepOpen) => { if (addForPage) onAddLibrarySection(addForPage, item); if (!keepOpen) setAddForPage(null); }} />
+      <AddSectionDrawer open={Boolean(addForPage)} librarySections={librarySections} onClose={() => setAddForPage(null)} onAddLibrary={(item, keepOpen) => { if (addForPage) onAddLibrarySection(addForPage, item); if (!keepOpen) setAddForPage(null); }} />
 
       {/* Section edit drawer */}
       <Drawer open={Boolean(editSection)} onClose={() => setEditing(null)} title="Section" subtitle={editSection ? `Type: ${sectionKind(editSection.name)}` : undefined} width={340}>
@@ -868,13 +852,12 @@ function SitemapPageMenu({ onGenerate, onAddChild, onDuplicate, onRename, onDele
 // ----------------------------------------- Wireframe (real page canvas)
 
 function WireframeEditor({
-  pages, selectedPage, style, recommendCtx, librarySections, onAddLibrarySection, onSelect, onAddPage, onRenamePage, onRemovePage, onDuplicatePage, onCyclePageSource, onPatchPageMeta,
+  pages, selectedPage, style, librarySections, onAddLibrarySection, onSelect, onAddPage, onRenamePage, onRemovePage, onDuplicatePage, onCyclePageSource, onPatchPageMeta,
   onAddSection, onRemoveSection, onPatchSection, onMoveSection, onDuplicateSection, onAutoWireframe, approved, onApprove, busy,
 }: {
   pages: CanvasPage[];
   selectedPage?: CanvasPage;
   style: StyleGuideCanvas;
-  recommendCtx: ElementLibraryContext;
   librarySections: LibrarySection[];
   onAddLibrarySection: (pageId: string, item: LibrarySection) => void;
   onSelect: (id: string) => void;
@@ -910,10 +893,6 @@ function WireframeEditor({
     prevLen.current = sections.length;
   }, [sections]);
 
-  const addSectionFromLibrary = (name: string, keepOpen: boolean, variant?: string) => {
-    onAddSection(pageId, name, variant);
-    if (!keepOpen) setAddOpen(false);
-  };
 
   return (
     <div className="flex min-h-full">
@@ -971,7 +950,7 @@ function WireframeEditor({
       </div>
 
       {/* ---------- Add Section drawer ---------- */}
-      <AddSectionDrawer open={addOpen} previewTheme={createSectionTheme(style)} librarySections={librarySections} recommendCtx={{ ...recommendCtx, pageName: selectedPage?.name, pageType: selectedPage?.pageType, presentKinds: selectedPage?.sections.map((s) => sectionTypeForKind(sectionKind(s.name))) }} onClose={() => setAddOpen(false)} onAdd={addSectionFromLibrary} onAddLibrary={(item, keepOpen) => { if (pageId) onAddLibrarySection(pageId, item); if (!keepOpen) setAddOpen(false); }} />
+      <AddSectionDrawer open={addOpen} librarySections={librarySections} onClose={() => setAddOpen(false)} onAddLibrary={(item, keepOpen) => { if (pageId) onAddLibrarySection(pageId, item); if (!keepOpen) setAddOpen(false); }} />
 
       {/* ---------- Section Settings drawer ---------- */}
       <Drawer
@@ -998,169 +977,43 @@ function WireframeEditor({
 
 // A tiny live preview of a section variant (Elementor-style thumbnail): the real
 // component rendered at a fixed design width and scaled down (CSS zoom), clipped.
-function VariantThumbPreview({ Comp, theme, label, onClick }: { Comp: SectionComponent; theme: SectionTheme; label: string; onClick: () => void }) {
-  return (
-    <button type="button" onClick={onClick} className="group overflow-hidden rounded-lg border border-line text-left transition-colors hover:border-accent">
-      <div className="pointer-events-none overflow-hidden bg-surface" style={{ height: 104 }}>
-        <div style={{ width: 1100, zoom: 0.26 } as React.CSSProperties}>
-          <Comp theme={theme} />
-        </div>
-      </div>
-      <div className="flex items-center justify-between border-t border-line px-2.5 py-1.5">
-        <span className="text-[11.5px] font-medium text-body">{label}</span>
-        <span className="text-[11px] font-medium text-accent opacity-0 transition-opacity group-hover:opacity-100">＋ Add</span>
-      </div>
-    </button>
-  );
-}
-
-// Design is built only from Section Library components — the old generic
-// "recommended / sections / globals" template tabs are retired.
-type DrawerTab = "library" | "recommended" | "sections" | "globals";
-const DRAWER_TABS: { id: DrawerTab; label: string }[] = [
-  { id: "library", label: "Library" },
-];
-
-function AddSectionDrawer({ open, previewTheme, recommendCtx = {}, librarySections = [], onClose, onAdd, onAddLibrary }: { open: boolean; previewTheme: SectionTheme; recommendCtx?: ElementLibraryContext; librarySections?: LibrarySection[]; onClose: () => void; onAdd: (name: string, keepOpen: boolean, variant?: string) => void; onAddLibrary?: (item: LibrarySection, keepOpen: boolean) => void }) {
+// The design is built ONLY from Section Library components — the old generic
+// recommend/template engine is gone. This drawer lists the project's Library.
+function AddSectionDrawer({ open, librarySections = [], onClose, onAddLibrary }: { open: boolean; librarySections?: LibrarySection[]; onClose: () => void; onAddLibrary?: (item: LibrarySection, keepOpen: boolean) => void }) {
   const [q, setQ] = useState("");
   const [multi, setMulti] = useState(false);
-  const [tab, setTab] = useState<DrawerTab>("library");
-  const [expanded, setExpanded] = useState<string | null>(null);
   const query = q.trim().toLowerCase();
 
   const libFiltered = librarySections.filter((s) => !query || [s.name, s.category, ...(s.tags ?? [])].join(" ").toLowerCase().includes(query));
 
-  const groups = SECTION_CATEGORIES.map((g) => ({
-    ...g,
-    items: g.items.filter((i) => !query || i.toLowerCase().includes(query)),
-  })).filter((g) => g.items.length);
-  const recommended = recommendElements(recommendCtx, 6).filter((e) => !query || e.name.toLowerCase().includes(query));
-  const globalItems = searchElements({ text: query, kind: "global" });
-
-  // Insert a ready library item (section/block that maps to a section component).
-  const addItem = (e: ElementItem) => { if (isReady(e) && e.insertName) onAdd(e.insertName, multi, e.variant); };
-
   return (
-    <Drawer open={open} onClose={onClose} title="Add elements" subtitle="Sections, blocks and elements — click a ready item to add it" width={360}>
+    <Drawer open={open} onClose={onClose} title="Add section" subtitle="Add a section from your Library" width={360}>
       <div className="sticky top-0 z-10 border-b border-line bg-surface p-3">
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search elements, blocks, sections…" autoFocus className="w-full rounded-lg border border-line px-3 py-1.5 text-[13px]" />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search the Library…" autoFocus className="w-full rounded-lg border border-line px-3 py-1.5 text-[13px]" />
         <label className="mt-2 flex items-center gap-2 text-[12px] text-muted">
           <input type="checkbox" checked={multi} onChange={(e) => setMulti(e.target.checked)} className="accent-accent" />
           Keep open to add multiple
         </label>
-        {query && (
-          <button type="button" onClick={() => onAdd(q.trim(), multi)} className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-accent px-3 py-1.5 text-[12.5px] font-medium text-accent hover:bg-accent-soft">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" /></svg>
-            Add custom “{q.trim()}”
-          </button>
-        )}
-        <div className="mt-2.5 flex gap-1 overflow-x-auto">
-          {DRAWER_TABS.map((t) => (
-            <button key={t.id} type="button" onClick={() => setTab(t.id)}
-              className={`shrink-0 rounded-full px-2.5 py-1 text-[12px] font-medium transition-colors ${tab === t.id ? "bg-accent text-white" : "bg-panel text-muted hover:text-ink"}`}>
-              {t.label}
-            </button>
-          ))}
-        </div>
       </div>
 
       <div className="p-3">
-        {tab === "library" && (
-          <>
-            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-accent">Section Library</p>
-            {libFiltered.length > 0 ? (
-              <div className="grid gap-2">
-                {libFiltered.map((s) => (
-                  <button key={s.id} type="button" onClick={() => onAddLibrary?.(s, multi)}
-                    className="group flex items-center justify-between gap-2 rounded-lg border border-line px-3 py-2.5 text-left transition-colors hover:border-accent hover:bg-accent-soft/30">
-                    <span className="min-w-0">
-                      <span className="block truncate text-[13px] font-medium text-ink">{s.name}</span>
-                      <span className="block truncate text-[11px] capitalize text-faint">{s.category}</span>
-                    </span>
-                    <span className="shrink-0 text-[11px] font-medium text-accent opacity-0 transition-opacity group-hover:opacity-100">Add</span>
-                  </button>
-                ))}
-              </div>
-            ) : <p className="px-1 text-[12.5px] text-faint">{librarySections.length ? "No library sections match your search." : "No library sections yet."}</p>}
-          </>
-        )}
-
-        {tab === "recommended" && (
-          <>
-            <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-accent">Recommended for this page</p>
-            {recommended.length > 0 ? (
-              <div className="grid grid-cols-2 gap-2">{recommended.map((e) => <ElementCard key={e.id} item={e} onAdd={() => addItem(e)} />)}</div>
-            ) : <p className="px-1 text-[12.5px] text-faint">No recommendations match your search.</p>}
-          </>
-        )}
-
-        {tab === "sections" && (
-          <>
-            {groups.map((g) => (
-              <div key={g.category} className="mb-3">
-                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-faint">{g.category}</p>
-                <div className="grid gap-2">
-                  {g.items.map((name) => {
-                    const variants = getSectionVariants(sectionTypeForKind(sectionKind(name)));
-                    const isOpen = expanded === name;
-                    return (
-                      <div key={name} className={`overflow-hidden rounded-lg border ${isOpen ? "border-accent" : "border-line"}`}>
-                        <button type="button" onClick={() => setExpanded(isOpen ? null : name)}
-                          className={`flex w-full items-center justify-between px-3 py-2 text-left text-[13px] text-ink ${isOpen ? "bg-accent-soft/40" : "hover:bg-panel"}`}>
-                          <span>{name}{variants.length > 1 && <span className="ml-1.5 text-[11px] text-faint">· {variants.length} layouts</span>}</span>
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true" className={`text-faint transition-transform ${isOpen ? "rotate-180" : ""}`}><path d="m6 9 6 6 6-6" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" /></svg>
-                        </button>
-                        {isOpen && (
-                          <div className="grid gap-2 border-t border-line bg-panel/40 p-2">
-                            {variants.map((v) => (
-                              <VariantThumbPreview key={v.id} Comp={v.component} theme={previewTheme} label={v.label} onClick={() => onAdd(name, multi, v.id)} />
-                            ))}
-                            {variants.length === 0 && (
-                              <button type="button" onClick={() => onAdd(name, multi)} className="rounded-md px-2 py-1.5 text-left text-[12px] text-accent hover:bg-accent-soft">Add {name}</button>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+        <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-accent">Section Library</p>
+        {libFiltered.length > 0 ? (
+          <div className="grid gap-2">
+            {libFiltered.map((s) => (
+              <button key={s.id} type="button" onClick={() => onAddLibrary?.(s, multi)}
+                className="group flex items-center justify-between gap-2 rounded-lg border border-line px-3 py-2.5 text-left transition-colors hover:border-accent hover:bg-accent-soft/30">
+                <span className="min-w-0">
+                  <span className="block truncate text-[13px] font-medium text-ink">{s.name}</span>
+                  <span className="block truncate text-[11px] capitalize text-faint">{s.category}</span>
+                </span>
+                <span className="shrink-0 text-[11px] font-medium text-accent opacity-0 transition-opacity group-hover:opacity-100">Add</span>
+              </button>
             ))}
-            {groups.length === 0 && <p className="px-1 text-[13px] text-faint">No matches. Use “Add custom”.</p>}
-          </>
-        )}
-
-        {tab === "globals" && (
-          <>
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-faint">Site-wide globals</p>
-            {globalItems.length > 0 ? (
-              <div className="grid grid-cols-2 gap-2">{globalItems.map((e) => <ElementCard key={e.id} item={e} onAdd={() => addItem(e)} />)}</div>
-            ) : <p className="px-1 text-[12.5px] text-faint">No globals match your search.</p>}
-          </>
-        )}
-
+          </div>
+        ) : <p className="px-1 text-[12.5px] text-faint">{librarySections.length ? "No library sections match your search." : "No library sections yet."}</p>}
       </div>
     </Drawer>
-  );
-}
-
-// A compact two-column library card: icon + name + type/status badges + Add.
-function ElementCard({ item, onAdd }: { item: ElementItem; onAdd: () => void }) {
-  const ready = isReady(item);
-  return (
-    <button type="button" disabled={!ready} onClick={onAdd} title={item.description}
-      className={`group flex flex-col gap-1.5 rounded-lg border p-2.5 text-left transition-colors ${ready ? "border-line hover:border-accent hover:bg-accent-soft/30" : "cursor-not-allowed border-dashed border-line opacity-70"}`}>
-      <div className="flex items-center justify-between">
-        <span className="text-body">{ELEMENT_ICONS[item.icon] ?? ELEMENT_ICONS.div}</span>
-        <span className={`rounded-full px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide ${KIND_BADGE[item.kind]}`}>{KIND_LABEL[item.kind]}</span>
-      </div>
-      <span className="truncate text-[12px] font-medium text-ink">{item.name}</span>
-      <div className="flex items-center justify-between">
-        <span className="truncate text-[10.5px] text-faint">{item.category}</span>
-        {ready ? <span className="shrink-0 text-[10.5px] font-medium text-accent opacity-0 transition-opacity group-hover:opacity-100">Add</span>
-          : <span className="shrink-0 rounded-full border border-line px-1.5 text-[9px] font-medium uppercase text-faint">soon</span>}
-      </div>
-    </button>
   );
 }
 

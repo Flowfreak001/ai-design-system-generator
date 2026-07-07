@@ -6,10 +6,9 @@ import { createProjectSchema, createNoteSchema } from "@/lib/validators/project"
 import { createProject, deleteProject, addNote, ownsProject } from "@/lib/projects";
 import { startGeneration } from "@/lib/jobs";
 import { runWebsiteAnalysis } from "@/lib/analysis/run-analysis";
-import { runMdGeneration, runBrandGeneration } from "@/lib/md-generation";
+import { runMdGeneration } from "@/lib/md-generation";
 import { runPreviewGeneration } from "@/lib/preview";
 import { runAiVisionAnalysis } from "@/lib/ai/ai-flow";
-import { DESIGN_TYPES } from "@/lib/validators/project";
 import { requireUser } from "@/lib/auth";
 import { deriveSitemapCanvas, SITEMAP_CANVAS_FILE } from "@/lib/canvas";
 import { prisma } from "@/lib/db/client";
@@ -140,79 +139,6 @@ export async function generateAction(projectId: string) {
   revalidatePath(`/projects/${projectId}`);
 }
 
-/** Merge fields into the project's brief input (JSON). */
-async function patchBrief(projectId: string, patch: Record<string, unknown>) {
-  const input = await prisma.projectInput.findFirst({ where: { projectId, category: "brief" } });
-  if (!input) return;
-  const brief = (input.data ?? {}) as Record<string, unknown>;
-  await prisma.projectInput.update({
-    where: { id: input.id },
-    data: { data: { ...brief, ...patch } as Prisma.InputJsonValue },
-  });
-}
-
-// ---- Two-phase flow: Brand foundation → approval → Design system ----------
-
-/** Generate BRAND.md, BRAND_GUIDELINES.md, CREATIVE_DIRECTION.md, STYLE_DIRECTION.json.
- *  Gated on the Evidence Review step: the reference pages must be confirmed
- *  first so the brand is built from real, reviewed evidence. */
-export async function generateBrandAction(projectId: string) {
-  const user = await requireUser();
-  if (!user.agencyId || !(await ownsProject(projectId, user.agencyId))) return;
-  const input = await prisma.projectInput.findFirst({ where: { projectId, category: "brief" } });
-  const confirmed = Boolean((input?.data as { pagesConfirmed?: boolean } | null)?.pagesConfirmed);
-  if (!confirmed) {
-    throw new Error("Complete the Evidence Review (confirm discovered pages) before generating the brand guideline.");
-  }
-  await runBrandGeneration(projectId);
-  revalidatePath(`/projects/${projectId}`);
-}
-
-/** User approves the brand guideline — unlocks the design phase. */
-export async function approveBrandAction(projectId: string) {
-  const user = await requireUser();
-  if (!user.agencyId || !(await ownsProject(projectId, user.agencyId))) return;
-  await patchBrief(projectId, { brandApproved: true });
-  revalidatePath(`/projects/${projectId}`);
-}
-
-// Pipeline stage gates. Each approval sets a flag on the brief so the next
-// stage unlocks (Brand → Crawl → Sitemap → Wireframe → Style → Design → Files).
-const STAGE_FLAGS: Record<string, string> = {
-  sitemap: "sitemapApproved",
-  wireframe: "wireframeApproved",
-  style: "styleApproved",
-  design: "designApproved",
-};
-
-export async function approveStageAction(projectId: string, stage: string) {
-  const user = await requireUser();
-  if (!user.agencyId || !(await ownsProject(projectId, user.agencyId))) return { error: "Not found" };
-  const flag = STAGE_FLAGS[stage];
-  if (!flag) return { error: "Unknown stage" };
-  await patchBrief(projectId, { [flag]: true });
-  revalidatePath(`/projects/${projectId}`);
-  return {};
-}
-
-/** Confirm the pages discovered by the reference crawl (user can trim/add). */
-export async function confirmPagesAction(projectId: string, pages: string[]) {
-  const user = await requireUser();
-  if (!user.agencyId || !(await ownsProject(projectId, user.agencyId))) return { error: "Not found" };
-  const clean = pages.map((p) => String(p).trim()).filter(Boolean).slice(0, 40);
-  await patchBrief(projectId, { confirmedPages: clean, pagesConfirmed: true });
-  revalidatePath(`/projects/${projectId}`);
-  return {};
-}
-
-export async function setDesignTypeAction(projectId: string, designType: string) {
-  const user = await requireUser();
-  if (!user.agencyId || !(await ownsProject(projectId, user.agencyId))) return { error: "Not found" };
-  if (!(DESIGN_TYPES as readonly string[]).includes(designType)) return { error: "Invalid design type" };
-  await patchBrief(projectId, { designType });
-  revalidatePath(`/projects/${projectId}`);
-  return {};
-}
 
 export async function runAiVisionAction(projectId: string) {
   const user = await requireUser();
@@ -221,32 +147,25 @@ export async function runAiVisionAction(projectId: string) {
   revalidatePath(`/projects/${projectId}`);
 }
 
-export async function generateMdAction(projectId: string) {
+/** Update the editable project brief (business type, industry, audience, goal,
+ *  notes) from the Inputs tab. Merges into the brief input JSON. */
+export async function updateBriefAction(
+  projectId: string,
+  patch: { businessType?: string; industry?: string; targetAudience?: string; goal?: string; notes?: string },
+): Promise<{ error?: string }> {
   const user = await requireUser();
-  if (!user.agencyId || !(await ownsProject(projectId, user.agencyId))) return;
-  // Gate: MD files are generated only after brand + structure + style are ready
-  // (brand approved, sitemap + wireframe + style guide + design canvas approved).
-  const brandInput = await prisma.projectInput.findFirst({ where: { projectId, category: "brief" } });
-  const b = (brandInput?.data ?? {}) as {
-    brandApproved?: boolean;
-    designApproved?: boolean;
-  };
-  const hasBrand = await prisma.generatedFile.count({ where: { projectId, name: "BRAND_GUIDELINES.md" } });
-  if (!b.brandApproved || !hasBrand) {
-    throw new Error("Approve the brand guideline before generating the design system.");
-  }
-  if (!b.designApproved) {
-    throw new Error("Approve the design canvas before generating the MD files.");
-  }
-  await runMdGeneration(projectId);
+  if (!user.agencyId || !(await ownsProject(projectId, user.agencyId))) return { error: "Not found" };
+  const input = await prisma.projectInput.findFirst({ where: { projectId, category: "brief" } });
+  if (!input) return { error: "Brief not found" };
+  const brief = (input.data ?? {}) as Record<string, unknown>;
+  const next: Record<string, unknown> = { ...brief };
+  for (const [k, v] of Object.entries(patch)) next[k] = typeof v === "string" ? v.trim() : v;
+  await prisma.projectInput.update({
+    where: { id: input.id },
+    data: { data: next as Prisma.InputJsonValue },
+  });
   revalidatePath(`/projects/${projectId}`);
-}
-
-export async function generatePreviewAction(projectId: string) {
-  const user = await requireUser();
-  if (!user.agencyId || !(await ownsProject(projectId, user.agencyId))) return;
-  await runPreviewGeneration(projectId);
-  revalidatePath(`/projects/${projectId}`);
+  return {};
 }
 
 export type Screenshot = { id: string; name: string; dataUrl: string; note?: string };

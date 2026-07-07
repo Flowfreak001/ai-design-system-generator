@@ -112,6 +112,17 @@ function PreviewModule({
               </button>
             ))}
           </div>
+          {/* Full-page preview — opens the section in a real scrollable page so
+              scroll-linked animations behave exactly as on a live page. */}
+          <a
+            href={`/library/preview/${section.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 rounded-full border border-line bg-panel px-2.5 py-1.5 text-[12px] font-medium text-muted transition-colors hover:text-ink"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M15 3h6v6M21 3l-9 9M10 5H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            <span className="hidden sm:inline">Full page</span>
+          </a>
           <button type="button" onClick={onClose} aria-label="Close preview" className="grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-panel hover:text-ink">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
           </button>

@@ -769,5 +769,237 @@
       "subtitle": "We respect your privacy. Unsubscribe at any time."
     },
     "tsxCode": "// Blog subscribe: a white card on a soft accent-tinted background with a bold\n// heading, muted copy, an outlined email input, and a solid accent button.\n// Props: { content, theme }. Original copy only. Form stacks on small screens.\nimport { useRef, useState, useEffect } from \"react\";\nimport { motion, useReducedMotion } from \"framer-motion\";\n\nexport default function Section({ content, theme }) {\n  const c = content || {};\n  const title = c.title || \"Subscribe to our blog for the latest updates\";\n  const description = c.description || \"Get fresh articles, product news, and practical tips delivered straight to your inbox — no fluff, just the good stuff.\";\n  const cta = c.primaryButtonLabel || \"Subscribe Now\";\n  const note = c.subtitle || \"We respect your privacy. Unsubscribe at any time.\";\n\n  const rootRef = useRef(null);\n  const [w, setW] = useState(1200);\n  useEffect(() => {\n    const el = rootRef.current;\n    if (!el) return;\n    const ro = new ResizeObserver(() => setW(el.clientWidth));\n    ro.observe(el);\n    return () => ro.disconnect();\n  }, []);\n  const narrow = w < 680;\n\n  const reduce = useReducedMotion();\n  const accent = theme.accentColor;\n  const text = theme.textColor;\n  const muted = theme.mutedTextColor;\n  const line = theme.borderColor;\n  const surface = theme.surfaceColor;\n  const radius = theme.radius || \"24px\";\n  const buttonBg = theme.buttonBgColor;\n  const buttonText = theme.buttonTextColor;\n\n  return (\n    <section ref={rootRef} style={{ background: \"linear-gradient(135deg, \" + accent + \"33, \" + accent + \"14)\", fontFamily: theme.bodyFont, padding: narrow ? \"40px 20px\" : \"64px 48px\" }}>\n      <motion.div\n        initial={reduce ? false : { opacity: 0, y: 20 }}\n        whileInView={{ opacity: 1, y: 0 }}\n        viewport={{ once: true, margin: \"-40px\" }}\n        transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}\n        style={{ maxWidth: 1080, margin: \"0 auto\", background: surface, borderRadius: radius, padding: narrow ? \"40px 24px\" : \"72px 56px\", textAlign: \"center\", boxShadow: \"0 30px 80px rgba(0,0,0,0.08)\" }}\n      >\n        <h3 style={{ margin: 0, fontFamily: theme.headingFont, fontWeight: 800, letterSpacing: \"-0.02em\", lineHeight: 1.08, fontSize: narrow ? 32 : 52, color: text }}>{title}</h3>\n        <p style={{ margin: \"20px auto 0\", maxWidth: 640, fontSize: narrow ? 16 : 20, lineHeight: 1.5, color: muted }}>{description}</p>\n\n        <form onSubmit={(e) => e.preventDefault()} style={{ marginTop: 36, marginLeft: \"auto\", marginRight: \"auto\", maxWidth: 720, display: \"flex\", flexDirection: narrow ? \"column\" : \"row\", gap: 14, justifyContent: \"center\" }}>\n          <input\n            type=\"email\"\n            aria-label=\"Enter email address\"\n            placeholder=\"Enter email address\"\n            style={{ flex: 1, width: \"100%\", boxSizing: \"border-box\", border: \"1px solid \" + line, borderRadius: 10, padding: \"16px 20px\", fontSize: 16, color: text, outline: \"none\", background: surface, fontFamily: theme.bodyFont }}\n          />\n          <button type=\"submit\" style={{ border: 0, background: buttonBg, color: buttonText, borderRadius: 10, padding: \"16px 28px\", fontSize: 16, fontWeight: 700, cursor: \"pointer\", whiteSpace: \"nowrap\", fontFamily: theme.bodyFont }}>{cta}</button>\n        </form>\n\n        <p style={{ margin: \"16px 0 0\", fontSize: 14, color: muted }}>{note}</p>\n      </motion.div>\n    </section>\n  );\n}\n"
+  },
+  {
+    "id": "services-numbered-list",
+    "name": "Services List — Numbered",
+    "category": "services",
+    "layoutType": "list",
+    "description": "Big numbered service rows with a hover accent fill, contrast text and a sliding arrow. Fully theme-driven.",
+    "tags": [
+      "services",
+      "list",
+      "links",
+      "hover",
+      "minimal"
+    ],
+    "editableFields": [
+      "eyebrow",
+      "items"
+    ],
+    "codeMode": "studio-tsx",
+    "originality": "Original design — not a copy of any referenced screenshot.",
+    "defaultContent": {
+      "eyebrow": "Services",
+      "items": [
+        {
+          "title": "Branding",
+          "href": "#"
+        },
+        {
+          "title": "UI/UX Design",
+          "href": "#"
+        },
+        {
+          "title": "Strategy",
+          "href": "#"
+        },
+        {
+          "title": "Design",
+          "href": "#"
+        }
+      ]
+    },
+    "tsxCode": "// Big numbered services list. Each row reveals an accent fill, contrast text and\n// a sliding arrow on hover/focus. Props: { content, theme } — every colour, font\n// and radius comes from theme so a brand restyles it (dark + green, light, etc.).\nimport { useRef, useState, useEffect } from \"react\";\nimport { motion, useReducedMotion } from \"framer-motion\";\n\nexport default function Section({ content, theme }) {\n  const c = content || {};\n  const t = theme || {};\n  const reduce = useReducedMotion();\n\n  const items =\n    Array.isArray(c.items) && c.items.length\n      ? c.items\n      : [\n          { title: \"Branding\", href: \"#\" },\n          { title: \"UI/UX Design\", href: \"#\" },\n          { title: \"Strategy\", href: \"#\" },\n          { title: \"Design\", href: \"#\" },\n        ];\n  const eyebrow = c.eyebrow || \"Services\";\n\n  // Measure the section width (ResizeObserver works inside preview frames where\n  // vw / matchMedia don't) and scale the row type + paddings from it.\n  const ref = useRef(null);\n  const [w, setW] = useState(1200);\n  useEffect(() => {\n    const el = ref.current;\n    if (!el || typeof ResizeObserver === \"undefined\") return;\n    const ro = new ResizeObserver((entries) => {\n      for (const e of entries) setW(e.borderBoxSize && e.borderBoxSize[0] ? e.borderBoxSize[0].inlineSize : e.contentRect.width);\n    });\n    ro.observe(el);\n    return () => ro.disconnect();\n  }, []);\n  const compact = w < 720;\n\n  const [active, setActive] = useState(-1);\n\n  // Theme tokens (neutral fallbacks so the global Library reads light + on-brand\n  // once a dark/green Style Guide is applied).\n  const bg = t.backgroundColor || \"#ffffff\";\n  const fg = t.textColor || \"#111827\";\n  const accent = t.accentColor || \"#2563eb\";\n  const onAccent = t.buttonTextColor || \"#ffffff\";\n  const border = t.borderColor || \"#e5e7eb\";\n  const muted = t.mutedTextColor || \"#6b7280\";\n  const headingFont = t.headingFont || \"inherit\";\n  const bodyFont = t.bodyFont || \"inherit\";\n  const radius = t.radius || \"14px\";\n\n  const nameSize = Math.round(Math.max(compact ? 26 : 34, Math.min(w * 0.075, 96)));\n  const arrow = compact ? 26 : 38;\n  const ease = [0.22, 1, 0.36, 1];\n  // Padding from the MEASURED width (never vw — wrong in preview frames). Mobile\n  // side padding is capped at 20px so it never feels cramped/oversized.\n  const padX = w < 700 ? 20 : w < 1024 ? 40 : 60; // mobile 20 · iPad 40 · desktop 60\n  const padY = compact ? 44 : parseInt(t.spacing, 10) || 80;\n\n  return (\n    <section\n      ref={ref}\n      style={{\n        background: bg,\n        color: fg,\n        fontFamily: bodyFont,\n        padding: `${padY}px ${padX}px`,\n      }}\n    >\n      <div style={{ display: \"flex\", alignItems: \"center\", gap: 8, marginBottom: compact ? 28 : 52 }}>\n        <span aria-hidden=\"true\" style={{ width: 8, height: 8, borderRadius: 999, background: accent, display: \"inline-block\" }} />\n        <span style={{ fontSize: 15, fontWeight: 600, letterSpacing: \"0.01em\" }}>{eyebrow}</span>\n      </div>\n\n      <ul role=\"list\" style={{ listStyle: \"none\", margin: 0, padding: 0 }}>\n        {items.map((it, i) => {\n          const on = active === i;\n          const num = String(i + 1).padStart(2, \"0\");\n          const last = i === items.length - 1;\n          return (\n            <li\n              key={i}\n              style={{\n                borderTop: `1px solid ${border}`,\n                ...(last ? { borderBottom: `1px solid ${border}` } : {}),\n              }}\n            >\n              <motion.a\n                href={it.href || \"#\"}\n                onMouseEnter={() => setActive(i)}\n                onMouseLeave={() => setActive(-1)}\n                onFocus={() => setActive(i)}\n                onBlur={() => setActive(-1)}\n                animate={{\n                  backgroundColor: on ? accent : \"rgba(0,0,0,0)\",\n                  color: on ? onAccent : fg,\n                  borderRadius: on ? parseInt(radius, 10) || 14 : 0,\n                }}\n                transition={reduce ? { duration: 0 } : { duration: 0.3, ease }}\n                style={{\n                  display: \"flex\",\n                  alignItems: \"center\",\n                  gap: compact ? 14 : 28,\n                  textDecoration: \"none\",\n                  color: fg,\n                  padding: compact ? \"16px 14px\" : \"20px 28px\",\n                }}\n              >\n                <span\n                  style={{\n                    flexShrink: 0,\n                    width: compact ? 22 : 36,\n                    fontFamily: bodyFont,\n                    fontSize: compact ? 12 : 14,\n                    fontVariantNumeric: \"tabular-nums\",\n                    color: on ? onAccent : muted,\n                  }}\n                >\n                  {num}\n                </span>\n                <span\n                  style={{\n                    flex: 1,\n                    minWidth: 0,\n                    fontFamily: headingFont,\n                    fontWeight: 600,\n                    lineHeight: 1.02,\n                    letterSpacing: \"-0.02em\",\n                    fontSize: nameSize,\n                  }}\n                >\n                  {it.title}\n                </span>\n                <motion.span\n                  aria-hidden=\"true\"\n                  animate={{ x: on && !reduce ? 8 : 0 }}\n                  transition={reduce ? { duration: 0 } : { duration: 0.3, ease }}\n                  style={{ flexShrink: 0, display: \"grid\", placeItems: \"center\" }}\n                >\n                  <svg width={arrow} height={arrow} viewBox=\"0 0 24 24\" fill=\"none\">\n                    <path d=\"M5 12h14M13 6l6 6-6 6\" stroke=\"currentColor\" strokeWidth=\"1.8\" strokeLinecap=\"round\" strokeLinejoin=\"round\" />\n                  </svg>\n                </motion.span>\n              </motion.a>\n            </li>\n          );\n        })}\n      </ul>\n    </section>\n  );\n}\n"
+  },
+  {
+    "id": "services-numbered-list-dark",
+    "name": "Services List — Numbered (Dark)",
+    "category": "services",
+    "layoutType": "list",
+    "description": "Big numbered service rows on a black surface, with a hover accent fill, contrast text and a sliding arrow. Accent and fonts stay theme-driven.",
+    "tags": [
+      "services",
+      "list",
+      "links",
+      "hover",
+      "dark"
+    ],
+    "editableFields": [
+      "eyebrow",
+      "items"
+    ],
+    "codeMode": "studio-tsx",
+    "originality": "Original design — not a copy of any referenced screenshot.",
+    "defaultContent": {
+      "eyebrow": "Services",
+      "items": [
+        {
+          "title": "Branding",
+          "href": "#"
+        },
+        {
+          "title": "UI/UX Design",
+          "href": "#"
+        },
+        {
+          "title": "Strategy",
+          "href": "#"
+        },
+        {
+          "title": "Design",
+          "href": "#"
+        }
+      ]
+    },
+    "tsxCode": "// Big numbered services list — DARK. Black section, light rows; each row reveals\n// an accent fill + contrast text + sliding arrow on hover/focus. Props:\n// { content, theme }. The dark surface is intentional to this variant; accent,\n// fonts and radius still come from theme so a brand recolours the highlight.\nimport { useRef, useState, useEffect } from \"react\";\nimport { motion, useReducedMotion } from \"framer-motion\";\n\nexport default function Section({ content, theme }) {\n  const c = content || {};\n  const t = theme || {};\n  const reduce = useReducedMotion();\n\n  const items =\n    Array.isArray(c.items) && c.items.length\n      ? c.items\n      : [\n          { title: \"Branding\", href: \"#\" },\n          { title: \"UI/UX Design\", href: \"#\" },\n          { title: \"Strategy\", href: \"#\" },\n          { title: \"Design\", href: \"#\" },\n        ];\n  const eyebrow = c.eyebrow || \"Services\";\n\n  const ref = useRef(null);\n  const [w, setW] = useState(1200);\n  useEffect(() => {\n    const el = ref.current;\n    if (!el || typeof ResizeObserver === \"undefined\") return;\n    const ro = new ResizeObserver((entries) => {\n      for (const e of entries) setW(e.borderBoxSize && e.borderBoxSize[0] ? e.borderBoxSize[0].inlineSize : e.contentRect.width);\n    });\n    ro.observe(el);\n    return () => ro.disconnect();\n  }, []);\n  const compact = w < 720;\n\n  const [active, setActive] = useState(-1);\n\n  // Dark surface is fixed for this variant; the highlight and type stay on-brand.\n  const bg = \"#0a0a0b\";\n  const fg = \"#ffffff\";\n  const accent = t.accentColor || \"#9dff7a\";\n  const onAccent = t.buttonTextColor || \"#0a0a0b\";\n  const border = \"rgba(255,255,255,0.13)\";\n  const muted = \"rgba(255,255,255,0.5)\";\n  const headingFont = t.headingFont || \"inherit\";\n  const bodyFont = t.bodyFont || \"inherit\";\n  const radius = t.radius || \"14px\";\n\n  const nameSize = Math.round(Math.max(compact ? 26 : 34, Math.min(w * 0.075, 96)));\n  const arrow = compact ? 26 : 38;\n  const ease = [0.22, 1, 0.36, 1];\n  // Padding from the MEASURED width (never vw). Mobile side padding capped at 20px.\n  const padX = w < 700 ? 20 : w < 1024 ? 40 : 60; // mobile 20 · iPad 40 · desktop 60\n  const padY = compact ? 44 : parseInt(t.spacing, 10) || 80;\n\n  return (\n    <section\n      ref={ref}\n      style={{\n        background: bg,\n        color: fg,\n        fontFamily: bodyFont,\n        padding: `${padY}px ${padX}px`,\n      }}\n    >\n      <div style={{ display: \"flex\", alignItems: \"center\", gap: 8, marginBottom: compact ? 28 : 52 }}>\n        <span aria-hidden=\"true\" style={{ width: 8, height: 8, borderRadius: 999, background: accent, display: \"inline-block\" }} />\n        <span style={{ fontSize: 15, fontWeight: 600, letterSpacing: \"0.01em\" }}>{eyebrow}</span>\n      </div>\n\n      <ul role=\"list\" style={{ listStyle: \"none\", margin: 0, padding: 0 }}>\n        {items.map((it, i) => {\n          const on = active === i;\n          const num = String(i + 1).padStart(2, \"0\");\n          const last = i === items.length - 1;\n          return (\n            <li\n              key={i}\n              style={{\n                borderTop: `1px solid ${border}`,\n                ...(last ? { borderBottom: `1px solid ${border}` } : {}),\n              }}\n            >\n              <motion.a\n                href={it.href || \"#\"}\n                onMouseEnter={() => setActive(i)}\n                onMouseLeave={() => setActive(-1)}\n                onFocus={() => setActive(i)}\n                onBlur={() => setActive(-1)}\n                animate={{\n                  backgroundColor: on ? accent : \"rgba(0,0,0,0)\",\n                  color: on ? onAccent : fg,\n                  borderRadius: on ? parseInt(radius, 10) || 14 : 0,\n                }}\n                transition={reduce ? { duration: 0 } : { duration: 0.3, ease }}\n                style={{\n                  display: \"flex\",\n                  alignItems: \"center\",\n                  gap: compact ? 14 : 28,\n                  textDecoration: \"none\",\n                  color: fg,\n                  padding: compact ? \"16px 14px\" : \"20px 28px\",\n                }}\n              >\n                <span\n                  style={{\n                    flexShrink: 0,\n                    width: compact ? 22 : 36,\n                    fontFamily: bodyFont,\n                    fontSize: compact ? 12 : 14,\n                    fontVariantNumeric: \"tabular-nums\",\n                    color: on ? onAccent : muted,\n                  }}\n                >\n                  {num}\n                </span>\n                <span\n                  style={{\n                    flex: 1,\n                    minWidth: 0,\n                    fontFamily: headingFont,\n                    fontWeight: 600,\n                    lineHeight: 1.02,\n                    letterSpacing: \"-0.02em\",\n                    fontSize: nameSize,\n                  }}\n                >\n                  {it.title}\n                </span>\n                <motion.span\n                  aria-hidden=\"true\"\n                  animate={{ x: on && !reduce ? 8 : 0 }}\n                  transition={reduce ? { duration: 0 } : { duration: 0.3, ease }}\n                  style={{ flexShrink: 0, display: \"grid\", placeItems: \"center\" }}\n                >\n                  <svg width={arrow} height={arrow} viewBox=\"0 0 24 24\" fill=\"none\">\n                    <path d=\"M5 12h14M13 6l6 6-6 6\" stroke=\"currentColor\" strokeWidth=\"1.8\" strokeLinecap=\"round\" strokeLinejoin=\"round\" />\n                  </svg>\n                </motion.span>\n              </motion.a>\n            </li>\n          );\n        })}\n      </ul>\n    </section>\n  );\n}\n"
+  },
+  {
+    "id": "awards-recognition-list",
+    "name": "Awards & Recognition",
+    "category": "awards",
+    "layoutType": "list",
+    "description": "Eyebrow, oversized two-line heading and a two-column list of award rows (name + org · year) with hairline dividers. Fully theme-driven.",
+    "tags": [
+      "awards",
+      "recognition",
+      "list",
+      "credibility",
+      "two-column"
+    ],
+    "editableFields": [
+      "eyebrow",
+      "title",
+      "items"
+    ],
+    "codeMode": "studio-tsx",
+    "originality": "Original design — not a copy of any referenced screenshot.",
+    "defaultContent": {
+      "eyebrow": "Awards",
+      "title": "Awards & Recognition",
+      "items": [
+        {
+          "title": "Studio Pulse",
+          "text": "Creative Index • 2024"
+        },
+        {
+          "title": "Golden Pixel",
+          "text": "Web Design Society • 2024"
+        },
+        {
+          "title": "Grand Prix",
+          "text": "Digital Motion • 2025"
+        },
+        {
+          "title": "Elite Interface",
+          "text": "UI/UX Global • 2022"
+        },
+        {
+          "title": "Innovation Top 10",
+          "text": "DevFlow • 2023"
+        },
+        {
+          "title": "Mastery Award",
+          "text": "Foundry Select • 2025"
+        }
+      ]
+    },
+    "tsxCode": "// Awards & Recognition — eyebrow, oversized two-line heading, and a two-column\n// list of award rows (name left, org · year right) with hairline dividers.\n// Props: { content, theme }. Fully theme-driven (colours, fonts, radius, spacing)\n// so a brand restyles it; neutral placeholder copy only.\nimport { useRef, useState, useEffect } from \"react\";\nimport { motion, useReducedMotion } from \"framer-motion\";\n\nexport default function Section({ content, theme }) {\n  const c = content || {};\n  const t = theme || {};\n  const reduce = useReducedMotion();\n\n  const eyebrow = c.eyebrow || \"Awards\";\n  const title = c.title || \"Awards & Recognition\";\n  const items =\n    Array.isArray(c.items) && c.items.length\n      ? c.items\n      : [\n          { title: \"Studio Pulse\", text: \"Creative Index • 2024\" },\n          { title: \"Golden Pixel\", text: \"Web Design Society • 2024\" },\n          { title: \"Grand Prix\", text: \"Digital Motion • 2025\" },\n          { title: \"Elite Interface\", text: \"UI/UX Global • 2022\" },\n          { title: \"Innovation Top 10\", text: \"DevFlow • 2023\" },\n          { title: \"Mastery Award\", text: \"Foundry Select • 2025\" },\n        ];\n\n  const ref = useRef(null);\n  const [w, setW] = useState(1200);\n  useEffect(() => {\n    const el = ref.current;\n    if (!el || typeof ResizeObserver === \"undefined\") return;\n    const ro = new ResizeObserver((entries) => {\n      for (const e of entries) setW(e.borderBoxSize && e.borderBoxSize[0] ? e.borderBoxSize[0].inlineSize : e.contentRect.width);\n    });\n    ro.observe(el);\n    return () => ro.disconnect();\n  }, []);\n  const compact = w < 760;\n\n  const bg = t.backgroundColor || \"#ffffff\";\n  const fg = t.textColor || \"#111827\";\n  const accent = t.accentColor || \"#2563eb\";\n  const muted = t.mutedTextColor || \"#6b7280\";\n  const border = t.borderColor || \"#e5e7eb\";\n  const headingFont = t.headingFont || \"inherit\";\n  const bodyFont = t.bodyFont || \"inherit\";\n\n  const titleSize = Math.round(Math.max(compact ? 40 : 56, Math.min(w * 0.075, 150)));\n  const nameSize = Math.round(Math.max(compact ? 22 : 24, Math.min(w * 0.02, 36)));\n  const ease = [0.22, 1, 0.36, 1];\n  // Padding from the MEASURED width (never vw). Mobile side padding capped at 20px.\n  const padX = w < 700 ? 20 : w < 1024 ? 40 : 60; // mobile 20 · iPad 40 · desktop 60\n  const padY = compact ? 52 : parseInt(t.spacing, 10) || 96;\n\n  // Column-major split so items read down each column (like the reference), and\n  // collapse to a single column when narrow.\n  const cols = compact ? 1 : 2;\n  const per = Math.ceil(items.length / cols);\n  const columns = Array.from({ length: cols }, (_, ci) => items.slice(ci * per, ci * per + per));\n\n  const Row = ({ it }) => (\n    <div\n      style={{\n        display: \"flex\",\n        alignItems: \"baseline\",\n        justifyContent: \"space-between\",\n        gap: 20,\n        padding: compact ? \"18px 0\" : \"24px 2px\",\n        borderBottom: `1px solid ${border}`,\n      }}\n    >\n      <span style={{ fontFamily: headingFont, fontWeight: 600, letterSpacing: \"-0.015em\", lineHeight: 1.05, fontSize: nameSize, minWidth: 0 }}>\n        {it.title}\n      </span>\n      {it.text ? (\n        <span style={{ flexShrink: 0, fontFamily: bodyFont, fontSize: compact ? 13 : 15, color: muted, textAlign: \"right\", whiteSpace: \"nowrap\" }}>\n          {it.text}\n        </span>\n      ) : null}\n    </div>\n  );\n\n  return (\n    <section\n      ref={ref}\n      style={{\n        background: bg,\n        color: fg,\n        fontFamily: bodyFont,\n        padding: `${padY}px ${padX}px`,\n      }}\n    >\n      <div style={{ display: \"flex\", alignItems: \"center\", gap: 8, marginBottom: compact ? 20 : 28 }}>\n        <span aria-hidden=\"true\" style={{ width: 9, height: 9, borderRadius: 999, background: accent, display: \"inline-block\" }} />\n        <span style={{ fontSize: 15, fontWeight: 600, letterSpacing: \"0.01em\" }}>{eyebrow}</span>\n      </div>\n\n      <motion.h2\n        initial={reduce ? false : { opacity: 0, y: 14 }}\n        whileInView={{ opacity: 1, y: 0 }}\n        viewport={{ once: true, amount: 0.4 }}\n        transition={reduce ? { duration: 0 } : { duration: 0.6, ease }}\n        style={{\n          margin: 0,\n          fontFamily: headingFont,\n          fontWeight: 600,\n          letterSpacing: \"-0.03em\",\n          lineHeight: 1.0,\n          fontSize: titleSize,\n          maxWidth: \"16ch\",\n        }}\n      >\n        {title}\n      </motion.h2>\n\n      <div\n        style={{\n          marginTop: compact ? 44 : 88,\n          display: \"grid\",\n          gridTemplateColumns: cols === 2 ? \"1fr 1fr\" : \"1fr\",\n          columnGap: Math.max(40, Math.min(Math.round(w * 0.06), 96)),\n        }}\n      >\n        {columns.map((col, ci) => (\n          <div key={ci}>\n            {col.map((it, i) => (\n              <Row key={i} it={it} />\n            ))}\n          </div>\n        ))}\n      </div>\n    </section>\n  );\n}\n"
+  },
+  {
+    "id": "service-detail-sticky-scroll",
+    "name": "Service Detail — Sticky Scroll",
+    "category": "services",
+    "layoutType": "sticky",
+    "description": "A stack of numbered service panels that pin and scroll one-by-one. Two columns: numbered heading, copy, bullets and a pill CTA on the left; a neutral image placeholder on the right. Fully theme-driven.",
+    "tags": [
+      "services",
+      "sticky",
+      "scroll",
+      "detail",
+      "split",
+      "image"
+    ],
+    "editableFields": [
+      "eyebrow",
+      "primaryButtonLabel",
+      "items"
+    ],
+    "codeMode": "studio-tsx",
+    "originality": "Original design and copy — not a copy of any referenced text or image; neutral placeholder media only.",
+    "defaultContent": {
+      "eyebrow": "Services",
+      "primaryButtonLabel": "Learn More",
+      "items": [
+        {
+          "title": "Branding",
+          "text": "We shape a distinct brand identity that clarifies who you are, connects with the right audience and holds up across every platform and market.",
+          "href": "#"
+        },
+        {
+          "title": "UI/UX Design",
+          "text": "We design clear, engaging interfaces that communicate your story and turn first impressions into confident, repeatable actions.",
+          "href": "#"
+        },
+        {
+          "title": "Strategy",
+          "text": "We grow your presence through focused campaigns, useful content and channels chosen to move real, measurable business outcomes.",
+          "href": "#"
+        },
+        {
+          "title": "Development",
+          "text": "We build fast, responsive, dependable products — engineered for performance and scale so the experience stays sharp as you grow.",
+          "href": "#"
+        }
+      ]
+    },
+    "tsxCode": "// Service detail — STICKY SCROLL. A stack of numbered service panels; each pins\n// to the top and the next scrolls up over it (one-by-one). Two columns: numbered\n// heading + copy + bullets + pill CTA on the left, neutral image placeholder on\n// the right. Props: { content, theme }. Fully theme-driven; original placeholder\n// copy + a neutral \"add an image\" box only (never real text or photos).\nimport { useRef, useState, useEffect } from \"react\";\nimport { motion, useReducedMotion } from \"framer-motion\";\n\nconst DEFAULTS = [\n  {\n    title: \"Branding\",\n    text: \"We shape a distinct brand identity that clarifies who you are, connects with the right audience and holds up across every platform and market.\",\n    bullets: [\"Market research and analysis\", \"Long-term brand strategy\", \"Positioning and messaging\", \"Competitive differentiation\"],\n  },\n  {\n    title: \"UI/UX Design\",\n    text: \"We design clear, engaging interfaces that communicate your story and turn first impressions into confident, repeatable actions.\",\n    bullets: [\"Visual identity systems\", \"Digital and print materials\", \"Interface and interaction design\", \"Usability and accessibility\"],\n  },\n  {\n    title: \"Strategy\",\n    text: \"We grow your presence through focused campaigns, useful content and channels chosen to move real, measurable business outcomes.\",\n    bullets: [\"Campaign planning and management\", \"Search and content strategy\", \"Paid and performance marketing\", \"Analytics and reporting\"],\n  },\n  {\n    title: \"Development\",\n    text: \"We build fast, responsive, dependable products — engineered for performance and scale so the experience stays sharp as you grow.\",\n    bullets: [\"Responsive websites and apps\", \"Commerce and CMS solutions\", \"Performance and security\", \"Custom web applications\"],\n  },\n];\n\nexport default function Section({ content, theme }) {\n  const c = content || {};\n  const t = theme || {};\n  const reduce = useReducedMotion();\n\n  const eyebrow = c.eyebrow || \"Services\";\n  const cta = c.primaryButtonLabel || \"Learn More\";\n  const src = Array.isArray(c.items) && c.items.length ? c.items : [];\n  const services = DEFAULTS.map((d, i) => ({\n    title: (src[i] && src[i].title) || d.title,\n    text: (src[i] && src[i].text) || d.text,\n    bullets: d.bullets,\n    href: (src[i] && src[i].href) || \"#\",\n  }));\n\n  const ref = useRef(null);\n  const [w, setW] = useState(1200);\n  useEffect(() => {\n    const el = ref.current;\n    if (!el || typeof ResizeObserver === \"undefined\") return;\n    const ro = new ResizeObserver((entries) => {\n      for (const e of entries) setW(e.borderBoxSize && e.borderBoxSize[0] ? e.borderBoxSize[0].inlineSize : e.contentRect.width);\n    });\n    ro.observe(el);\n    return () => ro.disconnect();\n  }, []);\n  const stack = w < 900;\n\n  const bg = t.backgroundColor || \"#ffffff\";\n  const fg = t.textColor || \"#111827\";\n  const accent = t.accentColor || \"#2563eb\";\n  const muted = t.mutedTextColor || \"#6b7280\";\n  const surface = t.surfaceColor || \"#f6f7f9\";\n  const border = t.borderColor || \"#e5e7eb\";\n  const btnBg = t.buttonBgColor || \"#111827\";\n  const btnFg = t.buttonTextColor || \"#ffffff\";\n  const headingFont = t.headingFont || \"inherit\";\n  const bodyFont = t.bodyFont || \"inherit\";\n  const radius = parseInt(t.radius, 10) || 16;\n\n  const titleSize = Math.round(Math.max(stack ? 30 : 34, Math.min(w * 0.032, 52)));\n  const bodySize = stack ? 16 : 18;\n  const ease = [0.22, 1, 0.36, 1];\n  // Padding from the MEASURED width (never vw). Mobile side padding capped at 20px.\n  const padX = w < 700 ? 20 : w < 1024 ? 40 : 60; // mobile 20 · iPad 40 · desktop 60\n  const padY = stack ? 56 : 96;\n\n  const ImageBox = () => (\n    <div\n      aria-hidden=\"true\"\n      style={{\n        width: \"100%\",\n        aspectRatio: \"4 / 3\",\n        borderRadius: radius + 6,\n        background: surface,\n        border: `1px solid ${border}`,\n        display: \"grid\",\n        placeItems: \"center\",\n      }}\n    >\n      <div style={{ display: \"grid\", justifyItems: \"center\", gap: 10, color: muted, textAlign: \"center\", padding: 24 }}>\n        <span style={{ display: \"grid\", placeItems: \"center\", width: 46, height: 46, borderRadius: 12, background: bg, border: `1px solid ${border}` }}>\n          <svg width=\"22\" height=\"22\" viewBox=\"0 0 24 24\" fill=\"none\">\n            <rect x=\"3\" y=\"4\" width=\"18\" height=\"16\" rx=\"2.5\" stroke=\"currentColor\" strokeWidth=\"1.6\" />\n            <circle cx=\"8.5\" cy=\"9.5\" r=\"1.6\" stroke=\"currentColor\" strokeWidth=\"1.6\" />\n            <path d=\"M5 17l4.5-4.5 3 3L16 12l3 3\" stroke=\"currentColor\" strokeWidth=\"1.6\" strokeLinecap=\"round\" strokeLinejoin=\"round\" />\n          </svg>\n        </span>\n        <span style={{ fontFamily: bodyFont, fontSize: 14, fontWeight: 600, color: fg }}>Add an image</span>\n        <span style={{ fontFamily: bodyFont, fontSize: 12 }}>Recommended 1200 × 900</span>\n      </div>\n    </div>\n  );\n\n  return (\n    <section ref={ref} style={{ background: bg, color: fg, fontFamily: bodyFont }}>\n      {services.map((s, i) => {\n        const num = String(i + 1).padStart(2, \"0\");\n        return (\n          <div\n            key={i}\n            style={{\n              position: \"sticky\",\n              top: 0,\n              minHeight: \"100vh\",\n              background: bg,\n              display: \"flex\",\n              alignItems: \"center\",\n              padding: `${padY}px ${padX}px`,\n              boxSizing: \"border-box\",\n            }}\n          >\n            <motion.div\n              initial={reduce ? false : { opacity: 0, y: 20 }}\n              whileInView={{ opacity: 1, y: 0 }}\n              viewport={{ once: false, amount: 0.4 }}\n              transition={reduce ? { duration: 0 } : { duration: 0.55, ease }}\n              style={{\n                width: \"100%\",\n                maxWidth: 1200,\n                margin: \"0 auto\",\n                display: \"grid\",\n                gridTemplateColumns: stack ? \"1fr\" : \"1fr 1.05fr\",\n                gap: stack ? 36 : 72,\n                alignItems: \"center\",\n              }}\n            >\n              {/* Left: copy */}\n              <div style={{ minWidth: 0 }}>\n                <div style={{ display: \"flex\", alignItems: \"center\", gap: 8, marginBottom: 20 }}>\n                  <span aria-hidden=\"true\" style={{ width: 8, height: 8, borderRadius: 999, background: accent, display: \"inline-block\" }} />\n                  <span style={{ fontSize: 14, fontWeight: 600 }}>{eyebrow}</span>\n                </div>\n\n                <h2 style={{ margin: 0, fontFamily: headingFont, fontWeight: 600, letterSpacing: \"-0.02em\", lineHeight: 1.05, fontSize: titleSize }}>\n                  <span style={{ color: muted }}>{num}. </span>{s.title}\n                </h2>\n\n                <p style={{ margin: \"22px 0 0\", maxWidth: \"42ch\", fontSize: bodySize, lineHeight: 1.55, color: muted }}>{s.text}</p>\n\n                <ul role=\"list\" style={{ listStyle: \"none\", margin: \"28px 0 0\", padding: 0, display: \"grid\", gap: 14 }}>\n                  {s.bullets.map((b, bi) => (\n                    <li key={bi} style={{ display: \"flex\", alignItems: \"baseline\", gap: 12, fontSize: stack ? 15 : 16.5 }}>\n                      <span aria-hidden=\"true\" style={{ flexShrink: 0, width: 6, height: 6, borderRadius: 999, background: accent, transform: \"translateY(-2px)\" }} />\n                      <span>{b}</span>\n                    </li>\n                  ))}\n                </ul>\n\n                <a\n                  href={s.href}\n                  style={{\n                    marginTop: 36,\n                    display: \"inline-flex\",\n                    alignItems: \"center\",\n                    gap: 12,\n                    textDecoration: \"none\",\n                    background: btnBg,\n                    color: btnFg,\n                    borderRadius: 999,\n                    padding: \"10px 12px 10px 24px\",\n                    fontFamily: bodyFont,\n                    fontSize: 15,\n                    fontWeight: 600,\n                  }}\n                >\n                  {cta}\n                  <span style={{ display: \"grid\", placeItems: \"center\", width: 34, height: 34, borderRadius: 999, background: accent }}>\n                    <svg width=\"17\" height=\"17\" viewBox=\"0 0 24 24\" fill=\"none\">\n                      <path d=\"M5 12h14M13 6l6 6-6 6\" stroke={btnBg} strokeWidth=\"2\" strokeLinecap=\"round\" strokeLinejoin=\"round\" />\n                    </svg>\n                  </span>\n                </a>\n              </div>\n\n              {/* Right: image placeholder */}\n              <ImageBox />\n            </motion.div>\n          </div>\n        );\n      })}\n    </section>\n  );\n}\n"
+  },
+  {
+    "id": "hero-carousel-tabs",
+    "name": "Hero Carousel — Topic Tabs",
+    "category": "hero banner",
+    "layoutType": "carousel",
+    "description": "Full-bleed media hero that auto-advances through slides (a progress line fills under the active tab); clicking a topic tab switches both the background and the copy. Add a real photo per slide via item.image, or it falls back to a themeable accent gradient.",
+    "tags": [
+      "hero",
+      "carousel",
+      "slider",
+      "tabs",
+      "auto-advance",
+      "image"
+    ],
+    "editableFields": [
+      "primaryButtonLabel",
+      "items"
+    ],
+    "codeMode": "studio-tsx",
+    "originality": "Original design and copy — not a copy of any referenced text or image; neutral placeholder media only.",
+    "defaultContent": {
+      "primaryButtonLabel": "Read more",
+      "items": [
+        {
+          "text": "Intelligence",
+          "title": "Put AI to work across every team",
+          "href": "#"
+        },
+        {
+          "text": "Strategy",
+          "title": "The mid-year outlook leaders are planning around",
+          "href": "#"
+        },
+        {
+          "text": "Retail",
+          "title": "Pricing built for both people and machines",
+          "href": "#"
+        },
+        {
+          "text": "Partnerships",
+          "title": "Scaling what comes next in the cloud",
+          "href": "#"
+        }
+      ]
+    },
+    "tsxCode": "// Hero carousel (media) — full-bleed background per slide with eyebrow, oversized\n// headline and a CTA, plus a row of topic tabs. Auto-advances (a progress line\n// fills under the active tab); clicking a tab switches BOTH the background and\n// the copy. Props: { content, theme }. Give each slide a real photo via\n// item.image (recommended 1600×900); without one it falls back to a themeable\n// accent gradient. Accent + fonts are theme-driven; the dark media surface +\n// white text are intentional to a hero-over-image.\nimport { useRef, useState, useEffect } from \"react\";\nimport { motion, AnimatePresence, useReducedMotion } from \"framer-motion\";\n\nconst DURATION = 6000;\n\nconst DEFAULTS = [\n  { text: \"Intelligence\", title: \"Put AI to work across every team\" },\n  { text: \"Strategy\", title: \"The mid-year outlook leaders plan around\" },\n  { text: \"Retail\", title: \"Pricing built for both people and machines\" },\n  { text: \"Partnerships\", title: \"Scaling what comes next in the cloud\" },\n];\n\nexport default function Section({ content, theme }) {\n  const c = content || {};\n  const t = theme || {};\n  const reduce = useReducedMotion();\n\n  const cta = c.primaryButtonLabel || \"Read more\";\n  const src = Array.isArray(c.items) && c.items.length ? c.items : DEFAULTS;\n  const slides = src.map((s, i) => ({\n    label: s.text || DEFAULTS[i % DEFAULTS.length].text || `Slide ${i + 1}`,\n    title: s.title || DEFAULTS[i % DEFAULTS.length].title || \"A headline for this slide\",\n    href: s.href || \"#\",\n    image: s.image || s.imageUrl || \"\",\n  }));\n\n  const ref = useRef(null);\n  const [w, setW] = useState(1200);\n  useEffect(() => {\n    const el = ref.current;\n    if (!el || typeof ResizeObserver === \"undefined\") return;\n    const ro = new ResizeObserver((entries) => {\n      for (const e of entries) setW(e.borderBoxSize && e.borderBoxSize[0] ? e.borderBoxSize[0].inlineSize : e.contentRect.width);\n    });\n    ro.observe(el);\n    return () => ro.disconnect();\n  }, []);\n  const compact = w < 700;\n\n  const [active, setActive] = useState(0);\n  useEffect(() => {\n    if (reduce || slides.length < 2) return;\n    const id = setTimeout(() => setActive((a) => (a + 1) % slides.length), DURATION);\n    return () => clearTimeout(id);\n  }, [active, reduce, slides.length]);\n\n  const accent = t.accentColor || \"#2563eb\";\n  const headingFont = t.headingFont || \"inherit\";\n  const bodyFont = t.bodyFont || \"inherit\";\n  // Media hero: text sits on a dark image/gradient, so it stays light for\n  // legibility (the accent still drives the fallback gradient hue + progress).\n  const fg = \"#ffffff\";\n  const muted = \"rgba(255,255,255,0.66)\";\n  const line = \"rgba(255,255,255,0.28)\";\n\n  const padX = w < 700 ? 20 : w < 1024 ? 40 : 60; // mobile 20 · iPad 40 · desktop 60\n  const titleSize = Math.round(Math.max(compact ? 34 : 44, Math.min(w * 0.05, 84)));\n  const ease = [0.22, 1, 0.36, 1];\n  const cur = slides[active] || slides[0];\n\n  const backdrop = (s) =>\n    s.image\n      ? `linear-gradient(90deg, rgba(0,0,0,0.6), rgba(0,0,0,0.25) 55%, rgba(0,0,0,0.1)), url(\"${s.image}\") center / cover no-repeat`\n      : `linear-gradient(${118 + active * 26}deg, ${accent}, #0b0b12 82%)`;\n\n  return (\n    <section\n      ref={ref}\n      style={{\n        position: \"relative\",\n        overflow: \"hidden\",\n        color: fg,\n        fontFamily: bodyFont,\n        minHeight: \"clamp(560px, 84vh, 920px)\",\n        display: \"flex\",\n        flexDirection: \"column\",\n        background: \"#0b0b12\",\n      }}\n    >\n      {/* Full-bleed backdrop, crossfading per slide */}\n      <AnimatePresence initial={false}>\n        <motion.div\n          key={active}\n          aria-hidden=\"true\"\n          initial={{ opacity: 0 }}\n          animate={{ opacity: 1 }}\n          exit={{ opacity: 0 }}\n          transition={{ duration: reduce ? 0 : 0.7, ease }}\n          style={{ position: \"absolute\", inset: 0, background: backdrop(cur) }}\n        />\n      </AnimatePresence>\n      {/* Bottom scrim so the tab row always reads */}\n      <div aria-hidden=\"true\" style={{ position: \"absolute\", inset: 0, background: \"linear-gradient(to top, rgba(0,0,0,0.45), transparent 38%)\", pointerEvents: \"none\" }} />\n      {/* Faint hint only when the active slide has no image yet */}\n      {!cur.image && (\n        <div aria-hidden=\"true\" style={{ position: \"absolute\", right: padX, bottom: compact ? 120 : 120, display: \"flex\", alignItems: \"center\", gap: 8, color: \"rgba(255,255,255,0.55)\", fontSize: 12.5 }}>\n          <svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\"><rect x=\"3\" y=\"4\" width=\"18\" height=\"16\" rx=\"2.5\" stroke=\"currentColor\" strokeWidth=\"1.6\" /><circle cx=\"8.5\" cy=\"9.5\" r=\"1.6\" stroke=\"currentColor\" strokeWidth=\"1.6\" /><path d=\"M5 17l4.5-4.5 3 3L16 12l3 3\" stroke=\"currentColor\" strokeWidth=\"1.6\" strokeLinecap=\"round\" strokeLinejoin=\"round\" /></svg>\n          Add a background image\n        </div>\n      )}\n\n      {/* Foreground copy */}\n      <div style={{ position: \"relative\", flex: 1, display: \"flex\", alignItems: \"center\", padding: `${compact ? 88 : 120}px ${padX}px 0` }}>\n        <AnimatePresence mode=\"wait\">\n          <motion.div\n            key={active}\n            initial={reduce ? { opacity: 0 } : { opacity: 0, y: 18 }}\n            animate={{ opacity: 1, y: 0 }}\n            exit={reduce ? { opacity: 0 } : { opacity: 0, y: -12 }}\n            transition={{ duration: reduce ? 0 : 0.5, ease }}\n            style={{ width: \"100%\", maxWidth: compact ? \"100%\" : 900 }}\n          >\n            <div style={{ display: \"flex\", alignItems: \"center\", gap: 8, marginBottom: 16 }}>\n              <span aria-hidden=\"true\" style={{ width: 8, height: 8, borderRadius: 999, background: accent, display: \"inline-block\" }} />\n              <span style={{ fontSize: 14, fontWeight: 600, letterSpacing: \"0.02em\", textTransform: \"uppercase\" }}>{cur.label}</span>\n            </div>\n            <h1 style={{ margin: 0, color: fg, fontFamily: headingFont, fontWeight: 600, letterSpacing: \"-0.03em\", lineHeight: 1.04, fontSize: titleSize, maxWidth: compact ? \"100%\" : Math.min(860, Math.round(w * 0.66)), textWrap: \"balance\", WebkitTextWrap: \"balance\" }}>\n              {cur.title}\n            </h1>\n            <a href={cur.href} style={{ marginTop: 28, display: \"inline-flex\", alignItems: \"center\", gap: 12, textDecoration: \"none\", color: fg, fontFamily: bodyFont, fontSize: 14, fontWeight: 700, letterSpacing: \"0.06em\", textTransform: \"uppercase\" }}>\n              {cta}\n              <svg width=\"34\" height=\"14\" viewBox=\"0 0 34 14\" fill=\"none\" aria-hidden=\"true\">\n                <path d=\"M0 7h31M26 2l6 5-6 5\" stroke=\"currentColor\" strokeWidth=\"1.6\" strokeLinecap=\"round\" strokeLinejoin=\"round\" />\n              </svg>\n            </a>\n          </motion.div>\n        </AnimatePresence>\n      </div>\n\n      {/* Tabs + auto-advance progress */}\n      <div style={{ position: \"relative\", padding: `0 ${padX}px ${compact ? 26 : 40}px`, display: \"flex\", alignItems: \"flex-end\", gap: 16 }}>\n        <div style={{ flex: 1, display: \"grid\", gridTemplateColumns: compact ? \"1fr\" : `repeat(${slides.length}, 1fr)`, gap: compact ? 8 : 24 }}>\n          {slides.map((s, i) => {\n            const on = i === active;\n            if (compact && !on) return null; // mobile: only the active tab label\n            return (\n              <button\n                key={i}\n                type=\"button\"\n                onClick={() => setActive(i)}\n                aria-current={on ? \"true\" : undefined}\n                style={{\n                  appearance: \"none\",\n                  border: 0,\n                  background: \"transparent\",\n                  textAlign: \"left\",\n                  cursor: \"pointer\",\n                  padding: \"12px 0 0\",\n                  fontFamily: bodyFont,\n                  fontSize: compact ? 14 : 16,\n                  fontWeight: 600,\n                  color: on ? fg : muted,\n                  borderTop: `2px solid ${line}`,\n                  position: \"relative\",\n                  whiteSpace: \"nowrap\",\n                }}\n              >\n                {on && (\n                  <motion.span\n                    key={active}\n                    aria-hidden=\"true\"\n                    initial={{ scaleX: reduce ? 1 : 0 }}\n                    animate={{ scaleX: 1 }}\n                    transition={reduce ? { duration: 0 } : { duration: DURATION / 1000, ease: \"linear\" }}\n                    style={{ position: \"absolute\", top: -2, left: 0, right: 0, height: 2, background: accent, transformOrigin: \"left center\" }}\n                  />\n                )}\n                {s.label}\n              </button>\n            );\n          })}\n        </div>\n\n        <div style={{ display: \"grid\", justifyItems: \"center\", gap: 8, color: muted, flexShrink: 0 }}>\n          <span style={{ fontSize: 12 }}>Scroll</span>\n          <motion.span\n            aria-hidden=\"true\"\n            animate={reduce ? {} : { y: [0, 5, 0] }}\n            transition={reduce ? {} : { duration: 1.6, repeat: Infinity, ease: \"easeInOut\" }}\n            style={{ display: \"grid\", placeItems: \"center\", width: 40, height: 40, borderRadius: 999, border: `1px solid ${line}` }}\n          >\n            <svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\"><path d=\"M6 9l6 6 6-6\" stroke=\"currentColor\" strokeWidth=\"1.7\" strokeLinecap=\"round\" strokeLinejoin=\"round\" /></svg>\n          </motion.span>\n        </div>\n      </div>\n    </section>\n  );\n}\n"
   }
 ]
