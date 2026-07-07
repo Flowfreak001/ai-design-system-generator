@@ -14,7 +14,7 @@
 //     theme   : SectionTheme brand tokens (colors, fonts, radius…)
 //     items   : content.items (convenience alias)
 
-import { Component, useEffect, useRef, useState, type ReactNode } from "react";
+import { Component, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import * as React from "react";
 import * as FramerMotion from "framer-motion";
 import type { SectionTheme } from "@/components/sections/types";
@@ -83,6 +83,11 @@ export function DynamicSectionRenderer({
   const runtimeErr = useRef<string | null>(null);
   const status = useRef(onStatus);
   status.current = onStatus;
+  // Scoped, accessible focus rings for every link/button in the section, tinted
+  // with the section's accent — a shadcn-grade a11y baseline applied to ALL
+  // sections without editing each one.
+  const cls = "sk-" + useId().replace(/[^a-zA-Z0-9]/g, "");
+  const ringAccent = theme?.accentColor || "#2563eb";
 
   useEffect(() => {
     let alive = true;
@@ -105,7 +110,10 @@ export function DynamicSectionRenderer({
 
   return (
     <RenderBoundary onError={(m) => { runtimeErr.current = m; setError(m); status.current?.({ state: "error", message: m }); }}>
-      <Comp content={content} theme={theme} items={content.items} />
+      <div className={cls} style={{ WebkitTapHighlightColor: "transparent" }}>
+        <style>{`.${cls} :focus-visible{outline:2px solid ${ringAccent};outline-offset:2px;border-radius:5px}`}</style>
+        <Comp content={content} theme={theme} items={content.items} />
+      </div>
     </RenderBoundary>
   );
 }
