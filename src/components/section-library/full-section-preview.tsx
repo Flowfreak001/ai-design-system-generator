@@ -98,16 +98,23 @@ export function FullSectionPreview({ section, publicMode = false }: { section: L
         // Emulated device: fixed viewport, rounded bezel, own scroll + overflow
         // clip so section overlays stay inside the frame.
         <div className="flex justify-center px-4 py-8">
+          {/* Realistic device: light aluminium bezel, rounded shell, camera + home indicator. */}
           <div
-            className="relative overflow-hidden rounded-[36px] border-[8px] border-line bg-white shadow-xl"
+            className={`relative bg-gradient-to-b from-[#3a3a3c] via-[#1c1c1e] to-[#2c2c2e] shadow-[0_30px_70px_-25px_rgba(0,0,0,0.55)] ring-1 ring-black/40 ${device === "mobile" ? "rounded-[48px] p-[11px]" : "rounded-[40px] p-[14px]"}`}
             // transform makes this the containing block for the section's
             // position:fixed overlays (mobile drawer), so they stay inside the
             // device frame instead of covering the whole preview page.
             style={{ width: dim.w ?? undefined, height: `min(${dim.h}px, calc(100dvh - 140px))`, maxWidth: "100%", transform: "translateZ(0)" }}
           >
-            <div className="h-full overflow-y-auto overscroll-contain">
-              {rendered}
-              <div style={{ minHeight: "40%" }} aria-hidden />
+            <div className={`relative h-full w-full overflow-hidden bg-white ring-1 ring-black/5 ${device === "mobile" ? "rounded-[37px]" : "rounded-[26px]"}`}>
+              <div className="h-full overflow-y-auto overscroll-contain">
+                {rendered}
+                <div style={{ minHeight: "40%" }} aria-hidden />
+              </div>
+              {device === "mobile" && (
+                /* home indicator */
+                <div className="pointer-events-none absolute bottom-1.5 left-1/2 z-30 h-1 w-28 -translate-x-1/2 rounded-full bg-neutral-400/80" />
+              )}
             </div>
           </div>
         </div>
