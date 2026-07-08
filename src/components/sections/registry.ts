@@ -36,6 +36,7 @@ import MultiColumnFooter from "./footer/MultiColumnFooter";
 import FooterWithNewsletter from "./footer/FooterWithNewsletter";
 import PricingCards from "./pricing/PricingCards";
 import TestimonialCards from "./testimonials/TestimonialCards";
+import TestimonialColumns from "./testimonials/TestimonialColumns";
 import GalleryGrid from "./gallery/GalleryGrid";
 import GalleryMarquee from "./gallery/GalleryMarquee";
 import ListingGrid from "./directory/ListingGrid";
@@ -86,7 +87,7 @@ const COMPONENTS: Partial<Record<SectionType, Record<string, SectionComponent>>>
   cta: { simple: SimpleCTA, split: SplitCTA, banner: BannerCTA, gradient: GradientCTA, trial: TrialSignupCTA },
   footer: { simple: SimpleFooter, "multi-column": MultiColumnFooter, newsletter: FooterWithNewsletter, saas: SaaSFooter },
   pricing: { cards: PricingCards },
-  testimonials: { cards: TestimonialCards },
+  testimonials: { cards: TestimonialCards, columns: TestimonialColumns },
   gallery: { marquee: GalleryMarquee, grid: GalleryGrid },
   directory: { grid: ListingGrid },
   dashboard: { preview: DashboardPreviewSection },

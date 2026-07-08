@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { LinkButton } from "@/components/ui/button";
 import { FadeUp, Stagger, StaggerItem } from "@/components/ui/motion";
+import { TestimonialsColumn, type Testimonial } from "@/components/ui/testimonials-columns-1";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -241,7 +242,7 @@ export function ComponentCarousel() {
               A curated, brand-driven library of heroes, headers, service grids, pricing, booking forms,
               testimonials, FAQs and footers — so every page starts closer to done.
             </p>
-            <div className="mt-6"><LinkButton href="/#library" size="lg">Explore the library</LinkButton></div>
+            <div className="mt-6"><LinkButton href="/components" size="lg">Explore the library</LinkButton></div>
           </FadeUp>
         </div>
       </div>
@@ -616,5 +617,41 @@ export function DarkSpotlight() {
         </Stagger>
       </div>
     </div>
+  );
+}
+
+const TESTIMONIALS: Testimonial[] = [
+  { text: "Flowfreak turned a messy discovery call into a structured brief and sitemap in minutes. My first drafts now land far closer to what the client actually wants.", image: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop&crop=faces", name: "Briana Patton", role: "Agency Founder" },
+  { text: "We plan the whole site — pages, goals, CTAs — before touching design. Rework across client projects dropped massively.", image: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=faces", name: "Bilal Ahmed", role: "Design Lead" },
+  { text: "The export gives Claude and Cursor real context instead of a blank prompt. It's the missing layer between brief and build.", image: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=faces", name: "Saman Malik", role: "Freelance Developer" },
+  { text: "As a freelancer I look far bigger than I am. Clients get a polished brief summary and clear scope on day one.", image: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&crop=faces", name: "Omar Raza", role: "Independent Designer" },
+  { text: "Reusable components mean every project starts 60% done. Our delivery timelines shrank without cutting quality.", image: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100&h=100&fit=crop&crop=faces", name: "Zainab Hussain", role: "Studio Operations" },
+  { text: "Brand tokens stay consistent everywhere, so handoff to the client is clean and revisions are minimal.", image: "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=100&h=100&fit=crop&crop=faces", name: "Aliza Khan", role: "Brand Strategist" },
+  { text: "The sitemap and wireframe step alone paid for itself. Stakeholders sign off before a single pixel is styled.", image: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=100&h=100&fit=crop&crop=faces", name: "Farhan Siddiqui", role: "Product Manager" },
+  { text: "Clean JSON and Markdown exports drop straight into our build pipeline. No more copy-pasting from docs.", image: "https://images.unsplash.com/photo-1531427186611-ecfd6d936c79?w=100&h=100&fit=crop&crop=faces", name: "Sana Sheikh", role: "Engineering Lead" },
+  { text: "Onboarding new clients used to take a week. With Flowfreak's guided brief, it's a single focused session.", image: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=100&h=100&fit=crop&crop=faces", name: "Hassan Ali", role: "Web Agency Owner" },
+];
+
+const firstColumn = TESTIMONIALS.slice(0, 3);
+const secondColumn = TESTIMONIALS.slice(3, 6);
+const thirdColumn = TESTIMONIALS.slice(6, 9);
+
+export function TestimonialsSection() {
+  return (
+    <section id="testimonials" className="bg-canvas py-20 sm:py-28">
+      <div className="mx-auto max-w-[1240px] px-5 sm:px-12">
+        <FadeUp className="mx-auto flex max-w-[600px] flex-col items-center text-center">
+          <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.14em] text-accent">Testimonials</p>
+          <h2 className="font-bold tracking-tight text-[clamp(2rem,4.4vw,3.2rem)] leading-[1.05]">Loved by agencies, freelancers and builders.</h2>
+          <p className="mt-4 text-lg leading-relaxed text-muted">See how teams ship client-ready websites faster with Flowfreak.</p>
+        </FadeUp>
+
+        <div className="mt-12 flex max-h-[740px] justify-center gap-6 overflow-hidden [mask-image:linear-gradient(to_bottom,transparent,black_20%,black_80%,transparent)]">
+          <TestimonialsColumn testimonials={firstColumn} duration={17} />
+          <TestimonialsColumn testimonials={secondColumn} className="hidden md:block" duration={21} />
+          <TestimonialsColumn testimonials={thirdColumn} className="hidden lg:block" duration={19} />
+        </div>
+      </div>
+    </section>
   );
 }

@@ -36,7 +36,7 @@ const NAV: NavItem[] = [
     label: "Resources",
     href: "/#library",
     menu: [
-      { label: "Components", href: "/#library", desc: "Browse the section catalog" },
+      { label: "Components", href: "/components", desc: "Browse the section catalog" },
       { label: "Industry Packs", href: "/#packs", desc: "Prebuilt page sets" },
       { label: "Templates", href: "/#library", desc: "Start from a layout" },
       { label: "Changelog", href: "/#product", desc: "What's new" },

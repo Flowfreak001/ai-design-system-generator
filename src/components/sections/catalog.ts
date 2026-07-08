@@ -149,7 +149,10 @@ export const SECTION_CATALOG: Partial<Record<SectionType, SectionCatalogEntry>> 
   },
   // Single-variant sections (more variants are Phase 2 TODO).
   pricing: { label: "Pricing", variants: [V("cards", "Pricing Cards", "PricingCards", "pricing/PricingCards", ["saas", "platform"])] },
-  testimonials: { label: "Testimonials", variants: [V("cards", "Testimonial Cards", "TestimonialCards", "testimonials/TestimonialCards", ["general", "agency", "local-service"])] },
+  testimonials: { label: "Testimonials", variants: [
+    V("cards", "Testimonial Cards", "TestimonialCards", "testimonials/TestimonialCards", ["general", "agency", "local-service"]),
+    V("columns", "Testimonial Columns", "TestimonialColumns", "testimonials/TestimonialColumns", ["general", "saas", "agency"], { exportNotes: "Three vertical auto-scrolling columns of quote cards with a top/bottom fade mask; render static when prefers-reduced-motion." }),
+  ] },
   gallery: {
     label: "Gallery",
     variants: [

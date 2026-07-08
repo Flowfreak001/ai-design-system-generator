@@ -44,7 +44,7 @@ function CardThumb({ section, theme }: { section: LibrarySection; theme: Section
 }
 
 // View-only full preview with a device toggle.
-function PreviewModule({ section, theme, onClose }: { section: LibrarySection; theme: SectionTheme; onClose: () => void }) {
+function PreviewModule({ section, theme, onClose, publicMode = false }: { section: LibrarySection; theme: SectionTheme; onClose: () => void; publicMode?: boolean }) {
   const [device, setDevice] = useState<Device>("desktop");
   const width = DEVICE_WIDTH[device];
   // Scale the true-width device down to fit the modal so the whole section shows.
@@ -81,10 +81,12 @@ function PreviewModule({ section, theme, onClose }: { section: LibrarySection; t
                 className={`rounded-full px-2.5 py-1.5 text-[12px] font-medium capitalize transition-colors ${device === d ? "bg-surface text-ink shadow-sm" : "text-muted hover:text-ink"}`}>{d}</button>
             ))}
           </div>
-          <Link href={`/library/preview/${section.id}`} title="Open full-page preview (real scroll)" className="inline-flex items-center gap-1.5 rounded-lg border border-line px-2.5 py-1.5 text-[12px] font-medium text-ink hover:bg-panel">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M14 4h6v6M20 4l-8 8M10 6H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            Full page
-          </Link>
+          {!publicMode && (
+            <Link href={`/library/preview/${section.id}`} title="Open full-page preview (real scroll)" className="inline-flex items-center gap-1.5 rounded-lg border border-line px-2.5 py-1.5 text-[12px] font-medium text-ink hover:bg-panel">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M14 4h6v6M20 4l-8 8M10 6H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              Full page
+            </Link>
+          )}
           <button type="button" onClick={onClose} aria-label="Close" className="grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-panel hover:text-ink">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
           </button>
@@ -104,11 +106,13 @@ function PreviewModule({ section, theme, onClose }: { section: LibrarySection; t
 }
 
 export function LibraryCatalogClient({
-  sections, isAdmin, currentUserId,
+  sections, isAdmin, currentUserId = "", publicMode = false,
 }: {
   sections: LibrarySection[];
   isAdmin: boolean;
-  currentUserId: string;
+  currentUserId?: string;
+  /** Public marketing mode: read-only, no dashboard/studio actions. */
+  publicMode?: boolean;
 }) {
   const router = useRouter();
   // Library previews are ALWAYS the default brand theme — never a project's
@@ -135,7 +139,7 @@ export function LibraryCatalogClient({
     });
   }, [sections, q, cat]);
 
-  const canManage = (s: LibrarySection) => isAdmin || (!!s.createdByUserId && s.createdByUserId === currentUserId);
+  const canManage = (s: LibrarySection) => !publicMode && (isAdmin || (!!s.createdByUserId && s.createdByUserId === currentUserId));
   const toggleSave = (id: string) => setSaved((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
   const del = (s: LibrarySection) => {
     setMenuId(null);
@@ -144,15 +148,19 @@ export function LibraryCatalogClient({
   };
 
   return (
-    <div className="min-h-full bg-panel">
+    <div className={`min-h-full bg-panel ${publicMode ? "pt-[70px]" : ""}`}>
       <PageContainer>
         {/* Floating pill header — title + count on the left, search + New on the right. */}
-        <div className="sticky top-0 z-20 -mx-5 flex flex-wrap items-center justify-between gap-3 bg-panel/85 px-5 py-3 backdrop-blur sm:-mx-8 sm:px-8">
+        <div className={`sticky z-20 -mx-5 flex flex-wrap items-center justify-between gap-3 bg-panel/85 px-5 py-3 backdrop-blur sm:-mx-8 sm:px-8 ${publicMode ? "top-[70px]" : "top-0"}`}>
           <div className="flex items-center gap-1 rounded-xl border border-line bg-surface px-1.5 py-1 shadow-sm">
-            <Link href="/dashboard" title="Back to dashboard" aria-label="Back to dashboard" className="grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-panel hover:text-ink">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            </Link>
-            <span className="mx-0.5 h-5 w-px bg-line" />
+            {!publicMode && (
+              <>
+                <Link href="/dashboard" title="Back to dashboard" aria-label="Back to dashboard" className="grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-panel hover:text-ink">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M15 6l-6 6 6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                </Link>
+                <span className="mx-0.5 h-5 w-px bg-line" />
+              </>
+            )}
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="text-accent"><rect x="4" y="4" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.7" /><rect x="13" y="4" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.7" /><rect x="4" y="13" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.7" /><rect x="13" y="13" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.7" /></svg>
             <span className="pl-0.5 text-[14px] font-semibold text-ink">Section Library</span>
             <span className="ml-0.5 rounded-full bg-panel px-2 py-0.5 text-[11px] font-medium text-muted">{sections.length}</span>
@@ -164,12 +172,21 @@ export function LibraryCatalogClient({
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted"><circle cx="11" cy="11" r="6.5" stroke="currentColor" strokeWidth="1.7" /><path d="m20 20-3.2-3.2" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg>
               <input type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search sections…" aria-label="Search sections" className="w-40 rounded-lg bg-transparent py-1.5 pl-8 pr-2 text-[13px] text-ink outline-none placeholder:text-faint focus:bg-panel sm:w-52" />
             </div>
-            <Link href="/library/studio">
-              <Button className="h-8 px-3 text-[13px]">
-                <svg className="-ml-0.5" width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
-                New section
-              </Button>
-            </Link>
+            {publicMode ? (
+              <Link href="/signup">
+                <Button className="h-8 px-3 text-[13px]">
+                  Get started
+                  <svg className="-mr-0.5" width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 12h14m-6-6 6 6-6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                </Button>
+              </Link>
+            ) : (
+              <Link href="/library/studio">
+                <Button className="h-8 px-3 text-[13px]">
+                  <svg className="-ml-0.5" width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
+                  New section
+                </Button>
+              </Link>
+            )}
           </div>
         </div>
 
@@ -254,7 +271,7 @@ export function LibraryCatalogClient({
           </>
         )}
 
-        {selected && <PreviewModule section={selected} theme={theme} onClose={() => setSelected(null)} />}
+        {selected && <PreviewModule section={selected} theme={theme} onClose={() => setSelected(null)} publicMode={publicMode} />}
         {exportSel && <ExportModal section={exportSel} theme={theme} onClose={() => setExportSel(null)} />}
       </PageContainer>
     </div>
