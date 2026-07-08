@@ -46,7 +46,7 @@ const COLS = [
 export function SiteFooter() {
   return (
     <footer className="border-t border-line bg-surface">
-      <div className="mx-auto max-w-[1240px] px-5 sm:px-12 py-16">
+      <div className="px-5 sm:px-10 py-16">
         <div className="flex flex-col gap-12 md:flex-row md:items-start md:justify-between">
           <div className="max-w-sm">
             <FlowfreakWordmark height={68} />

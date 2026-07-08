@@ -75,7 +75,7 @@ export function SiteHeader() {
           : "shadow-[0_1px_3px_rgba(15,23,42,0.06)]"
       }`}
     >
-      <div className="flex h-[70px] w-full items-center justify-between px-5 sm:px-8 lg:px-[60px]">
+      <div className="flex h-[70px] w-full items-center justify-between px-5 sm:px-10">
         <div className="flex items-center gap-8">
           <Link href="/" aria-label="Flowfreak home" className="flex items-center">
             <FlowfreakWordmark height={58} />
