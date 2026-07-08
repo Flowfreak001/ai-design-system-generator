@@ -10,6 +10,7 @@ import { Button, LinkButton } from "@/components/ui/button";
 /** Framed, grey-well live preview — identical drawing to the app Section Library card. */
 function CardThumb({ section }: { section: LibrarySection }) {
   const BASE = 1440;
+  const BOX = 212;
   const vpRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.24);
   useEffect(() => {
@@ -19,11 +20,17 @@ function CardThumb({ section }: { section: LibrarySection }) {
     if (vpRef.current) ro.observe(vpRef.current);
     return () => ro.disconnect();
   }, []);
+  // Fixed "screen" exactly the card-box aspect (screenH * scale === BOX) with a scroll
+  // container the dynamic full-height sections detect + fill. Short/natural sections show
+  // their top, clipped to the box — a normal thumbnail crop.
+  const screenH = Math.round(BOX / scale);
   return (
     <div className="pointer-events-none overflow-hidden rounded-2xl bg-line/60 p-4">
       <div ref={vpRef} className="relative h-[212px] w-full overflow-hidden rounded-xl border border-line bg-white">
-        <div className="absolute left-0 top-0 origin-top-left" style={{ width: BASE, transform: `scale(${scale})` }}>
-          <SectionErrorBoundary>{renderLibrarySection(section, DEFAULT_SECTION_THEME, false)}</SectionErrorBoundary>
+        <div className="absolute left-0 top-0 origin-top-left" style={{ width: BASE, height: screenH, overflow: "hidden", transform: `scale(${scale})` }}>
+          <div style={{ height: "100%", overflowY: "auto" }}>
+            <SectionErrorBoundary>{renderLibrarySection(section, DEFAULT_SECTION_THEME, false)}</SectionErrorBoundary>
+          </div>
         </div>
       </div>
     </div>
