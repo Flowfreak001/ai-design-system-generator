@@ -60,7 +60,7 @@ function PreviewModule({ section, onClose, onCopy, copied }: { section: LibraryS
   const scale = Math.min(availW / width, availH / height, 1);
   return (
     <div className="fixed inset-0 z-[100] flex items-end justify-center bg-ink/40 p-0 sm:items-center sm:p-4" onClick={onClose}>
-      <div className="flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-t-2xl border border-line bg-surface shadow-2xl animate-[drawerUp_0.28s_cubic-bezier(0.22,1,0.36,1)] sm:rounded-2xl sm:animate-none" onClick={(e) => e.stopPropagation()}>
+      <div className="flex max-h-[92vh] min-h-[50vh] w-full max-w-6xl flex-col overflow-hidden rounded-t-2xl border border-line bg-surface shadow-2xl animate-[drawerUp_0.28s_cubic-bezier(0.22,1,0.36,1)] sm:min-h-0 sm:rounded-2xl sm:animate-none" onClick={(e) => e.stopPropagation()}>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-line px-4 py-3 sm:px-5">
           <div className="order-1 min-w-0 flex-1">
             <h3 className="truncate text-[14px] font-semibold text-ink">{section.name}</h3>
