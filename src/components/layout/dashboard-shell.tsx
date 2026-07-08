@@ -90,6 +90,12 @@ const ICONS: Record<string, ReactNode> = {
       <rect x="6" y="8" width="11" height="8" rx="2" stroke="currentColor" strokeWidth="1.7" />
     </svg>
   ),
+  brief: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M7 3h7l4 4v14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+      <path d="M13 3v5h5M9 13h6M9 16.5h4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+    </svg>
+  ),
   logout: (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path d="M14 5V4a1.5 1.5 0 0 0-1.5-1.5h-7A1.5 1.5 0 0 0 4 4v16a1.5 1.5 0 0 0 1.5 1.5h7A1.5 1.5 0 0 0 14 20v-1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
@@ -104,6 +110,7 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
     title: "Platform",
     items: [
       { label: "Dashboard", href: "/dashboard", icon: "home" },
+      { label: "Brief", href: "/brief", icon: "brief" },
       { label: "Studio", href: "/studio", icon: "studio" },
       { label: "Library", icon: "library", dynamic: "references" },
       { label: "SEO", href: "/seo", icon: "seo" },
