@@ -71,8 +71,8 @@ export function SiteHeader() {
     <header
       className={`fixed inset-x-0 top-0 z-50 bg-white transition-shadow duration-300 ${
         solid || open || active
-          ? "border-b border-line shadow-[0_6px_24px_-8px_rgba(15,23,42,0.12)]"
-          : "border-b border-transparent shadow-[0_1px_3px_rgba(15,23,42,0.06)]"
+          ? "shadow-[0_6px_24px_-8px_rgba(15,23,42,0.12)]"
+          : "shadow-[0_1px_3px_rgba(15,23,42,0.06)]"
       }`}
     >
       <div className="flex h-[70px] w-full items-center justify-between px-5 sm:px-8 lg:px-[60px]">

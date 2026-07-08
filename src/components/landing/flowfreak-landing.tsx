@@ -4,6 +4,7 @@ import { LinkButton } from "@/components/ui/button";
 import { SectionHeading } from "@/components/landing/section";
 import { FadeUp, Stagger, StaggerItem, HoverLift } from "@/components/ui/motion";
 import { Hero, CanvasShowcase } from "@/components/landing/hero";
+import { PlatformPillars, ComponentCarousel, ControlSection, DarkSpotlight, FaqSection } from "@/components/landing/home-sections";
 
 // Shared section wrapper — consistent rhythm + width across the page.
 function Wrap({ id, className = "", children }: { id?: string; className?: string; children: ReactNode }) {
@@ -201,29 +202,32 @@ function WorkflowSection() {
 
 /* ─────────────────────────── 7. Use cases ─────────────────────────── */
 const USE_CASES = [
-  { t: "For web agencies", d: "Create first drafts, wireframes, page structures and client-ready concepts faster." },
-  { t: "For freelancers", d: "Turn messy client briefs into organized website plans and reusable prompts." },
-  { t: "For component teams", d: "Build and manage a reusable section library for consistent delivery." },
-  { t: "For small-business projects", d: "Plan SEO pages, service pages, booking flows and conversion-focused layouts." },
-  { t: "For AI builders", d: "Prepare better prompts and structured files for Claude, Cursor, Lovable and Replit." },
+  { t: "For web agencies", d: "Create first drafts, wireframes, page structures and client-ready concepts faster.", ic: <><rect x="3" y="7" width="18" height="13" rx="2" stroke="currentColor" strokeWidth="1.7" /><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" strokeWidth="1.7" /></> },
+  { t: "For freelancers", d: "Turn messy client briefs into organized website plans and reusable prompts.", ic: <><circle cx="12" cy="8" r="3.5" stroke="currentColor" strokeWidth="1.7" /><path d="M5 20c1-3.5 3.7-5 7-5s6 1.5 7 5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></> },
+  { t: "For component teams", d: "Build and manage a reusable section library for consistent delivery.", ic: <><rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.7" /><rect x="14" y="3" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.7" /><rect x="3" y="14" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.7" /><rect x="14" y="14" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.7" /></> },
+  { t: "For small-business projects", d: "Plan SEO pages, service pages, booking flows and conversion-focused layouts.", ic: <><path d="M4 9h16l-1 11H5L4 9Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" /><path d="M8 9V6a4 4 0 0 1 8 0v3" stroke="currentColor" strokeWidth="1.7" /></> },
+  { t: "For AI builders", d: "Prepare better prompts and structured files for Claude, Cursor, Lovable and Replit.", ic: <path d="M12 3l1.9 4.6L18.5 9l-4.6 1.9L12 15.5l-1.9-4.6L5.5 9l4.6-1.4L12 3Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" /> },
 ];
 function UseCasesSection() {
   return (
-    <div className="bg-surface border-y border-line">
-      <Wrap id="use-cases">
-        <SectionHeading eyebrow="Use cases" title="Built for agencies and fast-moving website teams." />
-        <Stagger className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {USE_CASES.map((u) => (
-            <StaggerItem key={u.t} className="h-full">
-              <div className="card h-full p-6">
-                <p className="text-[15.5px] font-semibold text-ink">{u.t}</p>
+    <Wrap id="use-cases">
+      <SectionHeading eyebrow="Use cases" title="Built for agencies and fast-moving website teams." />
+      <Stagger className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {USE_CASES.map((u) => (
+          <StaggerItem key={u.t} className="h-full">
+            <HoverLift className="h-full">
+              <div className="flex h-full flex-col rounded-2xl border border-line bg-surface p-6">
+                <span className="grid size-11 place-items-center rounded-xl bg-accent-soft text-accent">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none">{u.ic}</svg>
+                </span>
+                <p className="mt-5 text-[16px] font-semibold text-ink">{u.t}</p>
                 <p className="mt-2 text-[13.5px] leading-relaxed text-muted">{u.d}</p>
               </div>
-            </StaggerItem>
-          ))}
-        </Stagger>
-      </Wrap>
-    </div>
+            </HoverLift>
+          </StaggerItem>
+        ))}
+      </Stagger>
+    </Wrap>
   );
 }
 
@@ -264,28 +268,31 @@ function ExportSection() {
 const PACKS = ["Taxi & transport", "Flooring & carpets", "Car rental", "Construction", "Cleaning services", "Clinics & healthcare", "Real estate", "Restaurants", "SaaS", "Agencies", "Photography", "Ecommerce"];
 function IndustryPacksSection() {
   return (
-    <div className="bg-surface border-y border-line">
-      <Wrap id="packs">
-        <SectionHeading eyebrow="Industry packs" title="Start faster with industry website packs."
-          intro="Each pack includes suggested pages, common sections, CTA strategy, content direction and SEO ideas." />
-        <Stagger className="mt-12 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {PACKS.map((p) => (
-            <StaggerItem key={p}>
-              <HoverLift>
-                <div className="card p-5">
+    <Wrap id="packs">
+      <SectionHeading eyebrow="Industry packs" title="Start faster with industry website packs."
+        intro="Each pack includes suggested pages, common sections, CTA strategy, content direction and SEO ideas." />
+      <Stagger className="mt-12 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {PACKS.map((p) => (
+          <StaggerItem key={p}>
+            <HoverLift>
+              <div className="rounded-2xl border border-line bg-surface p-5">
+                <div className="flex items-center gap-3">
+                  <span className="grid size-9 place-items-center rounded-lg bg-accent-soft text-accent">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 9h16v11H4V9Zm2-4h12l2 4H4l2-4Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" /><path d="M9 20v-6h6v6" stroke="currentColor" strokeWidth="1.6" /></svg>
+                  </span>
                   <p className="text-[15px] font-semibold text-ink">{p}</p>
-                  <ul className="mt-3 flex flex-wrap gap-1.5">
-                    {["Sitemap", "Components", "SEO pages", "CTA pattern"].map((t) => (
-                      <li key={t} className="rounded-full bg-panel px-2.5 py-0.5 text-[11.5px] font-medium text-muted">{t}</li>
-                    ))}
-                  </ul>
                 </div>
-              </HoverLift>
-            </StaggerItem>
-          ))}
-        </Stagger>
-      </Wrap>
-    </div>
+                <ul className="mt-3.5 flex flex-wrap gap-1.5">
+                  {["Sitemap", "Components", "SEO pages", "CTA pattern"].map((t) => (
+                    <li key={t} className="rounded-full bg-panel px-2.5 py-0.5 text-[11.5px] font-medium text-muted">{t}</li>
+                  ))}
+                </ul>
+              </div>
+            </HoverLift>
+          </StaggerItem>
+        ))}
+      </Stagger>
+    </Wrap>
   );
 }
 
@@ -326,13 +333,12 @@ const PLANS = [
 ];
 function PricingSection() {
   return (
-    <div className="bg-surface border-y border-line">
-      <Wrap id="pricing">
-        <SectionHeading eyebrow="Pricing" title="Simple plans for agencies and creators." center />
-        <Stagger className="mt-12 grid items-start gap-5 md:grid-cols-3">
-          {PLANS.map((p) => (
-            <StaggerItem key={p.name} className="h-full">
-              <div className={`flex h-full flex-col rounded-2xl border p-7 ${p.featured ? "border-accent bg-canvas shadow-[0_20px_60px_-30px_rgba(233,75,111,0.5)]" : "border-line bg-canvas"}`}>
+    <Wrap id="pricing">
+      <SectionHeading eyebrow="Pricing" title="Simple plans for agencies and creators." center />
+      <Stagger className="mt-12 grid items-start gap-5 md:grid-cols-3">
+        {PLANS.map((p) => (
+          <StaggerItem key={p.name} className="h-full">
+            <div className={`flex h-full flex-col rounded-2xl border p-7 ${p.featured ? "border-accent bg-surface shadow-[0_20px_60px_-30px_rgba(233,75,111,0.5)]" : "border-line bg-surface"}`}>
                 <div className="flex items-center justify-between">
                   <p className="text-[17px] font-bold text-ink">{p.name}</p>
                   {p.featured && <span className="rounded-full bg-accent px-2.5 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide text-white">Popular</span>}
@@ -351,30 +357,37 @@ function PricingSection() {
             </StaggerItem>
           ))}
         </Stagger>
-      </Wrap>
-    </div>
+    </Wrap>
   );
 }
 
 /* ─────────────────────────── 12. Final CTA ─────────────────────────── */
 function FinalCTASection() {
   return (
-    <Wrap>
-      <FadeUp className="relative overflow-hidden rounded-3xl border border-line bg-ink px-6 py-16 text-center sm:px-16 sm:py-20">
-        <h2 className="mx-auto max-w-2xl font-bold tracking-tight text-white text-[clamp(1.9rem,3.6vw,2.8rem)] leading-[1.08]">
-          Create your next website draft with structure, not guesswork.
-        </h2>
-        <p className="mx-auto mt-5 max-w-xl text-[15.5px] leading-relaxed text-white/70">
-          Use AI, wireframes, brand rules and reusable components to move from client brief to production-ready website direction faster.
-        </p>
-        <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
-          <LinkButton href="/signup" size="lg">Start Building</LinkButton>
-          <Link href="/#library" className="inline-flex h-12 items-center rounded-lg border border-white/20 px-6 text-[15px] font-medium text-white transition-colors hover:bg-white/10">
-            Explore Component Library
-          </Link>
-        </div>
+    <section className="relative isolate overflow-hidden bg-ink px-6 py-20 text-center sm:px-16 sm:py-28">
+      {/* rose glow */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0" style={{ background: "radial-gradient(48% 80% at 50% -10%, color-mix(in srgb, var(--color-accent) 30%, transparent), transparent 70%)" }} />
+      {/* dot texture */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 opacity-[0.12]" style={{ backgroundImage: "radial-gradient(circle, #fff 1px, transparent 1px)", backgroundSize: "24px 24px", maskImage: "radial-gradient(60% 65% at 50% 35%, #000, transparent)", WebkitMaskImage: "radial-gradient(60% 65% at 50% 35%, #000, transparent)" }} />
+      <FadeUp className="relative z-10 mx-auto max-w-3xl">
+          <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[12px] font-semibold uppercase tracking-wide text-white/80">
+            <span className="size-1.5 rounded-full bg-accent" /> Get started free
+          </span>
+          <h2 className="mx-auto mt-6 max-w-2xl font-bold tracking-tight text-white text-[clamp(2rem,3.8vw,3rem)] leading-[1.06]">
+            Create your next website draft with structure, not guesswork.
+          </h2>
+          <p className="mx-auto mt-5 max-w-xl text-[16px] leading-relaxed text-white/65">
+            Move from a client brief to production-ready website direction faster — with AI, wireframes, brand rules and reusable components.
+          </p>
+          <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
+            <LinkButton href="/signup" size="lg">Start building</LinkButton>
+            <Link href="/#library" className="inline-flex h-12 items-center rounded-[6px] border border-white/20 px-6 text-[15px] font-medium text-white transition-colors hover:bg-white/10">
+              Explore the library
+            </Link>
+          </div>
+          <p className="mt-6 text-[13px] text-white/45">No credit card required · Free plan available</p>
       </FadeUp>
-    </Wrap>
+    </section>
   );
 }
 
@@ -383,16 +396,13 @@ export function FlowfreakLanding() {
     <>
       <Hero />
       <CanvasShowcase />
-      <ProblemSection />
-      <SolutionSection />
-      <ModulesSection />
-      <LibrarySection />
-      <WorkflowSection />
+      <PlatformPillars />
+      <ComponentCarousel />
+      <ControlSection />
+      <DarkSpotlight />
       <UseCasesSection />
-      <ExportSection />
-      <IndustryPacksSection />
-      <ComparisonSection />
       <PricingSection />
+      <FaqSection />
       <FinalCTASection />
     </>
   );
