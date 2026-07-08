@@ -46,48 +46,48 @@ const DEVICE_DIM: Record<Device, { w: number; h: number }> = { desktop: { w: 128
 function PreviewModule({ section, onClose, onCopy, copied }: { section: LibrarySection; onClose: () => void; onCopy: () => void; copied: boolean }) {
   const [device, setDevice] = useState<Device>("desktop");
   const { w: width, h: height } = DEVICE_DIM[device];
-  const areaRef = useRef<HTMLDivElement>(null);
-  const [box, setBox] = useState({ w: 1000, h: 560 });
+  // Measure the viewport (not the stage) so the modal can hug the scaled screen —
+  // snug on mobile, and identical size for every section on a given device.
+  const [vp, setVp] = useState({ w: 1000, h: 760 });
   useEffect(() => {
-    const measure = () => {
-      const el = areaRef.current;
-      if (el) setBox({ w: el.clientWidth - 48, h: el.clientHeight - 48 });
-    };
+    const measure = () => setVp({ w: Math.min(window.innerWidth - 32, 1152), h: window.innerHeight });
     measure();
-    const ro = new ResizeObserver(measure);
-    if (areaRef.current) ro.observe(areaRef.current);
-    return () => ro.disconnect();
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
   }, []);
-  // Fit the device screen inside the constant stage — never upscale.
-  const scale = Math.min(box.w / width, box.h / height, 1);
+  const availW = vp.w - 48;                 // stage horizontal padding
+  const availH = vp.h * 0.9 - 132;          // viewport minus header/actions + margins
+  const scale = Math.min(availW / width, availH / height, 1);
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/40 p-4" onClick={onClose}>
-      <div className="flex h-[86vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-2xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center gap-3 border-b border-line px-5 py-3">
-          <div className="min-w-0">
+      <div className="flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-line px-4 py-3 sm:px-5">
+          <div className="order-1 min-w-0 flex-1">
             <h3 className="truncate text-[14px] font-semibold text-ink">{section.name}</h3>
             <p className="truncate text-[12px] capitalize text-muted">{section.category} · {section.layoutType}</p>
           </div>
-          <div className="ml-auto inline-flex items-center gap-0.5 rounded-full border border-line bg-panel p-0.5">
-            {(Object.keys(DEVICE_WIDTH) as Device[]).map((d) => (
-              <button key={d} type="button" onClick={() => setDevice(d)} aria-pressed={device === d}
-                className={`rounded-full px-2.5 py-1.5 text-[12px] font-medium capitalize transition-colors ${device === d ? "bg-surface text-ink shadow-sm" : "text-muted hover:text-ink"}`}>{d}</button>
-            ))}
-          </div>
-          <a href={`/section-preview/${section.id}`} target="_blank" rel="noopener noreferrer" title="Open full-page preview (real scroll)" className="inline-flex items-center gap-1.5 rounded-lg border border-line px-2.5 py-1.5 text-[12px] font-medium text-ink hover:bg-panel">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M14 4h6v6M20 4l-8 8M10 6H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
-            Full page
-          </a>
-          <button type="button" onClick={onCopy} className="inline-flex items-center gap-1.5 rounded-lg border border-line px-2.5 py-1.5 text-[12px] font-medium text-ink hover:bg-panel">
-            {copied ? "Copied" : "Copy prompt"}
-          </button>
-          <LinkButton href="/signup" size="sm">Use section</LinkButton>
-          <button type="button" onClick={onClose} aria-label="Close" className="grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-panel hover:text-ink">
+          <button type="button" onClick={onClose} aria-label="Close" className="order-2 grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted hover:bg-panel hover:text-ink sm:order-last">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
           </button>
+          <div className="order-3 flex w-full items-center gap-2 overflow-x-auto pb-0.5 sm:order-2 sm:ml-auto sm:w-auto sm:overflow-visible sm:pb-0">
+            <div className="inline-flex shrink-0 items-center gap-0.5 rounded-full border border-line bg-panel p-0.5">
+              {(Object.keys(DEVICE_WIDTH) as Device[]).map((d) => (
+                <button key={d} type="button" onClick={() => setDevice(d)} aria-pressed={device === d}
+                  className={`rounded-full px-2.5 py-1.5 text-[12px] font-medium capitalize transition-colors ${device === d ? "bg-surface text-ink shadow-sm" : "text-muted hover:text-ink"}`}>{d}</button>
+              ))}
+            </div>
+            <a href={`/section-preview/${section.id}`} target="_blank" rel="noopener noreferrer" title="Open full-page preview (real scroll)" className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-line px-2.5 py-1.5 text-[12px] font-medium text-ink hover:bg-panel">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M14 4h6v6M20 4l-8 8M10 6H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              <span className="hidden sm:inline">Full page</span>
+            </a>
+            <button type="button" onClick={onCopy} className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-line px-2.5 py-1.5 text-[12px] font-medium text-ink hover:bg-panel">
+              {copied ? "Copied" : "Copy prompt"}
+            </button>
+            <LinkButton href="/signup" size="sm" className="shrink-0">Use section</LinkButton>
+          </div>
         </div>
-        <div ref={areaRef} className="grid flex-1 place-items-center overflow-hidden bg-panel p-6" style={{ minHeight: 400 }}>
-          <div className="overflow-hidden rounded-xl border border-line bg-white shadow-sm" style={{ width: width * scale, height: height * scale }}>
+        <div className="flex flex-1 items-center justify-center overflow-auto bg-panel p-4 sm:p-6">
+          <div className="shrink-0 overflow-hidden rounded-xl border border-line bg-white shadow-sm" style={{ width: width * scale, height: height * scale }}>
             <div style={{ width, height, transform: `scale(${scale})`, transformOrigin: "top left" }}>
               <div style={{ height: "100%", overflowY: "auto" }}>
                 <SectionErrorBoundary>{renderLibrarySection(section, DEFAULT_SECTION_THEME, device === "mobile")}</SectionErrorBoundary>
@@ -144,7 +144,7 @@ export function PublicLibrary({ sections }: { sections: LibrarySection[] }) {
       <div className="border-b border-line bg-canvas">
         <div className="px-5 pb-10 pt-28 sm:px-10 sm:pt-32">
           <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.14em] text-accent">Section Library</p>
-          <h1 className="whitespace-nowrap font-bold tracking-tight text-[clamp(1.8rem,3.4vw,2.6rem)] leading-[1.05]">
+          <h1 className="font-bold tracking-tight text-[clamp(1.6rem,5vw,2.6rem)] leading-[1.1] lg:whitespace-nowrap">
             Browse production-ready sections.
           </h1>
           <p className="mt-4 max-w-[56ch] text-lg leading-relaxed text-muted">
