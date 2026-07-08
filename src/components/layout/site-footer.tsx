@@ -1,29 +1,44 @@
 import Link from "next/link";
+import { FlowfreakWordmark } from "@/components/layout/logo";
 
 const COLS = [
   {
     title: "Product",
     links: [
-      { label: "Product", href: "/#product" },
-      { label: "Workflow Builder", href: "/#workflow" },
-      { label: "Agency OS", href: "/#agency" },
+      { label: "Studio", href: "/#product" },
+      { label: "Library", href: "/#library" },
+      { label: "SEO", href: "/#product" },
+      { label: "Connect", href: "/#export" },
+      { label: "Automations", href: "/#product" },
+    ],
+  },
+  {
+    title: "Resources",
+    links: [
+      { label: "Components", href: "/#library" },
+      { label: "Templates", href: "/#library" },
+      { label: "Industry Packs", href: "/#packs" },
+      { label: "Documentation", href: "/#product" },
+      { label: "Changelog", href: "/#product" },
     ],
   },
   {
     title: "Use Cases",
     links: [
-      { label: "Small businesses", href: "/#use-cases" },
       { label: "Agencies", href: "/#use-cases" },
-      { label: "Templates", href: "/#use-cases" },
+      { label: "Freelancers", href: "/#use-cases" },
+      { label: "Small Businesses", href: "/#use-cases" },
+      { label: "Developers", href: "/#use-cases" },
+      { label: "AI Builders", href: "/#use-cases" },
     ],
   },
   {
     title: "Company",
     links: [
-      { label: "Docs", href: "/#product" },
-      { label: "Contact", href: "mailto:hello@projectos.dev" },
-      { label: "Privacy", href: "/#" },
-      { label: "Terms", href: "/#" },
+      { label: "About", href: "/#product" },
+      { label: "Contact", href: "mailto:hello@flowfreak.io" },
+      { label: "Pricing", href: "/#pricing" },
+      { label: "Login", href: "/signin" },
     ],
   },
 ];
@@ -31,32 +46,24 @@ const COLS = [
 export function SiteFooter() {
   return (
     <footer className="border-t border-line bg-surface">
-      <div className="mx-auto max-w-[1240px] px-5 sm:px-12 py-14">
-        <div className="flex flex-col gap-10 md:flex-row md:items-start md:justify-between">
+      <div className="mx-auto max-w-[1240px] px-5 sm:px-12 py-16">
+        <div className="flex flex-col gap-12 md:flex-row md:items-start md:justify-between">
           <div className="max-w-sm">
-            <div className="flex items-center gap-2.5 font-semibold tracking-tight text-ink">
-              <span className="grid h-7 w-7 place-items-center rounded-lg bg-accent text-white text-sm">
-                ◆
-              </span>
-              Project OS
-            </div>
+            <FlowfreakWordmark height={68} />
             <p className="mt-4 text-sm leading-relaxed text-muted">
-              Projects, prompts, workflows, and approvals in one AI-powered
-              agency workspace.
+              Turn client briefs into brand guidelines, sitemaps, wireframes,
+              component-based page designs, and export-ready website prompts.
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-10 sm:grid-cols-3">
+          <div className="grid grid-cols-2 gap-x-10 gap-y-10 sm:grid-cols-4">
             {COLS.map((col) => (
               <nav key={col.title} aria-label={col.title}>
                 <p className="eyebrow mb-4">{col.title}</p>
                 <ul className="flex flex-col gap-2.5">
                   {col.links.map((l) => (
                     <li key={l.label}>
-                      <Link
-                        href={l.href}
-                        className="text-sm text-muted transition-colors duration-200 hover:text-ink"
-                      >
+                      <Link href={l.href} className="text-sm text-muted transition-colors duration-200 hover:text-ink">
                         {l.label}
                       </Link>
                     </li>
@@ -67,9 +74,9 @@ export function SiteFooter() {
           </div>
         </div>
 
-        <div className="mt-12 flex flex-col gap-2 border-t border-line pt-6 text-xs text-faint sm:flex-row sm:items-center sm:justify-between">
-          <p>© {new Date().getFullYear()} Project OS.</p>
-          <p className="font-mono">AI drafts. Humans approve. Clients get delivery.</p>
+        <div className="mt-14 flex flex-col gap-2 border-t border-line pt-6 text-xs text-faint sm:flex-row sm:items-center sm:justify-between">
+          <p>© {new Date().getFullYear()} Flowfreak.</p>
+          <p className="font-mono">Brief in. Structured website plan out.</p>
         </div>
       </div>
     </footer>

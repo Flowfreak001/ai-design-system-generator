@@ -1,3 +1,21 @@
+import Image from "next/image";
+
+// Official Flowfreak logo lock-up (real PNG asset, used as-is). Aspect 588×227.
+export function FlowfreakWordmark({ height = 26, className = "" }: { height?: number; className?: string }) {
+  const width = Math.round((height * 588) / 227);
+  return (
+    <Image
+      src="/flowfreak-logo.png"
+      alt="Flowfreak"
+      width={width}
+      height={height}
+      priority
+      className={className}
+      style={{ width: "auto", height }}
+    />
+  );
+}
+
 // Flowfreak brand mark — four rounded diagonal dashes with four colour dots
 // (blue top · pink left · purple right · orange bottom), redrawn as inline SVG
 // so it stays crisp and theme-aware. Pair with the wordmark where there's room.
