@@ -32,32 +32,30 @@ function CardThumb({ section }: { section: LibrarySection }) {
 
 type Device = "desktop" | "tablet" | "mobile";
 const DEVICE_WIDTH: Record<Device, number> = { desktop: 1280, tablet: 820, mobile: 390 };
+// Fixed device "screen" sizes so every section preview has a consistent height.
+const DEVICE_DIM: Record<Device, { w: number; h: number }> = { desktop: { w: 1280, h: 760 }, tablet: { w: 820, h: 1093 }, mobile: { w: 390, h: 780 } };
 
 /** Full-page preview modal — device toggle + scaled true-width render (same as the app Section Library). */
 function PreviewModule({ section, onClose, onCopy, copied }: { section: LibrarySection; onClose: () => void; onCopy: () => void; copied: boolean }) {
   const [device, setDevice] = useState<Device>("desktop");
-  const width = DEVICE_WIDTH[device];
+  const { w: width, h: height } = DEVICE_DIM[device];
   const areaRef = useRef<HTMLDivElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(1);
-  const [scaledH, setScaledH] = useState<number | undefined>(undefined);
+  const [box, setBox] = useState({ w: 1000, h: 560 });
   useEffect(() => {
     const measure = () => {
-      const avail = (areaRef.current?.clientWidth ?? width) - 48;
-      const s = Math.min(1, avail / width);
-      setScale(s);
-      const h = contentRef.current?.offsetHeight;
-      if (h) setScaledH(h * s);
+      const el = areaRef.current;
+      if (el) setBox({ w: el.clientWidth - 48, h: el.clientHeight - 48 });
     };
     measure();
     const ro = new ResizeObserver(measure);
     if (areaRef.current) ro.observe(areaRef.current);
-    if (contentRef.current) ro.observe(contentRef.current);
     return () => ro.disconnect();
-  }, [width, device, section]);
+  }, []);
+  // Fit the device screen inside the constant stage — never upscale.
+  const scale = Math.min(box.w / width, box.h / height, 1);
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/40 p-4" onClick={onClose}>
-      <div className="flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-2xl" onClick={(e) => e.stopPropagation()}>
+      <div className="flex h-[86vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-2xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center gap-3 border-b border-line px-5 py-3">
           <div className="min-w-0">
             <h3 className="truncate text-[14px] font-semibold text-ink">{section.name}</h3>
@@ -81,10 +79,12 @@ function PreviewModule({ section, onClose, onCopy, copied }: { section: LibraryS
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
           </button>
         </div>
-        <div ref={areaRef} className="flex flex-1 flex-col overflow-auto bg-panel p-6" style={{ minHeight: 400 }}>
-          <div className="m-auto overflow-hidden" style={{ width: width * scale, height: scaledH }}>
-            <div ref={contentRef} className="overflow-hidden rounded-xl border border-line bg-white shadow-sm" style={{ width, transform: `scale(${scale})`, transformOrigin: "top left" }}>
-              <SectionErrorBoundary>{renderLibrarySection(section, DEFAULT_SECTION_THEME, device === "mobile")}</SectionErrorBoundary>
+        <div ref={areaRef} className="grid flex-1 place-items-center overflow-hidden bg-panel p-6" style={{ minHeight: 400 }}>
+          <div className="overflow-hidden rounded-xl border border-line bg-white shadow-sm" style={{ width: width * scale, height: height * scale }}>
+            <div style={{ width, height, transform: `scale(${scale})`, transformOrigin: "top left" }}>
+              <div style={{ height: "100%", overflowY: "auto" }}>
+                <SectionErrorBoundary>{renderLibrarySection(section, DEFAULT_SECTION_THEME, device === "mobile")}</SectionErrorBoundary>
+              </div>
             </div>
           </div>
         </div>
