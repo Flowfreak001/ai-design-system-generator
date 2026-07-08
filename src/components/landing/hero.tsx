@@ -55,7 +55,7 @@ export function Hero() {
 
         <motion.h1
           initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, ease: EASE, delay: 0.06 }}
-          className="mx-auto mt-8 max-w-[13ch] font-bold tracking-tight text-[clamp(2.4rem,5.2vw,3.6rem)] leading-[1.02] sm:max-w-[18ch]"
+          className="mx-auto mt-8 max-w-[13ch] font-bold tracking-tight text-[clamp(2.4rem,5.2vw,3.6rem)] leading-[1.14] sm:max-w-[18ch]"
         >
           Design websites faster with <span className="text-accent">AI</span> and reusable components<span className="text-accent">.</span>
         </motion.h1>

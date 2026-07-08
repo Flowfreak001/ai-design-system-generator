@@ -73,7 +73,7 @@ export function SiteHeader() {
         solid || open || active ? "border-b border-line" : "border-b border-transparent"
       }`}
     >
-      <div className="mx-auto flex h-[70px] max-w-[1240px] items-center justify-between px-5 sm:px-12">
+      <div className="flex h-[70px] w-full items-center justify-between px-5 sm:px-8 lg:px-[60px]">
         <div className="flex items-center gap-8">
           <Link href="/" aria-label="Flowfreak home" className="flex items-center">
             <FlowfreakWordmark height={58} />
