@@ -91,8 +91,8 @@ export function SiteHeader() {
                 <button
                   type="button"
                   aria-expanded={active === item.label}
-                  className={`flex items-center gap-1 rounded-lg px-3 py-2 text-sm transition-colors duration-200 ${
-                    active === item.label ? "text-ink" : "text-muted hover:text-ink"
+                  className={`flex items-center gap-1 rounded-lg px-3 py-2 text-[16px] font-medium text-ink transition-colors duration-200 ${
+                    active === item.label ? "text-ink" : "hover:text-accent"
                   }`}
                 >
                   {item.label}
@@ -133,7 +133,7 @@ export function SiteHeader() {
               <Link
                 key={item.label}
                 href={item.href}
-                className="rounded-lg px-3 py-2 text-sm text-muted transition-colors duration-200 hover:text-ink"
+                className="rounded-lg px-3 py-2 text-[16px] font-medium text-ink transition-colors duration-200 hover:text-accent"
               >
                 {item.label}
               </Link>
@@ -144,10 +144,13 @@ export function SiteHeader() {
 
         <div className="flex items-center gap-2">
           <LinkButton href="/signin" variant="ghost" size="md" className="hidden sm:inline-flex">
-            Log in
+            Login
+          </LinkButton>
+          <LinkButton href="/#pricing" variant="secondary" size="md" className="hidden md:inline-flex">
+            Request Demo
           </LinkButton>
           <LinkButton href="/signup" size="md">
-            Start Building
+            Get Started
           </LinkButton>
           <button
             type="button"
