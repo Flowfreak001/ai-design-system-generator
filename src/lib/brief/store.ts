@@ -6,7 +6,7 @@
 import type { Brief, InputMethod } from "./types";
 import { SAMPLE_BRIEFS } from "./mock";
 
-const KEY = "flowfreak.briefs.v2";
+const KEY = "flowfreak.briefs.v3";
 type Listener = () => void;
 const listeners = new Set<Listener>();
 
@@ -81,15 +81,28 @@ export const briefStore = {
       rawInput: input.rawInput || "",
       transcriptSource: input.transcriptSource,
       guided: input.guided,
+      version: 0,
+      generatedVersion: 0,
     };
     write([brief, ...read()]);
     return brief;
   },
-  update(id: string, patch: Partial<Brief>): Brief | undefined {
+  // opts.regenerated = outputs were rebuilt, so mark them current (no stale bump).
+  // Otherwise, editing source input / structured fields bumps the version (→ stale).
+  update(id: string, patch: Partial<Brief>, opts: { regenerated?: boolean } = {}): Brief | undefined {
     const briefs = read();
     const i = briefs.findIndex((b) => b.id === id);
     if (i === -1) return undefined;
-    briefs[i] = { ...briefs[i], ...patch, updatedAt: new Date().toISOString() };
+    const prev = briefs[i];
+    let version = prev.version ?? 0;
+    let generatedVersion = prev.generatedVersion ?? 0;
+    const touchesData = "rawInput" in patch || "guided" in patch || "structured" in patch;
+    if (opts.regenerated) {
+      generatedVersion = version; // outputs now match the current source version
+    } else if (touchesData) {
+      version += 1; // source/structured edited → downstream outputs are now stale
+    }
+    briefs[i] = { ...prev, ...patch, version, generatedVersion, updatedAt: new Date().toISOString() };
     write(briefs);
     return briefs[i];
   },

@@ -295,9 +295,28 @@ SEO locations: ${s.seo.targetLocations.join(", ")}; keywords: ${s.seo.keywords.j
   };
 }
 
-/** Full pipeline — used when a brief is first generated. */
+/** True when the brief was edited after its outputs were last generated. */
+export function isStale(b: Brief): boolean {
+  return (b.version ?? 0) > (b.generatedVersion ?? 0);
+}
+
+/** Full pipeline — used when a brief is first generated or regenerated.
+   Preserves the user's answered questions and edited client summary so a
+   regenerate refreshes sitemap/wireframe/scope without discarding manual work. */
 export function runFullBrief(b: Brief): Brief {
   const structured = extractStructuredBrief(b);
+  // Carry over user-provided answers + edited summary from the previous structured brief.
+  const prev = b.structured;
+  if (prev) {
+    structured.summaryOverride = prev.summaryOverride;
+    const carry = (fresh: StructuredBrief["questions"]["open"], old: StructuredBrief["questions"]["open"]) =>
+      fresh.map((q) => {
+        const match = old.find((o) => o.id === q.id || o.text === q.text);
+        return match?.answer ? { ...q, answer: match.answer, answered: true } : q;
+      });
+    structured.questions.open = carry(structured.questions.open, prev.questions.open);
+    structured.questions.followUp = carry(structured.questions.followUp, prev.questions.followUp);
+  }
   const score = scoreBrief(structured);
   const sitemap = generateSitemap(structured);
   const wireframe = generateWireframePlan(structured);

@@ -38,7 +38,7 @@ export const GUIDED_FIELDS: GuidedField[] = [
 ];
 
 function seed(partial: Omit<Brief, "structured" | "score" | "sitemap" | "wireframe" | "scope">): Brief {
-  return runFullBrief(partial as Brief);
+  return { ...runFullBrief(partial as Brief), version: 0, generatedVersion: 0 };
 }
 
 const now = Date.now();
@@ -89,6 +89,26 @@ export const SAMPLE_BRIEFS: Brief[] = [
     transcriptSource: "Zoom call — 12 min",
     rawInput: "So basically we do airport runs mostly, some corporate accounts. The current site is really old, can't book online. We want people to book and pay online, and WhatsApp us. Gatwick and Heathrow are the big ones. Not much budget, want it quick.",
   }),
+  seed({
+    id: "sample-saas",
+    clientName: "Elena Vasquez",
+    businessName: "Cadence",
+    industry: "SaaS",
+    status: "in-review",
+    inputMethod: "guided",
+    createdAt: iso(2),
+    updatedAt: iso(1),
+    rawInput: "",
+    guided: {
+      clientName: "Elena Vasquez", businessName: "Cadence", industry: "SaaS / project management",
+      location: "Remote", websiteType: "SaaS marketing site", primaryGoal: "Increase free-trial sign-ups",
+      targetAudience: "Small product and ops teams that outgrew spreadsheets",
+      services: "Core product, Integrations, Enterprise plan, Support",
+      pages: "Home, Features, Pricing, Docs, Login, Sign Up",
+      features: "Login area, Payments, Newsletter, CRM",
+      designStyle: "Modern, confident, product-led", budgetRange: "£10,000+", timeline: "6–10 weeks",
+    },
+  }),
   {
     id: "sample-empty",
     clientName: "Tom Bright",
@@ -99,5 +119,7 @@ export const SAMPLE_BRIEFS: Brief[] = [
     createdAt: iso(0),
     updatedAt: iso(0),
     rawInput: "Quick call — domestic + office cleaning, wants online booking. Follow up needed.",
+    version: 0,
+    generatedVersion: 0,
   },
 ];

@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { briefStore } from "@/lib/brief/store";
-import { runFullBrief, generateClientSummary, generateMissingInfo, generateExportPrompts } from "@/lib/brief/ai";
+import { runFullBrief, generateClientSummary, generateMissingInfo, generateExportPrompts, isStale } from "@/lib/brief/ai";
 import type { Brief, BriefStatus, SitemapNode } from "@/lib/brief/types";
 import {
   useBrief, StatusBadge, ScoreRing, ScoreBar, KeyValue, Chips, BulletList, CopyButton, downloadFile,
@@ -49,10 +50,12 @@ function Mini({ label, value }: { label: string; value: ReactNode }) {
 const prio = (p: string) => ({ high: "bg-accent-soft text-accent", medium: "bg-warning-soft text-warning", low: "bg-panel text-muted" }[p] || "bg-panel text-muted");
 
 export function BriefWorkspace({ id }: { id: string }) {
+  const router = useRouter();
   const brief = useBrief(id);
   const [board, setBoard] = useState<Board>("Overview");
   const [notes, setNotes] = useState<string | null>(null);
   const [rawOpen, setRawOpen] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   if (!brief) {
     return (
@@ -63,16 +66,42 @@ export function BriefWorkspace({ id }: { id: string }) {
     );
   }
   const s = brief.structured;
+  const stale = isStale(brief);
   const rawValue = notes ?? (brief.inputMethod === "guided" ? guidedToText(brief) : brief.rawInput);
   const regenerate = () => {
     const updated = runFullBrief({ ...brief, rawInput: notes ?? brief.rawInput });
-    briefStore.update(brief.id, { ...updated, status: brief.status === "draft" ? "in-review" : brief.status });
+    briefStore.update(brief.id, { ...updated, status: brief.status === "draft" ? "in-review" : brief.status }, { regenerated: true });
+    setNotes(null);
   };
   const save = () => briefStore.update(brief.id, { rawInput: notes ?? brief.rawInput });
   const setStatus = (status: BriefStatus) => briefStore.update(brief.id, { status });
 
   return (
     <div className="min-h-screen">
+      {/* Delete confirmation */}
+      {confirmDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
+          <div className="absolute inset-0 bg-ink/40 backdrop-blur-sm" onClick={() => setConfirmDelete(false)} />
+          <div className="relative z-10 w-full max-w-md rounded-2xl border border-line bg-surface p-6 shadow-[0_40px_120px_-40px_rgba(15,23,42,0.5)]">
+            <div className="flex items-start gap-3">
+              <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-danger-soft text-danger">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m2 0v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+              </span>
+              <div>
+                <h3 className="text-[17px] font-semibold text-ink">Delete this brief?</h3>
+                <p className="mt-1 text-[13.5px] leading-relaxed text-muted">
+                  <b>{brief.businessName}</b> and all its generated outputs will be permanently removed. This can&apos;t be undone.
+                </p>
+              </div>
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <Button size="md" variant="outline" onClick={() => setConfirmDelete(false)}>Cancel</Button>
+              <Button size="md" variant="destructive" onClick={() => { briefStore.remove(brief.id); router.push("/brief"); }}>Delete brief</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <header className="px-5 pt-8 sm:px-8">
         <div className="flex flex-wrap items-start justify-between gap-4">
@@ -84,6 +113,7 @@ export function BriefWorkspace({ id }: { id: string }) {
             <div className="mt-2 flex flex-wrap items-center gap-3">
               <h2 className="text-[27px] font-bold tracking-[-0.025em] text-ink">{brief.businessName}</h2>
               <StatusBadge status={brief.status} />
+              {stale && <span className="inline-flex items-center gap-1.5 rounded-full bg-warning-soft px-2.5 py-0.5 text-[11px] font-semibold text-warning"><span className="size-1.5 rounded-full bg-warning" />Needs regeneration</span>}
             </div>
             <p className="mt-1 text-[13.5px] text-muted">{brief.clientName} · {brief.industry}</p>
           </div>
@@ -103,6 +133,14 @@ export function BriefWorkspace({ id }: { id: string }) {
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 4v11m0 0 4-4m-4 4-4-4M5 19h14" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
               Export
             </Button>
+            <button
+              type="button"
+              aria-label="Delete brief"
+              onClick={() => setConfirmDelete(true)}
+              className="grid size-9 place-items-center rounded-lg border border-line bg-surface text-muted transition-colors hover:border-danger/40 hover:text-danger"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m2 0v12a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V7m4 4v6m4-6v6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            </button>
           </div>
         </div>
 
@@ -132,6 +170,18 @@ export function BriefWorkspace({ id }: { id: string }) {
         }}
       >
         <div className="mx-auto max-w-[1400px] px-5 py-8 sm:px-8 sm:py-10">
+          {s && stale && (
+            <div className="mb-6 flex flex-col gap-3 rounded-2xl border border-warning/40 bg-warning-soft/50 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-start gap-3">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" className="mt-0.5 shrink-0 text-warning"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                <p className="text-[13.5px] leading-relaxed text-body">You edited this brief after the outputs were generated. The <b>quality score, sitemap, wireframe, scope and exports</b> may be out of date.</p>
+              </div>
+              <Button size="md" className="shrink-0" onClick={regenerate}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 4v5h5M20 20v-5h-5M20 9a8 8 0 0 0-14-3M4 15a8 8 0 0 0 14 3" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                Regenerate affected outputs
+              </Button>
+            </div>
+          )}
           {!s ? (
             <FloatCard><p className="text-[14px] text-muted">This brief hasn&apos;t been generated yet. Use Regenerate to build the structured brief.</p></FloatCard>
           ) : board === "Overview" ? (
@@ -152,6 +202,13 @@ export function BriefWorkspace({ id }: { id: string }) {
 }
 
 /* ── helpers ── */
+function relTime(iso: string) {
+  const d = Math.floor((Date.now() - +new Date(iso)) / 86400000);
+  if (d <= 0) return "today";
+  if (d === 1) return "yesterday";
+  if (d < 7) return `${d} days ago`;
+  return new Date(iso).toLocaleDateString();
+}
 function guidedToText(b: Brief) {
   if (!b.guided) return b.rawInput;
   return Object.entries(b.guided).filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`).join("\n");
@@ -257,6 +314,13 @@ function OverviewBoard({ brief, rawValue, rawOpen, setRawOpen, setNotes, regener
       <FloatCard>
         <CardTitle action={<span className="rounded-md bg-panel px-2 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide text-muted">{methodLabel(brief)}</span>}>Meeting Notes &amp; Client Inputs</CardTitle>
         <p className="text-[13.5px] leading-relaxed text-muted">Review or update the original client notes, guided answers, transcript, and extra context used to generate this brief.</p>
+        <dl className="mt-4 space-y-1.5 border-t border-line pt-3 text-[12.5px]">
+          <div className="flex justify-between"><dt className="text-faint">Last updated</dt><dd className="font-medium text-body">{relTime(brief.updatedAt)}</dd></div>
+          <div className="flex justify-between">
+            <dt className="text-faint">Brief data</dt>
+            <dd className={`font-semibold ${isStale(brief) ? "text-warning" : "text-success"}`}>{isStale(brief) ? "Needs regeneration" : "Current"}</dd>
+          </div>
+        </dl>
         <Button size="sm" variant="outline" className="mt-4" onClick={() => setRawOpen(true)}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" className="-ml-0.5"><path d="M8 6h9M8 10h9M8 14h6M5 6h.01M5 10h.01M5 14h.01" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg>
           Open &amp; Edit Inputs
@@ -366,21 +430,21 @@ function StructureBoard({ brief }: { brief: Brief }) {
 
       <FloatCard className="lg:col-span-2">
         <CardTitle>Sitemap</CardTitle>
-        <div className="space-y-2">{(brief.sitemap ?? []).map((n) => <SitemapRow key={n.name} n={n} />)}</div>
+        <div className="space-y-0.5">{(brief.sitemap ?? []).map((n) => <SitemapRow key={n.name} n={n} />)}</div>
       </FloatCard>
 
       <FloatCard className="lg:col-span-2">
         <CardTitle>Wireframe plan</CardTitle>
         <div className="grid gap-4 md:grid-cols-2">
           {(brief.wireframe ?? []).map((wp) => (
-            <div key={wp.page} className="rounded-xl border border-line/70 bg-canvas/50 p-4">
+            <div key={wp.page} className="rounded-xl border border-line/70 bg-canvas/40 p-4">
               <p className="mb-3 text-[14px] font-semibold text-ink">{wp.page}</p>
-              <ol className="space-y-2">
+              <ol className="space-y-0.5">
                 {wp.sections.map((sec, i) => (
-                  <li key={i} className="flex items-center gap-2.5">
-                    <span className="grid size-5 shrink-0 place-items-center rounded-md bg-panel text-[11px] font-bold text-body">{i + 1}</span>
+                  <li key={i} className="flex items-center gap-2.5 rounded-md px-1.5 py-1.5 transition-colors hover:bg-panel/50">
+                    <span className="text-[11px] font-mono font-medium text-faint">{String(i + 1).padStart(2, "0")}</span>
                     <span className="text-[13px] font-medium text-body">{sec.name}</span>
-                    <span className="ml-auto rounded-full bg-panel px-2 py-0.5 text-[10px] text-muted">{sec.component}</span>
+                    <span className="ml-auto text-[11px] text-faint">{sec.component}</span>
                   </li>
                 ))}
               </ol>
@@ -402,17 +466,26 @@ function StructureBoard({ brief }: { brief: Brief }) {
     </div>
   );
 }
-function SitemapRow({ n, depth = 0 }: { n: SitemapNode; depth?: number }) {
+const prioDot: Record<string, string> = { high: "var(--color-accent)", medium: "#F59E0B", low: "var(--color-faint)" };
+function SitemapRow({ n }: { n: SitemapNode }) {
   return (
-    <div style={{ marginLeft: depth * 20 }}>
-      <div className="flex items-center gap-2.5 rounded-xl border border-line/70 bg-canvas/50 px-3.5 py-2.5">
-        {depth > 0 && <span className="text-faint">↳</span>}
+    <div>
+      <div className="group flex items-center gap-3 rounded-lg px-3 py-2.5 transition-colors hover:bg-panel/50">
+        <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: prioDot[n.seoPriority] }} title={`${n.seoPriority} SEO priority`} />
         <span className="text-[14px] font-semibold text-ink">{n.name}</span>
-        <span className={`rounded-full px-2 py-0.5 text-[9.5px] font-semibold uppercase ${prio(n.seoPriority)}`}>{n.seoPriority}</span>
-        <span className={`rounded-full px-2 py-0.5 text-[9.5px] font-medium ${n.required ? "bg-accent-soft text-accent" : "bg-panel text-muted"}`}>{n.required ? "Required" : "Optional"}</span>
-        <span className="ml-auto hidden text-[12px] text-muted sm:inline">{n.cta}</span>
+        {n.required
+          ? <span className="text-[11px] font-medium text-muted">Required</span>
+          : <span className="text-[11px] text-faint">Optional</span>}
+        <span className="ml-auto hidden items-center gap-1 text-[12px] text-faint sm:flex">
+          {n.cta}
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M5 12h14m-6-6 6 6-6 6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+        </span>
       </div>
-      {n.children && <div className="mt-2 space-y-2">{n.children.map((c) => <SitemapRow key={c.name} n={c} depth={depth + 1} />)}</div>}
+      {n.children && (
+        <div className="ml-[15px] mt-1 space-y-1 border-l border-line pl-4">
+          {n.children.map((c) => <SitemapRow key={c.name} n={c} />)}
+        </div>
+      )}
     </div>
   );
 }
@@ -459,105 +532,244 @@ function ContentBoard({ brief }: { brief: Brief }) {
   );
 }
 
-/* ── Questions ── */
+/* ── Questions ──
+   A question is only "answered" once an answer is written & saved. Open cards
+   capture a draft and save it; answered rows can be edited or have the answer
+   removed (which returns the question to its open list). */
+type QItem = { id: string; text: string; answered: boolean; answer?: string };
+
+function OpenQuestionCard({ q, color, onSave }: { q: QItem; color: string; onSave: (answer: string) => void }) {
+  const [draft, setDraft] = useState(q.answer ?? "");
+  return (
+    <div className="rounded-2xl p-5 shadow-[0_18px_40px_-24px_rgba(15,23,42,0.4)]" style={{ backgroundColor: color }}>
+      <p className="text-[14px] font-medium text-black/85">{q.text}</p>
+      <textarea
+        rows={2}
+        placeholder="Write the client's answer…"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        className="mt-3 w-full resize-none rounded-lg border border-black/10 bg-white/70 px-2.5 py-2 text-[13px] text-black/80 outline-none placeholder:text-black/40"
+      />
+      <div className="mt-2.5 flex justify-end">
+        <button
+          type="button"
+          disabled={!draft.trim()}
+          onClick={() => onSave(draft.trim())}
+          className="inline-flex items-center gap-1.5 rounded-lg bg-black/85 px-3.5 py-1.5 text-[12.5px] font-semibold text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          Save
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function AnsweredQuestionRow({ q, onSave, onRemove }: { q: QItem; onSave: (answer: string) => void; onRemove: () => void }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(q.answer ?? "");
+  return (
+    <li className="flex items-start gap-3 py-4 first:pt-1 last:pb-1">
+      <span className="mt-0.5 grid size-5 shrink-0 place-items-center rounded-md border border-success bg-success text-white">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-[13.5px] font-medium text-ink">{q.text}</p>
+        {editing ? (
+          <div className="mt-2">
+            <Textarea rows={2} value={draft} onChange={(e) => setDraft(e.target.value)} className="text-[13px]" autoFocus />
+            <div className="mt-2 flex gap-2">
+              <Button size="xs" disabled={!draft.trim()} onClick={() => { onSave(draft.trim()); setEditing(false); }}>Save</Button>
+              <Button size="xs" variant="ghost" onClick={() => { setDraft(q.answer ?? ""); setEditing(false); }}>Cancel</Button>
+            </div>
+          </div>
+        ) : (
+          <div className="mt-0.5 flex items-start justify-between gap-3">
+            <p className="text-[13px] text-muted">{q.answer}</p>
+            <div className="flex shrink-0 gap-2">
+              <button type="button" onClick={() => { setDraft(q.answer ?? ""); setEditing(true); }} className="text-[12.5px] font-medium text-muted hover:text-ink">Edit</button>
+              <button type="button" onClick={onRemove} className="text-[12.5px] font-medium text-muted hover:text-danger">Remove</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </li>
+  );
+}
+
 function QuestionsBoard({ brief }: { brief: Brief }) {
   const s = brief.structured!;
-  const toggle = (bucket: "open" | "followUp", qid: string, patch: Partial<{ answered: boolean; answer: string }>) => {
+  const setAnswer = (bucket: "open" | "followUp", qid: string, answer: string) => {
     const q = { ...s.questions };
-    q[bucket] = q[bucket].map((x) => (x.id === qid ? { ...x, ...patch } : x));
+    q[bucket] = q[bucket].map((x) => (x.id === qid ? { ...x, answer: answer || undefined, answered: !!answer } : x));
     briefStore.update(brief.id, { structured: { ...s, questions: q } });
   };
-  const all = [...s.questions.open, ...s.questions.followUp];
-  const answered = all.filter((q) => q.answered);
-  const stickyColors = ["#FEF3C7", "#FDE68A", "#FEF9C3"];
+  const bucketOf = (qid: string): "open" | "followUp" => (s.questions.open.some((x) => x.id === qid) ? "open" : "followUp");
 
-  const QCard = ({ bucket, q, i }: { bucket: "open" | "followUp"; q: (typeof all)[number]; i: number }) => (
-    <div className="rounded-2xl p-5 shadow-[0_18px_40px_-24px_rgba(15,23,42,0.4)]" style={{ backgroundColor: stickyColors[i % stickyColors.length] }}>
-      <div className="flex items-start gap-3">
-        <button type="button" onClick={() => toggle(bucket, q.id, { answered: !q.answered })} className={`mt-0.5 grid size-5 shrink-0 place-items-center rounded-md border ${q.answered ? "border-black/70 bg-black/80 text-white" : "border-black/30"}`}>
-          {q.answered && <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M5 13l4 4L19 7" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>}
-        </button>
-        <div className="min-w-0 flex-1">
-          <p className="text-[14px] font-medium text-black/85">{q.text}</p>
-          <textarea rows={2} placeholder="Add answer…" value={q.answer ?? ""} onChange={(e) => toggle(bucket, q.id, { answer: e.target.value })} className="mt-2 w-full resize-none rounded-lg border border-black/10 bg-white/50 px-2.5 py-2 text-[13px] text-black/80 outline-none placeholder:text-black/40" />
-        </div>
+  const openMissing = s.questions.open.filter((q) => !q.answer);
+  const openFollow = s.questions.followUp.filter((q) => !q.answer);
+  const answered = [...s.questions.open, ...s.questions.followUp].filter((q) => q.answer);
+
+  const Section = ({ title, items, bucket }: { title: string; items: QItem[]; bucket: "open" | "followUp" }) => (
+    <div>
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="text-[15px] font-semibold text-ink">{title} <span className="text-muted">({items.length})</span></h3>
+        {items.length > 0 && <CopyButton text={items.map((q, i) => `${i + 1}. ${q.text}`).join("\n")} label="Copy list" />}
       </div>
+      {items.length ? (
+        <div className="gap-4 sm:columns-2 lg:columns-3 [&>*]:mb-4 [&>*]:break-inside-avoid">
+          {items.map((q, i) => <OpenQuestionCard key={q.id} q={q} color={i % 2 ? "#FDE68A" : "#FEF3C7"} onSave={(a) => setAnswer(bucket, q.id, a)} />)}
+        </div>
+      ) : (
+        <p className="rounded-xl border border-dashed border-line p-6 text-center text-[13.5px] text-muted">All {title.toLowerCase()} handled.</p>
+      )}
     </div>
   );
 
   return (
     <div className="space-y-8">
+      <Section title="Missing information" items={openMissing} bucket="open" />
+      <Section title="Follow-up questions" items={openFollow} bucket="followUp" />
       <div>
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-[15px] font-semibold text-ink">Missing information</h3>
-          <CopyButton text={s.questions.open.map((q, i) => `${i + 1}. ${q.text}`).join("\n")} label="Copy list" />
-        </div>
-        <div className="gap-4 sm:columns-2 lg:columns-3 [&>*]:mb-4 [&>*]:break-inside-avoid">{s.questions.open.map((q, i) => <QCard key={q.id} bucket="open" q={q} i={i} />)}</div>
-      </div>
-      <div>
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-[15px] font-semibold text-ink">Follow-up questions</h3>
-          <CopyButton text={s.questions.followUp.map((q, i) => `${i + 1}. ${q.text}`).join("\n")} label="Copy list" />
-        </div>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{s.questions.followUp.map((q, i) => <QCard key={q.id} bucket="followUp" q={q} i={i} />)}</div>
-      </div>
-      <div>
-        <h3 className="mb-4 text-[15px] font-semibold text-ink">Answered ({answered.length})</h3>
+        <h3 className="mb-4 text-[15px] font-semibold text-ink">Answered <span className="text-muted">({answered.length})</span></h3>
         {answered.length ? (
           <FloatCard>
-            <ul className="space-y-2.5">
+            <ul className="divide-y divide-line">
               {answered.map((q) => (
-                <li key={q.id} className="text-[13.5px]">
-                  <span className="font-medium text-ink">{q.text}</span>
-                  {q.answer && <span className="mt-0.5 block text-muted">{q.answer}</span>}
-                </li>
+                <AnsweredQuestionRow
+                  key={q.id}
+                  q={q}
+                  onSave={(a) => setAnswer(bucketOf(q.id), q.id, a)}
+                  onRemove={() => setAnswer(bucketOf(q.id), q.id, "")}
+                />
               ))}
             </ul>
           </FloatCard>
-        ) : <p className="text-[13.5px] text-muted">No questions answered yet — tick a note above to mark it done.</p>}
+        ) : <p className="rounded-xl border border-dashed border-line p-6 text-center text-[13.5px] text-muted">No answers yet — write an answer on a question above to move it here.</p>}
       </div>
     </div>
   );
 }
 
 /* ── Outputs ── */
+type ExportItem = { title: string; ext: string; desc: string; content: string; type?: string };
 function OutputsBoard({ brief }: { brief: Brief }) {
   const s = brief.structured!;
+  const [preview, setPreview] = useState<ExportItem | null>(null);
   const prompts = generateExportPrompts(brief);
   const briefDoc = `# ${s.business.name} — Website Brief\n\n${s.summaryOverride ?? generateClientSummary(s)}\n\n## Goal\n${s.project.primaryGoal}\n\n## Pages\n${s.pages.map((p) => `- ${p.name}`).join("\n")}\n\n## Features\n${s.features.selected.join(", ")}`;
   const sitemapDoc = (brief.sitemap ?? []).map((n) => `- ${n.name}${n.children ? "\n" + n.children.map((c) => `  - ${c.name}`).join("\n") : ""}`).join("\n");
   const wireframeDoc = (brief.wireframe ?? []).map((wp) => `## ${wp.page}\n${wp.sections.map((x, i) => `${i + 1}. ${x.name} — ${x.purpose}`).join("\n")}`).join("\n\n");
   const scopeDoc = brief.scope ? `# Scope of Work\n${brief.scope.summary}\n\nPages: ${brief.scope.includedPages.join(", ")}\nFeatures: ${brief.scope.includedFeatures.join(", ")}\nExclusions: ${brief.scope.exclusions.join("; ")}` : "";
 
-  const EXPORTS: { title: string; ext: string; content: string; type?: string }[] = [
-    { title: "Client Brief", ext: "md", content: briefDoc },
-    { title: "Sitemap", ext: "md", content: sitemapDoc },
-    { title: "Wireframe Plan", ext: "md", content: wireframeDoc },
-    { title: "Scope of Work", ext: "md", content: scopeDoc },
-    { title: "Claude Prompt", ext: "txt", content: prompts.claude },
-    { title: "Lovable Prompt", ext: "txt", content: prompts.lovable },
-    { title: "Cursor Prompt", ext: "txt", content: prompts.cursor },
-    { title: "JSON Data", ext: "json", content: prompts.json, type: "application/json" },
+  const EXPORTS: ExportItem[] = [
+    { title: "Client Brief", ext: "md", desc: "Structured client brief summary", content: briefDoc },
+    { title: "Sitemap", ext: "md", desc: "Page tree with priorities", content: sitemapDoc },
+    { title: "Wireframe Plan", ext: "md", desc: "Per-page section plans", content: wireframeDoc },
+    { title: "Scope of Work", ext: "md", desc: "Deliverables & exclusions", content: scopeDoc },
+    { title: "Claude Prompt", ext: "txt", desc: "Design prompt for Claude", content: prompts.claude },
+    { title: "Lovable Prompt", ext: "txt", desc: "Build prompt for Lovable", content: prompts.lovable },
+    { title: "Cursor Prompt", ext: "txt", desc: "Dev prompt for Cursor", content: prompts.cursor },
+    { title: "JSON Data", ext: "json", desc: "Machine-readable brief", content: prompts.json, type: "application/json" },
   ];
+  const fileName = (e: ExportItem) => `${brief.businessName.replace(/\s+/g, "-").toLowerCase()}-${e.title.replace(/\s+/g, "-").toLowerCase()}.${e.ext}`;
 
+  const stale = isStale(brief);
   return (
-    <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-      {EXPORTS.map((e) => (
-        <FloatCard key={e.title} pad="p-5">
-          <div className="flex items-center justify-between">
-            <p className="text-[15px] font-semibold text-ink">{e.title}</p>
-            <span className="rounded-md bg-panel px-2 py-0.5 font-mono text-[10.5px] font-semibold uppercase text-muted">.{e.ext}</span>
+    <div className="space-y-6">
+      {stale && (
+        <div className="flex items-center gap-3 rounded-xl border border-warning/40 bg-warning-soft/50 p-4 text-[13.5px] text-body">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="shrink-0 text-warning"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          These exports are built from an older brief version. Regenerate before you export or hand off.
+        </div>
+      )}
+
+      <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+        {EXPORTS.map((e) => (
+          <FloatCard key={e.title} pad="p-5">
+            <div className="flex items-start gap-3">
+              <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-accent-soft text-accent">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M7 3h7l4 4v14H7z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" /><path d="M13 3v5h5" stroke="currentColor" strokeWidth="1.7" /></svg>
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-[15px] font-semibold text-ink">{e.title}</p>
+                <p className="mt-0.5 text-[12px] text-muted">{e.desc}</p>
+              </div>
+              <span className="rounded-md bg-panel px-2 py-0.5 font-mono text-[10px] font-semibold uppercase text-muted">.{e.ext}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setPreview(e)}
+              className="group mt-4 block w-full rounded-xl border border-line bg-canvas/70 px-4 py-4 text-left transition-colors hover:border-accent/40"
+            >
+              <pre
+                className="h-16 overflow-hidden font-mono text-[11px] leading-relaxed text-muted"
+                style={{ maskImage: "linear-gradient(to bottom, #000 55%, transparent)", WebkitMaskImage: "linear-gradient(to bottom, #000 55%, transparent)" }}
+              >
+                {e.content.slice(0, 200) || "—"}
+              </pre>
+              <span className="mt-3 inline-flex items-center text-[12px] font-semibold text-muted transition-colors group-hover:text-ink">
+                Read full
+              </span>
+            </button>
+            <div className="mt-4 flex gap-2">
+              <CopyButton text={e.content} />
+              <Button size="sm" variant="outline" onClick={() => downloadFile(fileName(e), e.content, e.type)}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 4v11m0 0 4-4m-4 4-4-4M5 19h14" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                Download
+              </Button>
+            </div>
+          </FloatCard>
+        ))}
+      </div>
+
+      {/* Full preview modal */}
+      {preview && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true">
+          <div className="absolute inset-0 bg-ink/40 backdrop-blur-sm" onClick={() => setPreview(null)} />
+          <div className="relative z-10 flex max-h-[88vh] w-full max-w-3xl flex-col rounded-2xl border border-line bg-surface shadow-[0_40px_120px_-40px_rgba(15,23,42,0.5)]">
+            <div className="flex items-center justify-between border-b border-line px-6 py-4">
+              <div className="flex items-center gap-2.5">
+                <h3 className="text-[17px] font-semibold text-ink">{preview.title}</h3>
+                <span className="rounded-md bg-panel px-2 py-0.5 font-mono text-[10px] font-semibold uppercase text-muted">.{preview.ext}</span>
+                {stale && <span className="rounded-full bg-warning-soft px-2 py-0.5 text-[10.5px] font-semibold text-warning">Stale</span>}
+              </div>
+              <button onClick={() => setPreview(null)} aria-label="Close" className="grid size-8 place-items-center rounded-lg text-muted hover:bg-panel hover:text-ink">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
+              </button>
+            </div>
+            <pre className="flex-1 overflow-auto whitespace-pre-wrap break-words p-6 font-mono text-[12.5px] leading-relaxed text-body">{preview.content || "—"}</pre>
+            <div className="flex justify-end gap-2 border-t border-line px-6 py-4">
+              <CopyButton text={preview.content} label="Copy all" />
+              <Button size="md" onClick={() => downloadFile(fileName(preview), preview.content, preview.type)}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 4v11m0 0 4-4m-4 4-4-4M5 19h14" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                Download
+              </Button>
+            </div>
           </div>
-          <pre className="mt-3 h-28 overflow-hidden rounded-xl bg-canvas/70 p-3 font-mono text-[11px] leading-relaxed text-muted">{e.content.slice(0, 260) || "—"}</pre>
-          <div className="mt-4 flex gap-2">
-            <CopyButton text={e.content} />
-            <Button size="sm" variant="outline" onClick={() => downloadFile(`${brief.businessName.replace(/\s+/g, "-").toLowerCase()}-${e.title.replace(/\s+/g, "-").toLowerCase()}.${e.ext}`, e.content, e.type)}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 4v11m0 0 4-4m-4 4-4-4M5 19h14" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
-              Download
-            </Button>
-          </div>
-        </FloatCard>
-      ))}
+        </div>
+      )}
+
+      {/* Connected-module handoff. Studio/Library/SEO routes exist; these pass the
+          latest current brief outputs. TODO: accept a brief payload in the target
+          modules once their intake supports it (currently navigational handoff). */}
+      <FloatCard>
+        <CardTitle>Use in Flowfreak</CardTitle>
+        <p className="mb-4 text-[13.5px] text-muted">Hand the latest brief outputs to a connected module. {stale && <span className="font-medium text-warning">Regenerate first to avoid sending stale data.</span>}</p>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            { label: "Send to Studio", href: "/studio", desc: "Brief, sitemap, wireframe & brand" },
+            { label: "Find components", href: "/library", desc: "Match wireframe sections" },
+            { label: "Send to SEO", href: "/seo", desc: "Locations, services & content" },
+            { label: "Send to Connect", href: "/mcp", desc: "Export-ready prompts" },
+          ].map((m) => (
+            <Link key={m.label} href={m.href} className="rounded-xl border border-line bg-surface p-4 transition-colors hover:border-accent/40">
+              <p className="text-[14px] font-semibold text-ink">{m.label}</p>
+              <p className="mt-1 text-[12px] leading-snug text-muted">{m.desc}</p>
+            </Link>
+          ))}
+        </div>
+      </FloatCard>
     </div>
   );
 }

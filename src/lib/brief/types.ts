@@ -166,6 +166,10 @@ export interface Brief {
   inputMethod: InputMethod;
   createdAt: string;
   updatedAt: string;
+  /** Bumps whenever source input or structured fields are edited. */
+  version?: number;
+  /** The version the current outputs (sitemap/wireframe/scope/exports) were generated from. */
+  generatedVersion?: number;
   rawInput: string;
   transcriptSource?: string;
   guided?: Record<string, string>;
