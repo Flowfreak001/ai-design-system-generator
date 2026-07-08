@@ -4,7 +4,7 @@ import { LinkButton } from "@/components/ui/button";
 import { SectionHeading } from "@/components/landing/section";
 import { FadeUp, Stagger, StaggerItem, HoverLift } from "@/components/ui/motion";
 import { Hero, CanvasShowcase } from "@/components/landing/hero";
-import { PlatformPillars, ComponentCarousel, ControlSection, DarkSpotlight, FaqSection } from "@/components/landing/home-sections";
+import { PlatformPillars, ComponentCarousel, ControlSection, DarkSpotlight, FaqSection, UseCasesScroll } from "@/components/landing/home-sections";
 
 // Shared section wrapper — consistent rhythm + width across the page.
 function Wrap({ id, className = "", children }: { id?: string; className?: string; children: ReactNode }) {
@@ -415,7 +415,7 @@ export function FlowfreakLanding() {
       <ComponentCarousel />
       <DarkSpotlight />
       <ControlSection />
-      <UseCasesSection />
+      <UseCasesScroll />
       <PricingSection />
       <FaqSection />
       <FinalCTASection />

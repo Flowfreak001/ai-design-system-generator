@@ -362,19 +362,7 @@ export function ControlSection() {
       <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
         {/* Reference-style mockup — reflects the open accordion item */}
         <FadeUp className="order-2 lg:order-1">
-          <div className="rounded-[26px] bg-accent-soft/50 p-5 sm:p-7">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={open}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.3, ease: EASE }}
-              >
-                <ControlVisual step={Math.max(0, open)} />
-              </motion.div>
-            </AnimatePresence>
-          </div>
+          <img src="/use-cases/control.png" alt="Brief Summary — auto-generated from your client brief" className="w-full rounded-[26px]" loading="lazy" />
         </FadeUp>
 
         {/* Accordion */}
@@ -395,6 +383,112 @@ export function ControlSection() {
         </div>
       </div>
     </Wrap>
+  );
+}
+
+/* ───────────── Use cases (sticky scroll) ───────────── */
+function ScoreRingMini({ v }: { v: number }) {
+  const c = 2 * Math.PI * 12;
+  return (
+    <svg width="30" height="30" viewBox="0 0 30 30" className="shrink-0">
+      <circle cx="15" cy="15" r="12" fill="none" stroke="var(--color-panel)" strokeWidth="3" />
+      <circle cx="15" cy="15" r="12" fill="none" stroke="var(--color-success)" strokeWidth="3" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={c * (1 - v / 100)} transform="rotate(-90 15 15)" />
+      <text x="50%" y="50%" dominantBaseline="central" textAnchor="middle" className="fill-ink font-bold" style={{ fontSize: 9 }}>{v}</text>
+    </svg>
+  );
+}
+const UC_AGENCY = (
+  <div className="rounded-[18px] border border-line bg-surface p-5 shadow-[0_40px_90px_-45px_rgba(15,23,42,0.4)]">
+    <div className="flex items-center justify-between"><p className="text-[14px] font-bold text-ink">Client projects</p><span className="rounded-full bg-success-soft px-2 py-0.5 text-[10px] font-semibold text-success">3 active</span></div>
+    <div className="mt-4 space-y-2.5">
+      {[["Riverside Dental", "Ready", 89], ["CityLink Cabs", "In review", 76], ["Reid Flooring", "Draft", 61]].map(([n, s, v]) => (
+        <div key={n as string} className="flex items-center gap-3 rounded-xl border border-line bg-canvas/50 px-3.5 py-2.5">
+          <div className="min-w-0 flex-1"><p className="truncate text-[13px] font-semibold text-ink">{n}</p><p className="text-[11px] text-muted">{s}</p></div>
+          <ScoreRingMini v={v as number} />
+        </div>
+      ))}
+    </div>
+  </div>
+);
+const UC_FREELANCER = (
+  <div className="rounded-[18px] border border-line bg-surface p-5 shadow-[0_40px_90px_-45px_rgba(15,23,42,0.4)]">
+    <div className="flex items-start justify-between">
+      <p className="text-[14px] font-bold text-ink">Brief Summary</p>
+      <div className="text-right"><p className="text-[9px] font-medium text-muted">Strong brief</p><div className="mt-1 h-1.5 w-16 overflow-hidden rounded-full bg-panel"><div className="h-full w-[88%] rounded-full bg-accent" /></div></div>
+    </div>
+    <div className="mt-4 space-y-3">
+      <Field label="Industry" lines={["55%"]} />
+      <Field label="Goals" lines={["80%", "60%"]} />
+      <Field label="Services" lines={["90%", "70%"]} />
+    </div>
+    <div className="mt-4 inline-flex rounded-[6px] bg-accent px-4 py-2 text-[12px] font-semibold text-white">Use brief</div>
+  </div>
+);
+const UC_AI = (
+  <div className="rounded-[18px] border border-line bg-surface p-5 shadow-[0_40px_90px_-45px_rgba(15,23,42,0.4)]">
+    <p className="text-[14px] font-bold text-ink">Export to your stack</p>
+    <div className="mt-3.5 space-y-2">
+      {[["Claude", "#E94B6F"], ["Cursor", "#111827"], ["Figma", "#8B5CF6"], ["Replit", "#F97316"]].map(([t, c]) => (
+        <div key={t} className="flex items-center gap-2 border-b border-line pb-2 last:border-0"><span className="size-2.5 rounded-[3px]" style={{ backgroundColor: c }} /><span className="text-[11px] font-medium text-body">{t}</span><span className="ml-auto font-mono text-[9px] text-faint">.md</span></div>
+      ))}
+    </div>
+    <div className="mt-3 rounded-lg bg-ink p-2.5 font-mono text-[9px] leading-relaxed text-white/85"><div><span className="text-accent">const</span> site = build(brief)</div><div className="text-white/45">// tokens · sitemap · sections</div></div>
+  </div>
+);
+
+const UcImage = ({ src, alt }: { src: string; alt: string }) => (
+  <img src={src} alt={alt} className="w-full rounded-2xl" loading="lazy" />
+);
+
+const USE_CASES_SCROLL = [
+  { title: "For web agencies", text: "Create first drafts, wireframes, page structures and client-ready concepts faster — and manage every project from one workspace.", bullets: ["Client brief intake in minutes", "Sitemap & wireframe first", "Component-based page drafts", "Export-ready client handoff"], art: <UcImage src="/use-cases/agencies.png" alt="Client projects dashboard" /> },
+  { title: "For freelancers", text: "Turn messy client briefs into organized website plans and reusable prompts, so you look bigger than you are and win work faster.", bullets: ["Notes & transcripts → structured brief", "Clear scope and page plan", "Reusable prompts across clients", "Faster, more confident proposals"], art: <UcImage src="/use-cases/freelancers.png" alt="Auto-generated brief summary" /> },
+  { title: "For AI builders", text: "Prepare better prompts and structured files for Claude, Cursor, Lovable and Replit — with real context instead of a blank prompt.", bullets: ["Structured, context-rich prompts", "Sitemap + wireframe as context", "Component mapping for builders", "Clean JSON & Markdown exports"], art: <UcImage src="/use-cases/ai-builders.png" alt="Export to your stack" /> },
+];
+export function UseCasesScroll() {
+  const reduce = useReducedMotion();
+  return (
+    <section id="use-cases" className="bg-white">
+      {/* Section header — big heading left, copy + CTA right */}
+      <div className="mx-auto grid max-w-[1200px] gap-8 px-5 pb-0 pt-24 sm:px-12 sm:pt-28 lg:grid-cols-2 lg:items-start lg:gap-16">
+        <FadeUp><h2 className="font-bold tracking-tight text-[clamp(2.4rem,5.4vw,4rem)] leading-[0.98]">Built for how modern teams work.</h2></FadeUp>
+        <FadeUp delay={0.06}>
+          <p className="text-[18px] leading-relaxed text-muted">Design without limits and deliver client-ready websites with full control over every detail — from first brief to final handoff.</p>
+          <div className="mt-6"><LinkButton href="/#pricing" size="lg">See plans</LinkButton></div>
+        </FadeUp>
+      </div>
+
+      {/* Sticky feature panels */}
+      {USE_CASES_SCROLL.map((s, i) => (
+        <div key={i} className="sticky top-[70px] flex items-start bg-white">
+          <div className={`mx-auto grid w-full max-w-[1200px] items-center gap-10 px-5 sm:px-12 lg:grid-cols-2 lg:gap-16 ${i === 0 ? "pt-[100px]" : "pt-[40px]"} ${i === USE_CASES_SCROLL.length - 1 ? "pb-20 sm:pb-24" : "pb-[40px]"}`}>
+            <motion.div
+              initial={reduce ? false : { opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: false, amount: 0.4 }}
+              transition={reduce ? { duration: 0 } : { duration: 0.55, ease: EASE }}
+            >
+              <h3 className="font-bold tracking-tight text-[clamp(1.6rem,3.2vw,2.5rem)] leading-[1.05] text-ink">{s.title}</h3>
+              <p className="mt-4 max-w-[42ch] text-[16.5px] leading-relaxed text-muted">{s.text}</p>
+              <ul className="mt-6 space-y-3">
+                {s.bullets.map((b) => (
+                  <li key={b} className="flex items-baseline gap-3 text-[15px] text-body"><span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-accent" />{b}</li>
+                ))}
+              </ul>
+            </motion.div>
+            <motion.div
+              initial={reduce ? false : { opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: false, amount: 0.4 }}
+              transition={reduce ? { duration: 0 } : { duration: 0.55, ease: EASE, delay: 0.08 }}
+              className="order-first lg:order-last"
+            >
+              {s.art}
+            </motion.div>
+          </div>
+        </div>
+      ))}
+    </section>
   );
 }
 
@@ -487,9 +581,9 @@ function SpotBrief() {
   );
 }
 const SPOT = [
-  { t: "Capture the client brief", d: "Extract business goals, audience, pages, features, content needs, SEO locations, design direction and missing info — before any design starts.", grad: "linear-gradient(140deg,#C7D2FE,#A5B4FC)", art: <SpotBrief /> },
-  { t: "Plan the website structure", d: "Generate the sitemap, page goals, CTAs and wireframe sections from the approved brief — every page with a clear purpose before design.", grad: "linear-gradient(140deg,#FBCFE8,#F9A8D4)", art: <SpotPlan /> },
-  { t: "Build with reusable components", d: "Match each wireframe section with proven components — heroes, services, FAQs, testimonials, booking forms, CTAs and footers, adapted to the client's brand.", grad: "linear-gradient(140deg,#A7F3D0,#6EE7B7)", art: <SpotSections /> },
+  { t: "Capture the client brief", d: "Extract business goals, audience, pages, features, content needs, SEO locations, design direction and missing info — before any design starts.", img: "/use-cases/spot-brief.png" },
+  { t: "Plan the website structure", d: "Generate the sitemap, page goals, CTAs and wireframe sections from the approved brief — every page with a clear purpose before design.", img: "/use-cases/spot-plan.png" },
+  { t: "Build with reusable components", d: "Match each wireframe section with proven components — heroes, services, FAQs, testimonials, booking forms, CTAs and footers, adapted to the client's brand.", img: "/use-cases/spot-build.png" },
 ];
 export function DarkSpotlight() {
   return (
@@ -513,9 +607,7 @@ export function DarkSpotlight() {
           {SPOT.map((s) => (
             <StaggerItem key={s.t}>
               <div>
-                <div className="grid aspect-[4/3] place-items-center overflow-hidden rounded-2xl px-5" style={{ background: s.grad }}>
-                  {s.art}
-                </div>
+                <img src={s.img} alt={s.t} className="w-full rounded-2xl" loading="lazy" />
                 <h3 className="mt-6 text-[22px] font-bold tracking-tight text-white">{s.t}</h3>
                 <p className="mt-2 text-[14.5px] leading-relaxed text-white/60">{s.d}</p>
               </div>
