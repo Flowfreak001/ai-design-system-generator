@@ -204,8 +204,6 @@ function WorkflowSection() {
 const USE_CASES = [
   { t: "For web agencies", d: "Create first drafts, wireframes, page structures and client-ready concepts faster.", ic: <><rect x="3" y="7" width="18" height="13" rx="2" stroke="currentColor" strokeWidth="1.7" /><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" strokeWidth="1.7" /></> },
   { t: "For freelancers", d: "Turn messy client briefs into organized website plans and reusable prompts.", ic: <><circle cx="12" cy="8" r="3.5" stroke="currentColor" strokeWidth="1.7" /><path d="M5 20c1-3.5 3.7-5 7-5s6 1.5 7 5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></> },
-  { t: "For component teams", d: "Build and manage a reusable section library for consistent delivery.", ic: <><rect x="3" y="3" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.7" /><rect x="14" y="3" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.7" /><rect x="3" y="14" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.7" /><rect x="14" y="14" width="7" height="7" rx="1.5" stroke="currentColor" strokeWidth="1.7" /></> },
-  { t: "For small-business projects", d: "Plan SEO pages, service pages, booking flows and conversion-focused layouts.", ic: <><path d="M4 9h16l-1 11H5L4 9Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" /><path d="M8 9V6a4 4 0 0 1 8 0v3" stroke="currentColor" strokeWidth="1.7" /></> },
   { t: "For AI builders", d: "Prepare better prompts and structured files for Claude, Cursor, Lovable and Replit.", ic: <path d="M12 3l1.9 4.6L18.5 9l-4.6 1.9L12 15.5l-1.9-4.6L5.5 9l4.6-1.4L12 3Z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" /> },
 ];
 function UseCasesSection() {
@@ -327,37 +325,54 @@ function ComparisonSection() {
 
 /* ─────────────────────────── 11. Pricing ─────────────────────────── */
 const PLANS = [
-  { name: "Free", desc: "For testing the workflow.", features: ["Limited projects", "Basic component browsing", "Basic exports"], featured: false, cta: "Start Free" },
-  { name: "Studio", desc: "For freelancers and small agencies.", features: ["More projects", "Brand guideline generation", "Sitemap & wireframe tools", "Component selection", "Export files"], featured: true, cta: "Start Building" },
-  { name: "Agency", desc: "For teams.", features: ["Client workspaces", "Custom component library", "Version history", "Approval workflow", "Team members", "Advanced exports"], featured: false, cta: "Contact us" },
+  { name: "Free", price: "$0", period: "forever", desc: "For testing the workflow.", features: ["Limited projects", "Basic component browsing", "Basic exports"], featured: false, cta: "Start Free" },
+  { name: "Studio", price: "$29", period: "/mo", desc: "For freelancers and small agencies.", features: ["More projects", "Brand guideline generation", "Sitemap & wireframe tools", "Component selection", "Export files"], featured: true, cta: "Start Building" },
+  { name: "Agency", price: "Custom", period: "", desc: "For teams.", features: ["Client workspaces", "Custom component library", "Version history", "Approval workflow", "Team members", "Advanced exports"], featured: false, cta: "Contact us" },
 ];
 function PricingSection() {
   return (
-    <Wrap id="pricing">
-      <SectionHeading eyebrow="Pricing" title="Simple plans for agencies and creators." center />
-      <Stagger className="mt-12 grid items-start gap-5 md:grid-cols-3">
-        {PLANS.map((p) => (
-          <StaggerItem key={p.name} className="h-full">
-            <div className={`flex h-full flex-col rounded-2xl border p-7 ${p.featured ? "border-accent bg-surface shadow-[0_20px_60px_-30px_rgba(233,75,111,0.5)]" : "border-line bg-surface"}`}>
+    <div className="relative isolate overflow-hidden bg-ink text-white">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0" style={{ background: "radial-gradient(50% 55% at 50% 0%, color-mix(in srgb, var(--color-accent) 22%, transparent), transparent 65%)" }} />
+      <div className="relative z-10 mx-auto max-w-[1240px] px-5 py-20 sm:px-12 sm:py-28" id="pricing">
+        <div className="mx-auto max-w-2xl text-center">
+          <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.14em] text-accent">Pricing</p>
+          <FadeUp><h2 className="font-bold tracking-tight text-white text-[clamp(2rem,4.4vw,3.2rem)] leading-[1.04]">Simple plans for agencies and creators.</h2></FadeUp>
+          <FadeUp delay={0.06}><p className="mt-4 text-[16px] leading-relaxed text-white/60">Start free, upgrade when you&apos;re ready. No credit card required.</p></FadeUp>
+        </div>
+
+        <Stagger className="mt-14 grid items-stretch gap-5 md:grid-cols-3">
+          {PLANS.map((p) => (
+            <StaggerItem key={p.name} className="h-full">
+              <div className={`flex h-full flex-col rounded-[20px] border p-7 transition-transform duration-300 hover:-translate-y-1 ${p.featured ? "border-accent bg-white/[0.06] shadow-[0_40px_90px_-40px_rgba(233,75,111,0.6)]" : "border-white/12 bg-white/[0.03]"}`}>
                 <div className="flex items-center justify-between">
-                  <p className="text-[17px] font-bold text-ink">{p.name}</p>
-                  {p.featured && <span className="rounded-full bg-accent px-2.5 py-0.5 text-[10.5px] font-semibold uppercase tracking-wide text-white">Popular</span>}
+                  <p className="text-[16px] font-semibold text-white">{p.name}</p>
+                  {p.featured && <span className="rounded-full bg-accent px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">Popular</span>}
                 </div>
-                <p className="mt-1 text-[13.5px] text-muted">{p.desc}</p>
-                <ul className="mt-6 flex flex-1 flex-col gap-2.5">
+                <div className="mt-4 flex items-end gap-1.5">
+                  <span className="text-[38px] font-bold leading-none tracking-tight text-white">{p.price}</span>
+                  {p.period && <span className="pb-1 text-[13px] text-white/50">{p.period}</span>}
+                </div>
+                <p className="mt-2 text-[13.5px] text-white/55">{p.desc}</p>
+                <div className="my-6 h-px bg-white/10" />
+                <ul className="flex flex-1 flex-col gap-3">
                   {p.features.map((f) => (
-                    <li key={f} className="flex items-start gap-2.5 text-[13.5px] text-body">
-                      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" className="mt-0.5 shrink-0 text-accent"><path d="M20 6 9 17l-5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                    <li key={f} className="flex items-start gap-2.5 text-[13.5px] text-white/80">
+                      <span className="mt-0.5 grid size-4 shrink-0 place-items-center rounded-full bg-accent/20 text-accent"><svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M20 6 9 17l-5-5" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" /></svg></span>
                       {f}
                     </li>
                   ))}
                 </ul>
-                <LinkButton href="/signup" size="md" variant={p.featured ? "primary" : "secondary"} className="mt-7 w-full">{p.cta}</LinkButton>
+                {p.featured ? (
+                  <LinkButton href="/signup" size="md" className="mt-8 w-full">{p.cta}</LinkButton>
+                ) : (
+                  <Link href="/signup" className="mt-8 inline-flex h-10 w-full items-center justify-center rounded-[6px] border border-white/20 text-[14px] font-medium text-white transition-colors hover:bg-white/10">{p.cta}</Link>
+                )}
               </div>
             </StaggerItem>
           ))}
         </Stagger>
-    </Wrap>
+      </div>
+    </div>
   );
 }
 
@@ -398,8 +413,8 @@ export function FlowfreakLanding() {
       <CanvasShowcase />
       <PlatformPillars />
       <ComponentCarousel />
-      <ControlSection />
       <DarkSpotlight />
+      <ControlSection />
       <UseCasesSection />
       <PricingSection />
       <FaqSection />
