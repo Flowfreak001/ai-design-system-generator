@@ -119,6 +119,11 @@ body {
   border-radius: 4px;
 }
 
+@keyframes drawerUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

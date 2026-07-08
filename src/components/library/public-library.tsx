@@ -59,8 +59,8 @@ function PreviewModule({ section, onClose, onCopy, copied }: { section: LibraryS
   const availH = vp.h * 0.9 - 132;          // viewport minus header/actions + margins
   const scale = Math.min(availW / width, availH / height, 1);
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-ink/40 p-4" onClick={onClose}>
-      <div className="flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-2xl" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-[100] flex items-end justify-center bg-ink/40 p-0 sm:items-center sm:p-4" onClick={onClose}>
+      <div className="flex max-h-[92vh] w-full max-w-6xl flex-col overflow-hidden rounded-t-2xl border border-line bg-surface shadow-2xl animate-[drawerUp_0.28s_cubic-bezier(0.22,1,0.36,1)] sm:rounded-2xl sm:animate-none" onClick={(e) => e.stopPropagation()}>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-line px-4 py-3 sm:px-5">
           <div className="order-1 min-w-0 flex-1">
             <h3 className="truncate text-[14px] font-semibold text-ink">{section.name}</h3>
@@ -201,7 +201,7 @@ export function PublicLibrary({ sections }: { sections: LibrarySection[] }) {
 
           <p className="mb-5 text-sm text-muted">{items.length} section{items.length === 1 ? "" : "s"}</p>
 
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3">
             {items.map((s) => (
               <div key={s.id} className="group flex flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-[0_1px_2px_rgba(8,9,10,0.03)]">
                 <div role="button" tabIndex={0} onClick={() => setFullView(s)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setFullView(s); } }} className="cursor-pointer px-3 pt-3" aria-label={`Full view of ${s.name}`}>
