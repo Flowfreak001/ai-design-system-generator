@@ -213,15 +213,14 @@ export function PublicLibrary({ sections }: { sections: LibrarySection[] }) {
                     <span className="rounded-full bg-panel px-2 py-0.5 text-[10.5px] font-medium uppercase tracking-wide text-muted">{s.category}</span>
                   </div>
                   <div className="mt-3 flex items-center gap-2">
-                    <Button variant="secondary" onClick={() => setFullView(s)}>
-                      <svg className="-ml-0.5" width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" stroke="currentColor" strokeWidth="1.7" /><circle cx="12" cy="12" r="2.5" stroke="currentColor" strokeWidth="1.7" /></svg>
-                      Full view
+                    <Button variant="secondary" size="icon-sm" onClick={() => setFullView(s)} aria-label="Full view" title="Full view">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" stroke="currentColor" strokeWidth="1.7" /><circle cx="12" cy="12" r="2.5" stroke="currentColor" strokeWidth="1.7" /></svg>
                     </Button>
-                    <Button variant="secondary" onClick={() => copyPrompt(s)}>
+                    <Button variant="secondary" size="icon-sm" onClick={() => copyPrompt(s)} aria-label={copiedId === s.id ? "Copied" : "Copy prompt"} title="Copy prompt">
                       {copiedId === s.id ? (
-                        <><svg className="-ml-0.5" width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="m5 13 4 4L19 7" stroke="var(--color-success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg><span className="text-success">Copied</span></>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="m5 13 4 4L19 7" stroke="var(--color-success)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
                       ) : (
-                        <><svg className="-ml-0.5" width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" strokeWidth="1.7" /><path d="M5 15V5a2 2 0 0 1 2-2h10" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg>Copy prompt</>
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><rect x="9" y="9" width="11" height="11" rx="2" stroke="currentColor" strokeWidth="1.7" /><path d="M5 15V5a2 2 0 0 1 2-2h10" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg>
                       )}
                     </Button>
                     <LinkButton href="/signup" size="sm" variant="secondary" className="ml-auto shrink-0">Use</LinkButton>
