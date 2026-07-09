@@ -55,7 +55,25 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  agency Agency? @relation(fields: [agencyId], references: [id])
+  agency        Agency?        @relation(fields: [agencyId], references: [id])
+  savedSections SavedSection[]
+}
+
+// A section a user bookmarked from the library. Stores the built-in section id
+// plus a metadata snapshot (name, category) so the saved list renders without
+// re-resolving the catalog.
+model SavedSection {
+  id        String   @id @default(cuid())
+  userId    String
+  sectionId String
+  name      String
+  category  String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, sectionId])
+  @@index([userId])
 }
 
 // ---------------------------------------------------------------

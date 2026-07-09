@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useMemo, useRef, useEffect, useState } from "react";
+import React, { useMemo, useRef, useEffect, useState, useTransition } from "react";
+import { toggleSavedSectionAction } from "@/lib/saved-sections/actions";
 import { DEFAULT_SECTION_THEME } from "@/components/sections/section-theme";
 import { SectionErrorBoundary, renderLibrarySection } from "@/components/section-library/section-render";
 import { SECTION_LIBRARY_CATEGORIES, type LibrarySection, type SectionLibraryCategory } from "@/lib/section-library/manual-sections";
@@ -106,11 +107,26 @@ function buildPrompt(s: LibrarySection): string {
   return buildExportPrompt(s, DEFAULT_SECTION_THEME, { tool: "any", format: "universal", scope: "section" });
 }
 
-export function PublicLibrary({ sections }: { sections: LibrarySection[] }) {
-  const [active, setActive] = useState<SectionLibraryCategory | "all">("all");
+export function PublicLibrary({ sections, isAuthed = false, savedIds = [] }: { sections: LibrarySection[]; isAuthed?: boolean; savedIds?: string[] }) {
+  const [active, setActive] = useState<SectionLibraryCategory | "all" | "saved">("all");
   const [query, setQuery] = useState("");
   const [fullView, setFullView] = useState<LibrarySection | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [saved, setSaved] = useState<Set<string>>(() => new Set(savedIds));
+  const [pendingSave, startSave] = useTransition();
+
+  const toggleSave = (s: LibrarySection) => {
+    if (!isAuthed) { window.location.href = "/signin?next=/components"; return; }
+    // optimistic
+    setSaved((prev) => { const n = new Set(prev); n.has(s.id) ? n.delete(s.id) : n.add(s.id); return n; });
+    startSave(async () => {
+      const res = await toggleSavedSectionAction({ sectionId: s.id, name: s.name, category: s.category });
+      if (res.needAuth) window.location.href = "/signin?next=/components";
+      else if (res.ok && typeof res.saved === "boolean") {
+        setSaved((prev) => { const n = new Set(prev); res.saved ? n.add(s.id) : n.delete(s.id); return n; });
+      }
+    });
+  };
 
   const categories = useMemo(
     () => SECTION_LIBRARY_CATEGORIES
@@ -132,11 +148,12 @@ export function PublicLibrary({ sections }: { sections: LibrarySection[] }) {
   const items = useMemo(() => {
     const q = query.trim().toLowerCase();
     return sections.filter((s) => {
-      if (active !== "all" && s.category !== active) return false;
+      if (active === "saved") { if (!saved.has(s.id)) return false; }
+      else if (active !== "all" && s.category !== active) return false;
       if (!q) return true;
       return [s.name, s.description, ...s.tags].join(" ").toLowerCase().includes(q);
     });
-  }, [sections, active, query]);
+  }, [sections, active, query, saved]);
 
   return (
     <div>
@@ -176,6 +193,17 @@ export function PublicLibrary({ sections }: { sections: LibrarySection[] }) {
             >
               All sections <span className="text-xs text-faint">{sections.length}</span>
             </button>
+            <button
+              type="button"
+              onClick={() => setActive("saved")}
+              className={`flex items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors ${active === "saved" ? "bg-accent-soft font-medium text-accent" : "text-body hover:bg-panel"}`}
+            >
+              <span className="inline-flex items-center gap-1.5">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6.5 4h11a1 1 0 0 1 1 1v15l-6.5-4.2L5.5 20V5a1 1 0 0 1 1-1Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" /></svg>
+                Saved
+              </span>
+              <span className="text-xs text-faint">{saved.size}</span>
+            </button>
             {categories.map((c) => (
               <button
                 key={c.cat}
@@ -194,6 +222,7 @@ export function PublicLibrary({ sections }: { sections: LibrarySection[] }) {
           {/* Mobile category chips */}
           <div className="mb-6 flex gap-2 overflow-x-auto pb-1 lg:hidden">
             <button type="button" onClick={() => setActive("all")} className={`shrink-0 rounded-full px-3 py-1.5 text-[13px] capitalize ${active === "all" ? "bg-accent text-white" : "border border-line text-body"}`}>All</button>
+            <button type="button" onClick={() => setActive("saved")} className={`shrink-0 rounded-full px-3 py-1.5 text-[13px] ${active === "saved" ? "bg-accent text-white" : "border border-line text-body"}`}>Saved{saved.size ? ` (${saved.size})` : ""}</button>
             {categories.map((c) => (
               <button key={c.cat} type="button" onClick={() => setActive(c.cat)} className={`shrink-0 rounded-full px-3 py-1.5 text-[13px] capitalize ${active === c.cat ? "bg-accent text-white" : "border border-line text-body"}`}>{c.cat}</button>
             ))}
@@ -215,6 +244,9 @@ export function PublicLibrary({ sections }: { sections: LibrarySection[] }) {
                   <div className="mt-3 flex items-center gap-2">
                     <Button variant="secondary" size="icon-sm" onClick={() => setFullView(s)} aria-label="Full view" title="Full view">
                       <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" stroke="currentColor" strokeWidth="1.7" /><circle cx="12" cy="12" r="2.5" stroke="currentColor" strokeWidth="1.7" /></svg>
+                    </Button>
+                    <Button variant="secondary" size="icon-sm" onClick={() => toggleSave(s)} disabled={pendingSave} aria-label={saved.has(s.id) ? "Saved" : "Save"} aria-pressed={saved.has(s.id)} title={saved.has(s.id) ? "Saved" : "Save"} className={saved.has(s.id) ? "text-accent" : ""}>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill={saved.has(s.id) ? "currentColor" : "none"}><path d="M6.5 4h11a1 1 0 0 1 1 1v15l-6.5-4.2L5.5 20V5a1 1 0 0 1 1-1Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" /></svg>
                     </Button>
                     <Button variant="secondary" size="icon-sm" onClick={() => copyPrompt(s)} aria-label={copiedId === s.id ? "Copied" : "Copy prompt"} title="Copy prompt">
                       {copiedId === s.id ? (
