@@ -96,6 +96,11 @@ const ICONS: Record<string, ReactNode> = {
       <path d="M13 3v5h5M9 13h6M9 16.5h4" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
   ),
+  saved: (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M6.5 4h11a1 1 0 0 1 1 1v15l-6.5-4.2L5.5 20V5a1 1 0 0 1 1-1Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" />
+    </svg>
+  ),
   logout: (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
       <path d="M14 5V4a1.5 1.5 0 0 0-1.5-1.5h-7A1.5 1.5 0 0 0 4 4v16a1.5 1.5 0 0 0 1.5 1.5h7A1.5 1.5 0 0 0 14 20v-1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
@@ -113,6 +118,7 @@ const NAV_GROUPS: { title: string; items: NavItem[] }[] = [
       { label: "Brief", href: "/brief", icon: "brief" },
       { label: "Studio", href: "/studio", icon: "studio" },
       { label: "Library", icon: "library", dynamic: "references" },
+      { label: "Saved", href: "/saved", icon: "saved" },
       { label: "SEO", href: "/seo", icon: "seo" },
       { label: "Automations", href: "/automations", icon: "automations" },
       { label: "MCP", href: "/mcp", icon: "mcp" },
@@ -137,6 +143,7 @@ const CRUMBS: [RegExp, string[]][] = [
   [/^\/seo/, ["SEO"]],
   [/^\/automations/, ["Automations"]],
   [/^\/mcp/, ["MCP"]],
+  [/^\/saved/, ["Saved"]],
   [/^\/settings/, ["Settings"]],
   [/^\/library/, ["Library"]],
   [/^\/clients\/new/, ["Clients", "Add client"]],

@@ -3,9 +3,6 @@ import { prisma } from "@/lib/db/client";
 import { PageContainer } from "@/components/layout/page-container";
 import { PageHeader } from "@/components/layout/page-header";
 import { FadeUp } from "@/components/ui/motion";
-import { listSaved } from "@/lib/saved-sections/store";
-import { SavedSectionsList } from "@/components/account/saved-sections-list";
-import type { SavedSectionModel } from "@/generated/prisma/models";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +13,6 @@ function initialsOf(v: string) {
 export default async function AccountPage() {
   const user = await requireUser();
   const row = await prisma.user.findUnique({ where: { id: user.id } }).catch(() => null);
-  const saved: SavedSectionModel[] = await listSaved(user.id).catch(() => []);
   const agency = user.agencyId
     ? await prisma.agency.findUnique({ where: { id: user.agencyId } }).catch(() => null)
     : null;
@@ -60,15 +56,6 @@ export default async function AccountPage() {
         <div className="border-t border-line bg-panel/40 px-6 py-3 text-[12px] text-muted">
           Editing your profile is coming soon.
         </div>
-      </FadeUp>
-
-      {/* Saved sections */}
-      <FadeUp className="mt-8 max-w-2xl">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="text-[15px] font-semibold text-ink">Saved sections</h2>
-          <span className="text-[12.5px] text-muted">{saved.length} saved</span>
-        </div>
-        <SavedSectionsList items={saved.map((s) => ({ id: s.id, sectionId: s.sectionId, name: s.name, category: s.category }))} />
       </FadeUp>
     </PageContainer>
   );

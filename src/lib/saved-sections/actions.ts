@@ -11,7 +11,7 @@ export async function toggleSavedSectionAction(
   const user = await auth();
   if (!user) return { ok: false, needAuth: true };
   const saved = await toggleSaved(user.id, input);
-  revalidatePath("/account");
+  revalidatePath("/saved");
   return { ok: true, saved };
 }
 
@@ -20,6 +20,6 @@ export async function removeSavedSectionAction(sectionId: string): Promise<{ ok:
   const user = await auth();
   if (!user) return { ok: false, needAuth: true };
   await removeSaved(user.id, sectionId);
-  revalidatePath("/account");
+  revalidatePath("/saved");
   return { ok: true };
 }

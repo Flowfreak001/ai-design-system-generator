@@ -9,7 +9,7 @@ import { buildExportPrompt } from "@/lib/section-library/prompt-export";
 import { Button, LinkButton } from "@/components/ui/button";
 
 /** Framed, grey-well live preview — identical drawing to the app Section Library card. */
-function CardThumb({ section }: { section: LibrarySection }) {
+export function CardThumb({ section }: { section: LibrarySection }) {
   const BASE = 1440;
   const BOX = 212;
   const vpRef = useRef<HTMLDivElement>(null);
@@ -44,7 +44,7 @@ const DEVICE_WIDTH: Record<Device, number> = { desktop: 1280, tablet: 820, mobil
 const DEVICE_DIM: Record<Device, { w: number; h: number }> = { desktop: { w: 1280, h: 760 }, tablet: { w: 820, h: 1093 }, mobile: { w: 390, h: 780 } };
 
 /** Full-page preview modal — device toggle + scaled true-width render (same as the app Section Library). */
-function PreviewModule({ section, onClose, onCopy, copied }: { section: LibrarySection; onClose: () => void; onCopy: () => void; copied: boolean }) {
+export function PreviewModule({ section, onClose, onCopy, copied }: { section: LibrarySection; onClose: () => void; onCopy: () => void; copied: boolean }) {
   const [device, setDevice] = useState<Device>("desktop");
   const { w: width, h: height } = DEVICE_DIM[device];
   // Measure the viewport (not the stage) so the modal can hug the scaled screen —
@@ -101,7 +101,7 @@ function PreviewModule({ section, onClose, onCopy, copied }: { section: LibraryS
   );
 }
 
-function buildPrompt(s: LibrarySection): string {
+export function buildPrompt(s: LibrarySection): string {
   // Same universal prompt the logged-in Section Library exports — includes the
   // section's full reference code, theme block, anatomy and deliverable spec.
   return buildExportPrompt(s, DEFAULT_SECTION_THEME, { tool: "any", format: "universal", scope: "section" });
