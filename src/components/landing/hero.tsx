@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { LinkButton } from "@/components/ui/button";
+import { ParallaxMedia } from "@/components/motion/parallax-media";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -13,30 +14,34 @@ const STAGES = ["Brief", "Brand", "Wireframe", "Export"];
 export function Hero() {
   return (
     <section className="relative isolate overflow-hidden">
-      {/* gradient canvas surface */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 z-0"
-        style={{
-          background:
-            "radial-gradient(55% 48% at 80% 20%, color-mix(in srgb, var(--color-accent) 28%, transparent), transparent 62%)," +
-            "radial-gradient(52% 46% at 12% 80%, color-mix(in srgb, #6366f1 22%, transparent), transparent 62%)," +
-            "radial-gradient(62% 52% at 50% 2%, color-mix(in srgb, #38bdf8 18%, transparent), transparent 68%)," +
-            "linear-gradient(180deg, color-mix(in srgb, var(--color-accent) 7%, var(--color-canvas)), var(--color-canvas))",
-        }}
-      />
-      {/* canvas dot grid */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 z-0"
-        style={{
-          backgroundImage:
-            "radial-gradient(circle, color-mix(in srgb, var(--color-ink) 22%, transparent) 1.2px, transparent 1.2px)",
-          backgroundSize: "26px 26px",
-          maskImage: "radial-gradient(85% 78% at 50% 40%, #000 55%, transparent 92%)",
-          WebkitMaskImage: "radial-gradient(85% 78% at 50% 40%, #000 55%, transparent 92%)",
-        }}
-      />
+      {/* gradient canvas surface — subtle parallax depth */}
+      <ParallaxMedia speed={-8} className="pointer-events-none absolute inset-0 z-0">
+        <div
+          aria-hidden="true"
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(55% 48% at 80% 20%, color-mix(in srgb, var(--color-accent) 28%, transparent), transparent 62%)," +
+              "radial-gradient(52% 46% at 12% 80%, color-mix(in srgb, #6366f1 22%, transparent), transparent 62%)," +
+              "radial-gradient(62% 52% at 50% 2%, color-mix(in srgb, #38bdf8 18%, transparent), transparent 68%)," +
+              "linear-gradient(180deg, color-mix(in srgb, var(--color-accent) 7%, var(--color-canvas)), var(--color-canvas))",
+          }}
+        />
+      </ParallaxMedia>
+      {/* canvas dot grid — moves a touch faster for layered depth */}
+      <ParallaxMedia speed={-14} className="pointer-events-none absolute inset-0 z-0">
+        <div
+          aria-hidden="true"
+          className="absolute inset-0"
+          style={{
+            backgroundImage:
+              "radial-gradient(circle, color-mix(in srgb, var(--color-ink) 22%, transparent) 1.2px, transparent 1.2px)",
+            backgroundSize: "26px 26px",
+            maskImage: "radial-gradient(85% 78% at 50% 40%, #000 55%, transparent 92%)",
+            WebkitMaskImage: "radial-gradient(85% 78% at 50% 40%, #000 55%, transparent 92%)",
+          }}
+        />
+      </ParallaxMedia>
       {/* bottom fade so the hero sits on a soft canvas edge */}
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 z-0 h-40 bg-gradient-to-b from-transparent to-canvas" />
       <div className="relative z-10 mx-auto max-w-[900px] px-5 pt-32 pb-16 text-center sm:px-12 sm:pt-40 sm:pb-20">

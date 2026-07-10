@@ -15,7 +15,7 @@ import type { SectionType } from "@/components/sections/types";
 export const SECTION_LIBRARY_CATEGORIES = [
   "site header", "hero banner", "hero", "features", "services", "pricing", "testimonials", "case-studies",
   "logos", "stats", "faq", "contact", "cta", "gallery", "process", "footer",
-  "comparison", "dashboard", "ecommerce", "custom",
+  "comparison", "dashboard", "ecommerce", "parallax", "custom",
 ] as const;
 
 export type SectionLibraryCategory = (typeof SECTION_LIBRARY_CATEGORIES)[number];

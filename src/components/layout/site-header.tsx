@@ -1,9 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { LinkButton } from "@/components/ui/button";
 import { FlowfreakWordmark } from "@/components/layout/logo";
+import { useScrollDirection } from "@/lib/motion/use-scroll-direction";
+
+const EASE = [0.22, 1, 0.36, 1] as const;
 
 type NavItem = {
   label: string;
@@ -46,17 +50,15 @@ const NAV: NavItem[] = [
 ];
 
 export function SiteHeader() {
-  const [solid, setSolid] = useState(false);
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState<string | null>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const reduce = useReducedMotion();
+  const { direction, atTop } = useScrollDirection(12);
 
-  useEffect(() => {
-    const onScroll = () => setSolid(window.scrollY > 12);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
+  const solid = !atTop;
+  // Hide when scrolling down away from the top; always show when a menu is open.
+  const hidden = direction === "down" && !atTop && !open && !active && !reduce;
 
   const openMenu = (label: string) => {
     if (closeTimer.current) clearTimeout(closeTimer.current);
@@ -68,7 +70,9 @@ export function SiteHeader() {
   };
 
   return (
-    <header
+    <motion.header
+      animate={{ y: hidden ? "-100%" : "0%" }}
+      transition={{ duration: 0.4, ease: EASE }}
       className={`fixed inset-x-0 top-0 z-50 bg-white transition-shadow duration-300 ${
         solid || open || active
           ? "shadow-[0_6px_24px_-8px_rgba(15,23,42,0.12)]"
@@ -109,27 +113,34 @@ export function SiteHeader() {
                   </svg>
                 </button>
 
-                {active === item.label && (
-                  <div
-                    className="absolute left-0 top-full pt-2"
-                    onMouseEnter={() => openMenu(item.label)}
-                    onMouseLeave={scheduleClose}
-                  >
-                    <div className="w-72 rounded-2xl border border-line bg-surface p-2 shadow-[0_20px_60px_-24px_rgba(0,0,0,0.28)]">
-                      {item.menu.map((m) => (
-                        <Link
-                          key={m.label}
-                          href={m.href}
-                          onClick={() => setActive(null)}
-                          className="block rounded-xl px-3 py-2.5 transition-colors duration-150 hover:bg-panel"
-                        >
-                          <span className="block text-sm font-medium text-ink">{m.label}</span>
-                          {m.desc && <span className="mt-0.5 block text-xs text-muted">{m.desc}</span>}
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <AnimatePresence>
+                  {active === item.label && (
+                    <motion.div
+                      className="absolute left-0 top-full pt-2"
+                      onMouseEnter={() => openMenu(item.label)}
+                      onMouseLeave={scheduleClose}
+                      initial={reduce ? { opacity: 0 } : { opacity: 0, y: 6, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={reduce ? { opacity: 0 } : { opacity: 0, y: 4, scale: 0.98 }}
+                      transition={{ duration: 0.18, ease: EASE }}
+                      style={{ transformOrigin: "top left" }}
+                    >
+                      <div className="w-72 rounded-2xl border border-line bg-surface p-2 shadow-[0_20px_60px_-24px_rgba(0,0,0,0.28)]">
+                        {item.menu.map((m) => (
+                          <Link
+                            key={m.label}
+                            href={m.href}
+                            onClick={() => setActive(null)}
+                            className="block rounded-xl px-3 py-2.5 transition-colors duration-150 hover:bg-panel"
+                          >
+                            <span className="block text-sm font-medium text-ink">{m.label}</span>
+                            {m.desc && <span className="mt-0.5 block text-xs text-muted">{m.desc}</span>}
+                          </Link>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             ) : (
               <Link
@@ -162,31 +173,72 @@ export function SiteHeader() {
             className="grid size-9 place-items-center rounded-lg text-ink md:hidden"
           >
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-              {open ? <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-                    : <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />}
+              <motion.path
+                d="M4 7h16"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                animate={open ? { d: "M6 6l12 12" } : { d: "M4 7h16" }}
+                transition={{ duration: 0.22, ease: EASE }}
+              />
+              <motion.path
+                d="M4 12h16"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                animate={{ opacity: open ? 0 : 1 }}
+                transition={{ duration: 0.15 }}
+              />
+              <motion.path
+                d="M4 17h16"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                animate={open ? { d: "M18 6L6 18" } : { d: "M4 17h16" }}
+                transition={{ duration: 0.22, ease: EASE }}
+              />
             </svg>
           </button>
         </div>
       </div>
 
-      {open && (
-        <nav className="border-t border-line bg-canvas px-5 py-4 md:hidden" aria-label="Mobile">
-          <ul className="flex flex-col">
-            {NAV.map((item) => (
-              <li key={item.label}>
-                <Link href={item.href} onClick={() => setOpen(false)} className="block py-2.5 text-[15px] font-medium text-ink">
-                  {item.label}
-                </Link>
-              </li>
-            ))}
-            <li className="pt-2">
-              <Link href="/signin" onClick={() => setOpen(false)} className="block py-2.5 text-[15px] font-medium text-muted">
-                Log in
-              </Link>
-            </li>
-          </ul>
-        </nav>
-      )}
-    </header>
+      <AnimatePresence>
+        {open && (
+          <motion.nav
+            className="overflow-hidden border-t border-line bg-canvas md:hidden"
+            aria-label="Mobile"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.28, ease: EASE }}
+          >
+            <motion.ul
+              className="flex flex-col px-5 py-4"
+              initial="hidden"
+              animate="show"
+              variants={{ show: { transition: { staggerChildren: 0.05, delayChildren: 0.04 } } }}
+            >
+              {[...NAV, { label: "Log in", href: "/signin" }].map((item, i) => (
+                <motion.li
+                  key={item.label}
+                  variants={{
+                    hidden: { opacity: 0, y: reduce ? 0 : 8 },
+                    show: { opacity: 1, y: 0, transition: { duration: 0.3, ease: EASE } },
+                  }}
+                >
+                  <Link
+                    href={item.href}
+                    onClick={() => setOpen(false)}
+                    className={`block py-2.5 text-[15px] font-medium ${i >= NAV.length ? "text-muted" : "text-ink"}`}
+                  >
+                    {item.label}
+                  </Link>
+                </motion.li>
+              ))}
+            </motion.ul>
+          </motion.nav>
+        )}
+      </AnimatePresence>
+    </motion.header>
   );
 }

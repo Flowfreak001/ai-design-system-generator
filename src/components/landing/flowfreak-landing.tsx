@@ -1,8 +1,31 @@
 import Link from "next/link";
 import { LinkButton } from "@/components/ui/button";
-import { FadeUp, Stagger, StaggerItem } from "@/components/ui/motion";
+import { FadeUp, Stagger, StaggerItem, AnimatedHeading } from "@/components/ui/motion";
+import { StackingCards, type StackCard } from "@/components/motion/stacking-cards";
 import { Hero, CanvasShowcase } from "@/components/landing/hero";
 import { PlatformPillars, ComponentCarousel, ControlSection, DarkSpotlight, FaqSection, UseCasesScroll, TestimonialsSection } from "@/components/landing/home-sections";
+
+/* ─────────────────────────── How it works (GSAP stacking cards) ─────────────────────────── */
+const WORKFLOW: StackCard[] = [
+  { eyebrow: "Step 01", title: "Capture the client brief", text: "Turn messy notes, calls and guided answers into a structured brief — goals, pages, features, SEO and the gaps flagged before any design starts." },
+  { eyebrow: "Step 02", title: "Plan the site structure", text: "Generate the sitemap, page goals, CTAs and wireframe sections from the approved brief, so every page has a purpose before a pixel is styled." },
+  { eyebrow: "Step 03", title: "Design from real sections", text: "Assemble pages from a curated, brand-driven component library instead of prompting from a blank canvas each time." },
+  { eyebrow: "Step 04", title: "Export to your stack", text: "Ship structured prompts and files to Claude, Cursor, Lovable, Figma and Webflow — clean handoff, no rebuilding required." },
+];
+function WorkflowStack() {
+  return (
+    <section id="workflow" className="mx-auto max-w-[1240px] px-5 py-20 sm:px-12 sm:py-28">
+      <div className="mx-auto mb-14 max-w-2xl text-center">
+        <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.14em] text-accent">How it works</p>
+        <AnimatedHeading
+          text="From first brief to build-ready, in four steps."
+          className="font-bold tracking-tight text-[clamp(2rem,4.4vw,3.2rem)] leading-[1.05]"
+        />
+      </div>
+      <StackingCards cards={WORKFLOW} />
+    </section>
+  );
+}
 
 /* ─────────────────────────── Pricing ─────────────────────────── */
 const PLANS = [
@@ -96,6 +119,7 @@ export function FlowfreakLanding() {
       <ComponentCarousel />
       <DarkSpotlight />
       <ControlSection />
+      <WorkflowStack />
       <UseCasesScroll />
       <PricingSection />
       <TestimonialsSection />

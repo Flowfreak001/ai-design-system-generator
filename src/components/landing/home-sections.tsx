@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { LinkButton } from "@/components/ui/button";
-import { FadeUp, Stagger, StaggerItem } from "@/components/ui/motion";
+import { FadeUp, Stagger, StaggerItem, AnimatedHeading } from "@/components/ui/motion";
 import { TestimonialsColumn, type Testimonial } from "@/components/ui/testimonials-columns-1";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -69,11 +69,10 @@ export function PlatformPillars() {
   return (
     <Wrap id="product">
       <div className="mx-auto max-w-3xl text-center">
-        <FadeUp>
-          <h2 className="font-bold tracking-tight text-[clamp(2rem,4.6vw,3.4rem)] leading-[1.05]">
-            One platform, from brief to build-ready.
-          </h2>
-        </FadeUp>
+        <AnimatedHeading
+          text="One platform, from brief to build-ready."
+          className="font-bold tracking-tight text-[clamp(2rem,4.6vw,3.4rem)] leading-[1.05]"
+        />
         <FadeUp delay={0.06}>
           <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-muted">
             Flowfreak is the agency workspace that turns a short client brief into brand guidelines,
