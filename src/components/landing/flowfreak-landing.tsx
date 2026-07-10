@@ -14,7 +14,7 @@ function PricingSection() {
   return (
     <div className="relative isolate overflow-hidden bg-ink text-white">
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0" style={{ background: "radial-gradient(50% 55% at 50% 0%, color-mix(in srgb, var(--color-accent) 22%, transparent), transparent 65%)" }} />
-      <div className="relative z-10 mx-auto max-w-[1240px] px-5 py-20 sm:px-12 sm:py-28" id="pricing">
+      <div className="relative z-10 mx-auto max-w-[1280px] px-5 py-20 sm:px-12 sm:py-28" id="pricing">
         <div className="mx-auto max-w-2xl text-center">
           <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.14em] text-accent">Pricing</p>
           <FadeUp><h2 className="font-bold tracking-tight text-white text-[clamp(2rem,calc(3.125vw+8px),2.8125rem)] leading-[1.04]">Simple plans for agencies and creators.</h2></FadeUp>

@@ -24,7 +24,7 @@ export function LandingHero() {
 
   return (
     <section className="relative overflow-hidden border-b border-line">
-      <div className="mx-auto max-w-[1240px] px-5 sm:px-12 pt-28 pb-14 md:pt-36 md:pb-20">
+      <div className="mx-auto max-w-[1280px] px-5 sm:px-12 pt-28 pb-14 md:pt-36 md:pb-20">
         <div className="grid items-center gap-12 lg:grid-cols-[1fr_1.05fr] lg:gap-14">
           {/* Copy */}
           <div className="max-w-xl">

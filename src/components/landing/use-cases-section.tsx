@@ -43,7 +43,7 @@ const USE_CASES = [
 export function UseCasesSection() {
   return (
     <section id="use-cases" className="border-y border-line bg-surface scroll-mt-20">
-      <div className="mx-auto max-w-[1240px] px-5 sm:px-12 py-24 md:py-28">
+      <div className="mx-auto max-w-[1280px] px-5 sm:px-12 py-24 md:py-28">
         <SectionHeading
           eyebrow="Built for real small businesses"
           title="What you can build."

@@ -17,7 +17,7 @@ const AUTOMATION_FILES = ["WORKFLOW_AUDIT.md", "AUTOMATION_BLUEPRINT.md", "TOOLS
 export function WorkspaceSection() {
   return (
     <section id="agency" className="border-y border-line bg-surface scroll-mt-20">
-      <div className="mx-auto max-w-[1240px] px-5 sm:px-12 py-24 md:py-28">
+      <div className="mx-auto max-w-[1280px] px-5 sm:px-12 py-24 md:py-28">
         <div className="grid gap-12 lg:grid-cols-[5fr_7fr] lg:items-start">
           <div>
             <SectionHeading

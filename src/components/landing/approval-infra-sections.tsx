@@ -12,7 +12,7 @@ const AI_CAPABILITIES = [
 
 export function ApprovalSection() {
   return (
-    <section className="mx-auto max-w-[1240px] px-5 sm:px-12 py-24 md:py-28">
+    <section className="mx-auto max-w-[1280px] px-5 sm:px-12 py-24 md:py-28">
       <SectionHeading
         eyebrow="AI agents with approval"
         title="Let AI prepare the work. Keep people in control."
@@ -57,7 +57,7 @@ const INFRA = [
 export function InfraSection() {
   return (
     <section className="border-t border-line bg-surface">
-      <div className="mx-auto max-w-[1240px] px-5 sm:px-12 py-20 md:py-24">
+      <div className="mx-auto max-w-[1280px] px-5 sm:px-12 py-20 md:py-24">
         <SectionHeading
           eyebrow="Deployment & control"
           title="Start simple. Scale workers later when workflows grow."

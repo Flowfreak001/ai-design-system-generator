@@ -15,7 +15,7 @@ const POINTS = [
 export function WorkflowSection() {
   const reduce = useReducedMotion();
   return (
-    <section id="workflow" className="mx-auto max-w-[1240px] px-5 sm:px-12 py-24 md:py-28 scroll-mt-20">
+    <section id="workflow" className="mx-auto max-w-[1280px] px-5 sm:px-12 py-24 md:py-28 scroll-mt-20">
       <div className="grid items-center gap-12 lg:grid-cols-2">
         <div>
           <SectionHeading

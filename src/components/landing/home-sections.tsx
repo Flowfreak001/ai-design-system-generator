@@ -9,7 +9,7 @@ import { TestimonialsColumn, type Testimonial } from "@/components/ui/testimonia
 const EASE = [0.22, 1, 0.36, 1] as const;
 
 function Wrap({ id, className = "", children }: { id?: string; className?: string; children: ReactNode }) {
-  return <section id={id} className={`mx-auto max-w-[1240px] px-5 py-20 sm:px-12 sm:py-28 ${className}`}>{children}</section>;
+  return <section id={id} className={`mx-auto max-w-[1280px] px-5 py-20 sm:px-12 sm:py-28 ${className}`}>{children}</section>;
 }
 
 const gridPaper = (ink = "0,0,0", op = 0.06) => ({
@@ -230,7 +230,7 @@ export function ComponentCarousel() {
   const bottom = CAROUSEL.filter((_, i) => i % 2 === 1);
   return (
     <div className="overflow-hidden bg-canvas py-20 sm:py-24">
-      <div className="mx-auto max-w-[1240px] px-5 sm:px-12">
+      <div className="mx-auto max-w-[1280px] px-5 sm:px-12">
         <div className="grid items-start gap-6 md:grid-cols-2 md:gap-14">
           <div>
             <p className="eyebrow mb-2">Section library</p>
@@ -450,7 +450,7 @@ export function UseCasesScroll() {
   return (
     <section id="use-cases" className="bg-white">
       {/* Section header — big heading left, copy + CTA right */}
-      <div className="mx-auto grid max-w-[1240px] gap-8 px-5 pb-0 pt-24 sm:px-12 sm:pt-28 md:grid-cols-2 md:items-start md:gap-16">
+      <div className="mx-auto grid max-w-[1280px] gap-8 px-5 pb-0 pt-24 sm:px-12 sm:pt-28 md:grid-cols-2 md:items-start md:gap-16">
         <FadeUp><h2 className="font-bold tracking-tight text-[clamp(2rem,calc(3.125vw+8px),2.8125rem)] leading-[1.05]">Built for how modern<br className="hidden lg:block" /> teams work.</h2></FadeUp>
         <FadeUp delay={0.06}>
           <p className="text-[18px] leading-relaxed text-muted">Design without limits and deliver client-ready websites with full control over every detail — from first brief to final handoff.</p>
@@ -461,7 +461,7 @@ export function UseCasesScroll() {
       {/* Sticky feature panels */}
       {USE_CASES_SCROLL.map((s, i) => (
         <div key={i} className="sticky top-[70px] flex items-start bg-white">
-          <div className={`mx-auto grid w-full max-w-[1240px] items-center gap-10 px-5 sm:px-12 md:grid-cols-2 md:gap-16 ${i === 0 ? "pt-[100px]" : "pt-[40px]"} ${i === USE_CASES_SCROLL.length - 1 ? "pb-20 sm:pb-24" : "pb-[40px]"}`}>
+          <div className={`mx-auto grid w-full max-w-[1280px] items-center gap-10 px-5 sm:px-12 md:grid-cols-2 md:gap-16 ${i === 0 ? "pt-[100px]" : "pt-[40px]"} ${i === USE_CASES_SCROLL.length - 1 ? "pb-20 sm:pb-24" : "pb-[40px]"}`}>
             <motion.div
               initial={reduce ? false : { opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -589,7 +589,7 @@ export function DarkSpotlight() {
   return (
     <div className="relative isolate overflow-hidden bg-ink text-white">
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0" style={{ background: "radial-gradient(50% 55% at 18% 0%, color-mix(in srgb, var(--color-accent) 20%, transparent), transparent 65%)" }} />
-      <div className="relative z-10 mx-auto max-w-[1240px] px-5 py-20 sm:px-12 sm:py-24">
+      <div className="relative z-10 mx-auto max-w-[1280px] px-5 py-20 sm:px-12 sm:py-24">
         <div className="grid gap-6 lg:grid-cols-[1.1fr_1fr] lg:items-center lg:gap-14">
           <FadeUp>
             <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.14em] text-accent">Why Flowfreak</p>
@@ -638,7 +638,7 @@ const thirdColumn = TESTIMONIALS.slice(6, 9);
 export function TestimonialsSection() {
   return (
     <section id="testimonials" className="bg-canvas py-20 sm:py-28">
-      <div className="mx-auto max-w-[1240px] px-5 sm:px-12">
+      <div className="mx-auto max-w-[1280px] px-5 sm:px-12">
         <FadeUp className="mx-auto flex max-w-[600px] flex-col items-center text-center">
           <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.14em] text-accent">Testimonials</p>
           <h2 className="font-bold tracking-tight text-[clamp(2rem,calc(3.125vw+8px),2.8125rem)] leading-[1.05]">Loved by agencies, freelancers and builders.</h2>

@@ -3,7 +3,7 @@ import { LinkButton } from "@/components/ui/button";
 
 export function FinalCTA() {
   return (
-    <section className="mx-auto max-w-[1240px] px-5 sm:px-12 py-24 md:py-28">
+    <section className="mx-auto max-w-[1280px] px-5 sm:px-12 py-24 md:py-28">
       <FadeUp className="card relative overflow-hidden px-8 py-16 text-center md:py-20">
         <div
           aria-hidden="true"
