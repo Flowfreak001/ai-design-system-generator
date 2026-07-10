@@ -16,6 +16,7 @@ import { DEFAULT_SECTION_THEME } from "@/components/sections/section-theme";
 import { SectionErrorBoundary, renderLibrarySection as renderSection } from "@/components/section-library/section-render";
 import { ExportModal } from "@/components/section-library/export-modal";
 import { deleteLibrarySectionAction } from "@/app/(app)/library/actions";
+import { toggleSavedSectionAction } from "@/lib/saved-sections/actions";
 
 type Device = "desktop" | "tablet" | "mobile";
 const DEVICE_WIDTH: Record<Device, number> = { desktop: 1280, tablet: 820, mobile: 390 };
@@ -106,13 +107,15 @@ function PreviewModule({ section, theme, onClose, publicMode = false }: { sectio
 }
 
 export function LibraryCatalogClient({
-  sections, isAdmin, currentUserId = "", publicMode = false,
+  sections, isAdmin, currentUserId = "", publicMode = false, savedIds = [],
 }: {
   sections: LibrarySection[];
   isAdmin: boolean;
   currentUserId?: string;
   /** Public marketing mode: read-only, no dashboard/studio actions. */
   publicMode?: boolean;
+  /** Section ids the current user has already saved. */
+  savedIds?: string[];
 }) {
   const router = useRouter();
   // Library previews are ALWAYS the default brand theme — never a project's
@@ -122,7 +125,7 @@ export function LibraryCatalogClient({
   const [cat, setCat] = useState("all");
   const [selected, setSelected] = useState<LibrarySection | null>(null);
   const [exportSel, setExportSel] = useState<LibrarySection | null>(null);
-  const [saved, setSaved] = useState<Set<string>>(new Set());
+  const [saved, setSaved] = useState<Set<string>>(() => new Set(savedIds));
   const [menuId, setMenuId] = useState<string | null>(null);
   const [, start] = useTransition();
 
@@ -140,7 +143,17 @@ export function LibraryCatalogClient({
   }, [sections, q, cat]);
 
   const canManage = (s: LibrarySection) => !publicMode && (isAdmin || (!!s.createdByUserId && s.createdByUserId === currentUserId));
-  const toggleSave = (id: string) => setSaved((prev) => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggleSave = (s: LibrarySection) => {
+    // Optimistic flip, then persist.
+    setSaved((prev) => { const n = new Set(prev); n.has(s.id) ? n.delete(s.id) : n.add(s.id); return n; });
+    start(async () => {
+      const res = await toggleSavedSectionAction({ sectionId: s.id, name: s.name, category: s.category });
+      if (res.needAuth) { window.location.href = "/signin?next=/library"; return; }
+      if (res.ok && typeof res.saved === "boolean") {
+        setSaved((prev) => { const n = new Set(prev); res.saved ? n.add(s.id) : n.delete(s.id); return n; });
+      }
+    });
+  };
   const del = (s: LibrarySection) => {
     setMenuId(null);
     if (!confirm(`Delete "${s.name}"? This can't be undone.`)) return;
@@ -256,7 +269,7 @@ export function LibraryCatalogClient({
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 20h4L18.5 9.5a2 2 0 0 0-2.8-2.8L5 17.2V20z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" /></svg>
                         </Link>
                       )}
-                      <Button variant="secondary" onClick={() => toggleSave(s.id)} aria-label={saved.has(s.id) ? "Saved" : "Save"} aria-pressed={saved.has(s.id)} title="Save" className="px-3">
+                      <Button variant="secondary" onClick={() => toggleSave(s)} aria-label={saved.has(s.id) ? "Saved" : "Save"} aria-pressed={saved.has(s.id)} title={saved.has(s.id) ? "Saved" : "Save"} className={`px-3 ${saved.has(s.id) ? "border-accent/40" : ""}`}>
                         <svg width="16" height="16" viewBox="0 0 24 24" fill={saved.has(s.id) ? "currentColor" : "none"} className={saved.has(s.id) ? "text-accent" : ""}><path d="M6.5 4h11a1 1 0 0 1 1 1v15l-6.5-4.2L5.5 20V5a1 1 0 0 1 1-1Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" /></svg>
                       </Button>
                       <Button variant="secondary" onClick={() => setExportSel(s)} aria-label="Export prompt" title="Export prompt for any AI tool" className="px-3">

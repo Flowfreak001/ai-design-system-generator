@@ -7,6 +7,7 @@ import { listCatalogSections } from "@/lib/section-library/catalog-store";
 import { seedBuiltinsForAgency } from "@/lib/section-library/builtin-seeds";
 import { dynamicToLibrarySection } from "@/lib/section-library/dynamic-section";
 import { isAdmin, canViewLibrarySection } from "@/lib/section-library/permissions";
+import { listSavedIds } from "@/lib/saved-sections/store";
 
 export const dynamic = "force-dynamic";
 
@@ -25,5 +26,7 @@ export default async function LibraryPage() {
     return d.createdByUserId === user.id;
   }).map(dynamicToLibrarySection);
 
-  return <LibraryCatalogClient sections={sections} isAdmin={admin} currentUserId={user.id} />;
+  const savedIds = await listSavedIds(user.id);
+
+  return <LibraryCatalogClient sections={sections} isAdmin={admin} currentUserId={user.id} savedIds={savedIds} />;
 }
