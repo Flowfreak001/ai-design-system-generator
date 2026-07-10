@@ -20,11 +20,15 @@ export function WixPublishButton({ projectId }: { projectId: string }) {
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" className="-ml-0.5" aria-hidden="true">
           <path d="M12 16V4m0 0L8 8m4-4 4 4M5 20h14" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
-        {pending ? "Publishing…" : "Publish to Wix (test)"}
+        {pending ? "Publishing…" : "Publish to Wix"}
       </Button>
       {result && (
         <span className={`text-[12px] ${result.ok ? "text-success" : "text-danger"}`} role="status">
-          {result.ok ? `Added to “${result.collectionId}” ✓` : result.error}
+          {result.ok
+            ? result.sections > 0
+              ? `Published ${result.sections} section${result.sections === 1 ? "" : "s"} → ${result.collectionId} ✓`
+              : "No sections to publish yet — add some in the editor"
+            : result.error}
         </span>
       )}
     </div>
