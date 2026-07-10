@@ -61,6 +61,12 @@ function initialsOf(u: HeaderUser): string {
     .join("");
 }
 
+function firstNameOf(u: HeaderUser): string {
+  const name = u.name && u.name.trim();
+  if (name) return name.split(/\s+/)[0];
+  return u.email.split("@")[0];
+}
+
 export function SiteHeader({ user }: { user?: HeaderUser | null }) {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState<string | null>(null);
@@ -178,7 +184,7 @@ export function SiteHeader({ user }: { user?: HeaderUser | null }) {
                 {initialsOf(user)}
               </span>
               <span className="hidden max-w-[140px] truncate text-[15px] font-medium text-ink sm:block">
-                {(user.name && user.name.trim()) || user.email}
+                {firstNameOf(user)}
               </span>
             </Link>
           ) : (
