@@ -172,7 +172,7 @@ export function SiteHeader({ user }: { user?: HeaderUser | null }) {
             <Link
               href="/dashboard"
               aria-label="Go to your dashboard"
-              className="flex items-center gap-2.5 rounded-full border border-line bg-surface py-1 pl-1 pr-3 transition-colors hover:border-ink/25 hover:bg-panel"
+              className="flex items-center gap-2.5 rounded-full border border-ink/25 bg-surface py-1 pl-1 pr-3 transition-colors hover:border-ink/40 hover:bg-panel"
             >
               <span className="grid size-8 shrink-0 place-items-center rounded-full bg-accent-soft text-[13px] font-semibold text-accent">
                 {initialsOf(user)}
