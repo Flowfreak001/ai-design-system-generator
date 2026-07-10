@@ -296,7 +296,7 @@ export function DashboardShell({
             </svg>
           </button>
           <Link href="/" aria-label="Flowfreak home" className="shrink-0">
-            <FlowfreakWordmark height={38} />
+            <FlowfreakWordmark height={48} />
           </Link>
           <span className="mx-1 hidden h-5 w-px shrink-0 bg-line sm:block" />
           <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1.5 truncate text-[13.5px]">
@@ -378,7 +378,7 @@ export function DashboardShell({
           <aside className="absolute inset-y-0 left-0 flex w-[260px] max-w-[85vw] flex-col border-r border-line bg-surface shadow-xl animate-in slide-in-from-left duration-200">
             <div className="flex items-center justify-between pt-4 pb-3 pl-3.5 pr-2">
               <Link href="/" className="flex min-w-0 items-center" aria-label="Flowfreak home">
-                <FlowfreakWordmark height={38} />
+                <FlowfreakWordmark height={48} />
               </Link>
               <button
                 type="button"
