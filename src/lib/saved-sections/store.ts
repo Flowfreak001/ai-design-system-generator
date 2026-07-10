@@ -1,5 +1,6 @@
 // Data layer for user-saved (bookmarked) library sections. Server-only.
 import { prisma } from "@/lib/db/client";
+import { builtinSectionKey } from "./key";
 
 export type SavedSectionInput = { sectionId: string; name: string; category: string };
 
@@ -16,17 +17,19 @@ export async function listSaved(userId: string) {
 
 /** Toggle a save. Returns the new saved state (true = now saved). */
 export async function toggleSaved(userId: string, s: SavedSectionInput): Promise<boolean> {
+  // Normalize to the built-in id so /library and /components share one saved key.
+  const sectionId = builtinSectionKey(s.sectionId);
   const existing = await prisma.savedSection.findUnique({
-    where: { userId_sectionId: { userId, sectionId: s.sectionId } },
+    where: { userId_sectionId: { userId, sectionId } },
   });
   if (existing) {
     await prisma.savedSection.delete({ where: { id: existing.id } });
     return false;
   }
-  await prisma.savedSection.create({ data: { userId, sectionId: s.sectionId, name: s.name, category: s.category } });
+  await prisma.savedSection.create({ data: { userId, sectionId, name: s.name, category: s.category } });
   return true;
 }
 
 export async function removeSaved(userId: string, sectionId: string): Promise<void> {
-  await prisma.savedSection.deleteMany({ where: { userId, sectionId } });
+  await prisma.savedSection.deleteMany({ where: { userId, sectionId: builtinSectionKey(sectionId) } });
 }

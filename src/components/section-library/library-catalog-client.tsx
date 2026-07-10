@@ -17,6 +17,7 @@ import { SectionErrorBoundary, renderLibrarySection as renderSection } from "@/c
 import { ExportModal } from "@/components/section-library/export-modal";
 import { deleteLibrarySectionAction } from "@/app/(app)/library/actions";
 import { toggleSavedSectionAction } from "@/lib/saved-sections/actions";
+import { builtinSectionKey } from "@/lib/saved-sections/key";
 
 type Device = "desktop" | "tablet" | "mobile";
 const DEVICE_WIDTH: Record<Device, number> = { desktop: 1280, tablet: 820, mobile: 390 };
@@ -144,16 +145,19 @@ export function LibraryCatalogClient({
 
   const canManage = (s: LibrarySection) => !publicMode && (isAdmin || (!!s.createdByUserId && s.createdByUserId === currentUserId));
   const toggleSave = (s: LibrarySection) => {
+    // Saved set is keyed by the built-in id so it matches saves made on /components.
+    const key = builtinSectionKey(s.id);
     // Optimistic flip, then persist.
-    setSaved((prev) => { const n = new Set(prev); n.has(s.id) ? n.delete(s.id) : n.add(s.id); return n; });
+    setSaved((prev) => { const n = new Set(prev); n.has(key) ? n.delete(key) : n.add(key); return n; });
     start(async () => {
       const res = await toggleSavedSectionAction({ sectionId: s.id, name: s.name, category: s.category });
       if (res.needAuth) { window.location.href = "/signin?next=/library"; return; }
       if (res.ok && typeof res.saved === "boolean") {
-        setSaved((prev) => { const n = new Set(prev); res.saved ? n.add(s.id) : n.delete(s.id); return n; });
+        setSaved((prev) => { const n = new Set(prev); res.saved ? n.add(key) : n.delete(key); return n; });
       }
     });
   };
+  const isSaved = (s: LibrarySection) => saved.has(builtinSectionKey(s.id));
   const del = (s: LibrarySection) => {
     setMenuId(null);
     if (!confirm(`Delete "${s.name}"? This can't be undone.`)) return;
@@ -269,8 +273,8 @@ export function LibraryCatalogClient({
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 20h4L18.5 9.5a2 2 0 0 0-2.8-2.8L5 17.2V20z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" /></svg>
                         </Link>
                       )}
-                      <Button variant="secondary" onClick={() => toggleSave(s)} aria-label={saved.has(s.id) ? "Saved" : "Save"} aria-pressed={saved.has(s.id)} title={saved.has(s.id) ? "Saved" : "Save"} className={`px-3 ${saved.has(s.id) ? "border-accent/40" : ""}`}>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill={saved.has(s.id) ? "currentColor" : "none"} className={saved.has(s.id) ? "text-accent" : ""}><path d="M6.5 4h11a1 1 0 0 1 1 1v15l-6.5-4.2L5.5 20V5a1 1 0 0 1 1-1Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" /></svg>
+                      <Button variant="secondary" onClick={() => toggleSave(s)} aria-label={isSaved(s) ? "Saved" : "Save"} aria-pressed={isSaved(s)} title={isSaved(s) ? "Saved" : "Save"} className={`px-3 ${isSaved(s) ? "border-accent/40" : ""}`}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill={isSaved(s) ? "currentColor" : "none"} className={isSaved(s) ? "text-accent" : ""}><path d="M6.5 4h11a1 1 0 0 1 1 1v15l-6.5-4.2L5.5 20V5a1 1 0 0 1 1-1Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" /></svg>
                       </Button>
                       <Button variant="secondary" onClick={() => setExportSel(s)} aria-label="Export prompt" title="Export prompt for any AI tool" className="px-3">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3v12M12 3 8 7M12 3l4 4M5 15v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
