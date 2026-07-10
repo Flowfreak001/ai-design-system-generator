@@ -2044,5 +2044,83 @@
       "parallax",
       "sticky scroll"
     ]
+  },
+  {
+    "id": "motion-testimonials-marquee",
+    "name": "Testimonials Marquee",
+    "category": "testimonials",
+    "layoutType": "motion",
+    "description": "Columns of quote cards drift vertically at their own speed behind a soft top/bottom mask. Reduced-motion safe; stacks to one column on mobile.",
+    "tags": [
+      "motion",
+      "testimonials",
+      "marquee",
+      "reviews",
+      "social-proof"
+    ],
+    "editableFields": [
+      "eyebrow",
+      "title",
+      "description",
+      "items"
+    ],
+    "codeMode": "studio-tsx",
+    "originality": "Original design — not a copy of any referenced screenshot.",
+    "defaultContent": {
+      "eyebrow": "Testimonials",
+      "title": "Loved by teams of every size",
+      "description": "See how teams ship client-ready work faster.",
+      "items": [
+        {
+          "title": "Briana Patton",
+          "icon": "Agency Founder",
+          "text": "It turned a messy discovery call into a structured brief and plan in minutes. Our first drafts land far closer to what the client actually wants."
+        },
+        {
+          "title": "Bilal Ahmed",
+          "icon": "Design Lead",
+          "text": "We plan the whole project before touching design. Rework across client work dropped massively."
+        },
+        {
+          "title": "Saman Malik",
+          "icon": "Freelance Developer",
+          "text": "It gives my tools real context instead of a blank prompt. It's the missing layer between brief and build."
+        },
+        {
+          "title": "Omar Raza",
+          "icon": "Independent Designer",
+          "text": "As a freelancer I look far bigger than I am. Clients get a polished summary and clear scope on day one."
+        },
+        {
+          "title": "Zainab Hussain",
+          "icon": "Studio Operations",
+          "text": "Reusable pieces mean every project starts most of the way done. Timelines shrank without cutting quality."
+        },
+        {
+          "title": "Aliza Khan",
+          "icon": "Brand Strategist",
+          "text": "Brand tokens stay consistent everywhere, so handoff is clean and revisions are minimal."
+        },
+        {
+          "title": "Farhan Siddiqui",
+          "icon": "Product Manager",
+          "text": "The planning step alone paid for itself. Stakeholders sign off before a single pixel is styled."
+        },
+        {
+          "title": "Sana Sheikh",
+          "icon": "Engineering Lead",
+          "text": "Clean structured exports drop straight into our build pipeline. No more copy-pasting from docs."
+        },
+        {
+          "title": "Hassan Ali",
+          "icon": "Web Agency Owner",
+          "text": "Onboarding new clients used to take a week. Now it's a single focused session."
+        }
+      ]
+    },
+    "tsxCode": "// Testimonials Marquee — columns of quote cards drift vertically at their own\n// speed behind a soft top/bottom mask. framer-motion only, fully themeable.\n// Props: { content, theme }.\nimport { useRef, useState, useEffect } from \"react\";\nimport { motion, useReducedMotion } from \"framer-motion\";\n\nexport default function Section({ content, theme }) {\n  const c = content || {};\n  const t = theme || {};\n  const eyebrow = c.eyebrow || \"Testimonials\";\n  const title = c.title || \"Loved by teams of every size\";\n  const description = c.description || \"See how teams ship client-ready work faster.\";\n  const items =\n    c.items && c.items.length\n      ? c.items\n      : [\n          { title: \"Briana Patton\", icon: \"Agency Founder\", text: \"It turned a messy discovery call into a structured brief and plan in minutes. Our first drafts land far closer to what the client actually wants.\" },\n          { title: \"Bilal Ahmed\", icon: \"Design Lead\", text: \"We plan the whole project before touching design. Rework across client work dropped massively.\" },\n          { title: \"Saman Malik\", icon: \"Freelance Developer\", text: \"It gives my tools real context instead of a blank prompt. It's the missing layer between brief and build.\" },\n          { title: \"Omar Raza\", icon: \"Independent Designer\", text: \"As a freelancer I look far bigger than I am. Clients get a polished summary and clear scope on day one.\" },\n          { title: \"Zainab Hussain\", icon: \"Studio Operations\", text: \"Reusable pieces mean every project starts most of the way done. Timelines shrank without cutting quality.\" },\n          { title: \"Aliza Khan\", icon: \"Brand Strategist\", text: \"Brand tokens stay consistent everywhere, so handoff is clean and revisions are minimal.\" },\n          { title: \"Farhan Siddiqui\", icon: \"Product Manager\", text: \"The planning step alone paid for itself. Stakeholders sign off before a single pixel is styled.\" },\n          { title: \"Sana Sheikh\", icon: \"Engineering Lead\", text: \"Clean structured exports drop straight into our build pipeline. No more copy-pasting from docs.\" },\n          { title: \"Hassan Ali\", icon: \"Web Agency Owner\", text: \"Onboarding new clients used to take a week. Now it's a single focused session.\" },\n        ];\n\n  // ── Theme tokens ──\n  const bg = t.backgroundColor || \"#ffffff\";\n  const surface = t.surfaceColor || \"#ffffff\";\n  const text = t.textColor || \"#0b0b0c\";\n  const muted = t.mutedTextColor || \"#6b7280\";\n  const border = t.borderColor || \"#e6e2dd\";\n  const accent = t.accentColor || t.primaryColor || \"#e94b6f\";\n  const headingFont = t.headingFont || \"inherit\";\n  const bodyFont = t.bodyFont || \"inherit\";\n  const radius = typeof t.radius === \"number\" ? t.radius : 20;\n\n  const reduce = useReducedMotion();\n\n  // ── Responsiveness off the measured border-box width ──\n  const rootRef = useRef(null);\n  const [w, setW] = useState(1200);\n  useEffect(() => {\n    const el = rootRef.current;\n    if (!el) return;\n    const ro = new ResizeObserver((entries) => {\n      const e = entries[0];\n      const bw = e.borderBoxSize && e.borderBoxSize[0] ? e.borderBoxSize[0].inlineSize : e.contentRect.width;\n      if (bw) setW(bw);\n    });\n    ro.observe(el);\n    return () => ro.disconnect();\n  }, []);\n\n  const mobile = w < 700;\n  const tablet = w >= 700 && w < 1024;\n  const padX = mobile ? 20 : tablet ? 40 : 60;\n  const padY = mobile ? 64 : tablet ? 80 : 96;\n  const cols = mobile ? 1 : tablet ? 2 : 3;\n\n  // Split testimonials evenly across the visible columns.\n  const columns = Array.from({ length: cols }, () => []);\n  items.forEach((it, i) => columns[i % cols].push(it));\n  const durations = [21, 26, 23, 28];\n\n  function initials(name) {\n    return String(name || \"\")\n      .trim()\n      .split(/\\s+/)\n      .slice(0, 2)\n      .map((p) => p[0])\n      .join(\"\")\n      .toUpperCase();\n  }\n\n  const Card = ({ it }) => (\n    <div\n      style={{\n        width: \"100%\",\n        borderRadius: radius,\n        border: \"1px solid \" + border,\n        background: surface,\n        padding: mobile ? 24 : 28,\n        boxShadow: \"0 10px 40px -16px rgba(8,9,10,0.12)\",\n      }}\n    >\n      <p style={{ margin: 0, fontFamily: bodyFont, fontSize: 15, lineHeight: 1.6, color: text }}>{it.text}</p>\n      <div style={{ marginTop: 20, display: \"flex\", alignItems: \"center\", gap: 12 }}>\n        <span\n          aria-hidden=\"true\"\n          style={{\n            display: \"grid\",\n            placeItems: \"center\",\n            width: 40,\n            height: 40,\n            borderRadius: 999,\n            flexShrink: 0,\n            background: accent + \"1f\",\n            color: accent,\n            fontFamily: headingFont,\n            fontWeight: 700,\n            fontSize: 14,\n          }}\n        >\n          {initials(it.title)}\n        </span>\n        <span style={{ display: \"flex\", flexDirection: \"column\" }}>\n          <span style={{ fontFamily: headingFont, fontWeight: 500, lineHeight: 1.25, color: text }}>{it.title}</span>\n          {it.icon ? <span style={{ fontFamily: bodyFont, fontSize: 13, lineHeight: 1.3, color: muted }}>{it.icon}</span> : null}\n        </span>\n      </div>\n    </div>\n  );\n\n  const Column = ({ list, duration }) => (\n    <div style={{ flex: 1, minWidth: 0 }}>\n      <motion.div\n        animate={reduce ? undefined : { translateY: \"-50%\" }}\n        transition={{ duration, repeat: Infinity, ease: \"linear\", repeatType: \"loop\" }}\n        style={{ display: \"flex\", flexDirection: \"column\", gap: 24, paddingBottom: 24 }}\n      >\n        {[0, 1].map((dup) => (\n          <div key={dup} style={{ display: \"flex\", flexDirection: \"column\", gap: 24 }}>\n            {list.map((it, i) => (\n              <Card it={it} key={i} />\n            ))}\n          </div>\n        ))}\n      </motion.div>\n    </div>\n  );\n\n  return (\n    <section\n      ref={rootRef}\n      style={{ background: bg, padding: padY + \"px \" + padX + \"px\", fontFamily: bodyFont }}\n    >\n      <div style={{ maxWidth: 1240, margin: \"0 auto\" }}>\n        <div style={{ maxWidth: 600, margin: \"0 auto\", textAlign: \"center\", display: \"flex\", flexDirection: \"column\", alignItems: \"center\" }}>\n          {eyebrow ? (\n            <p style={{ margin: \"0 0 12px\", fontSize: 12, fontWeight: 600, letterSpacing: \"0.14em\", textTransform: \"uppercase\", color: accent }}>\n              {eyebrow}\n            </p>\n          ) : null}\n          <h2 style={{ margin: 0, fontFamily: headingFont, fontWeight: 700, letterSpacing: \"-0.02em\", lineHeight: 1.05, fontSize: mobile ? 32 : tablet ? 42 : 51, color: text }}>\n            {title}\n          </h2>\n          {description ? (\n            <p style={{ margin: \"16px 0 0\", fontSize: 18, lineHeight: 1.6, color: muted }}>{description}</p>\n          ) : null}\n        </div>\n\n        <div\n          style={{\n            marginTop: 48,\n            display: \"flex\",\n            justifyContent: \"center\",\n            gap: 24,\n            maxHeight: 740,\n            overflow: \"hidden\",\n            WebkitMaskImage: \"linear-gradient(to bottom, transparent, black 20%, black 80%, transparent)\",\n            maskImage: \"linear-gradient(to bottom, transparent, black 20%, black 80%, transparent)\",\n          }}\n        >\n          {columns.map((list, i) => (\n            <Column list={list} duration={durations[i % durations.length]} key={i} />\n          ))}\n        </div>\n      </div>\n    </section>\n  );\n}\n",
+    "categories": [
+      "testimonials"
+    ]
   }
 ]

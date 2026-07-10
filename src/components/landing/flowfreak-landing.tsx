@@ -2,7 +2,7 @@ import Link from "next/link";
 import { LinkButton } from "@/components/ui/button";
 import { FadeUp, Stagger, StaggerItem } from "@/components/ui/motion";
 import { Hero, CanvasShowcase } from "@/components/landing/hero";
-import { PlatformPillars, ComponentCarousel, ControlSection, DarkSpotlight, FaqSection, UseCasesScroll, TestimonialsSection } from "@/components/landing/home-sections";
+import { PlatformPillars, ComponentCarousel, ControlSection, DarkSpotlight, FaqSection, UseCasesScroll } from "@/components/landing/home-sections";
 
 /* ─────────────────────────── Pricing ─────────────────────────── */
 const PLANS = [
@@ -98,7 +98,6 @@ export function FlowfreakLanding() {
       <ControlSection />
       <UseCasesScroll />
       <PricingSection />
-      <TestimonialsSection />
       <FaqSection />
       <FinalCTASection />
     </>

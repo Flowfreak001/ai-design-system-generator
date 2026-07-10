@@ -22,7 +22,7 @@ export async function seedBuiltinsForAgency(agencyId: string): Promise<void> {
   if (!first) return;
   // Version marker — bump the suffix if the built-in set changes so agencies re-seed.
   const prefix = `seed-${agencyId}-`;
-  const curPrefix = `${prefix}v64-`;
+  const curPrefix = `${prefix}v65-`;
   const marker = `${curPrefix}${first.id}`;
   if (await prisma.librarySection.findUnique({ where: { id: marker } })) return;
 
