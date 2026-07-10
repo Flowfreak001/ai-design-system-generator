@@ -1,7 +1,9 @@
-// Generates a runnable Next.js + Wix SDK "headless site" starter for a project.
-// The generated app reads the FlowfreakSections CMS collection (populated by
-// publishProjectToWix) and renders the project's sections. Pure — returns files
-// as { path, content }[]; delivery (download/copy) is handled by the caller.
+// Generates a runnable Next.js headless-site starter for a project. The site
+// reads the FlowfreakSectionsV2 CMS collection (populated by publishProjectToWix)
+// and renders each section's REAL TSX component (compiled in the browser with
+// sucrase, react + framer-motion only) — so the live site matches the design,
+// animations included. Falls back to a simple text block if a row has no code.
+// Pure — returns files as { path, content }[].
 
 export type GeneratedFile = { path: string; content: string };
 
@@ -18,24 +20,20 @@ export function generateWixHeadlessSite(opts: { projectId: string; projectName: 
   "private": true,
   "scripts": { "dev": "next dev", "build": "next build", "start": "next start" },
   "dependencies": {
-    "@wix/data": "^1.0.0",
-    "@wix/sdk": "^1.0.0",
+    "framer-motion": "^11.0.0",
     "next": "^15.0.0",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "sucrase": "^3.35.0"
   },
-  "devDependencies": {
-    "@types/node": "^20",
-    "@types/react": "^18",
-    "typescript": "^5"
-  }
+  "devDependencies": { "@types/node": "^20", "@types/react": "^18", "typescript": "^5" }
 }
 `);
 
   add(".env.local.example", `
-# Public Wix Headless OAuth client id (safe to expose in the browser).
-# Create/find it in your Wix headless project settings ("OAuth apps").
-NEXT_PUBLIC_WIX_CLIENT_ID="your-wix-client-id"
+# Server-side Wix creds (never exposed to the browser).
+WIX_API_KEY="your-wix-api-key"
+WIX_SITE_ID="your-wix-site-id"
 `);
 
   add("next.config.mjs", `
@@ -48,7 +46,7 @@ export default nextConfig;
 {
   "compilerOptions": {
     "target": "ES2020", "lib": ["dom", "dom.iterable", "esnext"], "jsx": "preserve",
-    "module": "esnext", "moduleResolution": "bundler", "strict": true, "noEmit": true,
+    "module": "esnext", "moduleResolution": "bundler", "strict": false, "noEmit": true,
     "esModuleInterop": true, "skipLibCheck": true, "resolveJsonModule": true,
     "plugins": [{ "name": "next" }], "paths": { "@/*": ["./*"] }
   },
@@ -57,58 +55,81 @@ export default nextConfig;
 `);
 
   add("lib/wix.ts", `
-import { createClient, OAuthStrategy } from "@wix/sdk";
-import { items } from "@wix/data";
-
-// Public (visitor) client — reads collections whose read permission is ANYONE.
-export const wix = createClient({
-  modules: { items },
-  auth: OAuthStrategy({ clientId: process.env.NEXT_PUBLIC_WIX_CLIENT_ID! }),
-});
-
-// The Flowfreak project this site was generated for.
+// Server-side read of the FlowfreakSectionsV2 collection (Wix Data REST + API key).
 export const PROJECT_ID = ${JSON.stringify(projectId)};
 
 export type SectionRow = {
   _id: string;
-  page: string;
-  order: number;
   sectionType: string;
-  eyebrow?: string;
   title?: string;
   subtitle?: string;
-  description?: string;
-  items?: string; // JSON string of [{ title, text }]
+  componentCode?: string;
+  theme?: Record<string, any>;
+  content?: Record<string, any>;
 };
 
 export async function getSections(): Promise<SectionRow[]> {
-  const res = await wix.items
-    .query("FlowfreakSections")
-    .eq("projectId", PROJECT_ID)
-    .ascending("order")
-    .find();
-  return (res.items as SectionRow[]) ?? [];
+  const apiKey = process.env.WIX_API_KEY;
+  const siteId = process.env.WIX_SITE_ID;
+  if (!apiKey || !siteId) return [];
+  const res = await fetch("https://www.wixapis.com/wix-data/v2/items/query", {
+    method: "POST", cache: "no-store",
+    headers: { "Content-Type": "application/json", Authorization: apiKey, "wix-site-id": siteId },
+    body: JSON.stringify({
+      dataCollectionId: "FlowfreakSectionsV2",
+      query: { filter: { projectId: PROJECT_ID }, sort: [{ fieldName: "order", order: "ASC" }], cursorPaging: { limit: 100 } },
+    }),
+  });
+  if (!res.ok) return [];
+  const json = await res.json();
+  return (json.dataItems ?? []).map((it: any) => {
+    const d = it.data || {};
+    const safe = (s: any) => { try { return typeof s === "string" ? JSON.parse(s) : s; } catch { return {}; } };
+    return { _id: d._id, sectionType: d.sectionType, title: d.title, subtitle: d.subtitle, componentCode: d.componentCode, theme: safe(d.theme), content: safe(d.content) };
+  });
 }
 `);
 
-  add("components/Section.tsx", `
+  add("components/DynamicSection.tsx", `
+"use client";
+// Compiles a section's TSX in the browser (sucrase) and renders it with the
+// same react + framer-motion sandbox Flowfreak uses. Falls back to a simple
+// block if there's no code or compilation fails.
+import { Component, useEffect, useState } from "react";
+import * as React from "react";
+import * as FramerMotion from "framer-motion";
 import type { SectionRow } from "@/lib/wix";
 
-function parseItems(raw?: string): { title?: string; text?: string }[] {
-  if (!raw) return [];
-  try { const v = JSON.parse(raw); return Array.isArray(v) ? v : []; } catch { return []; }
+function sandboxRequire(name: string): unknown {
+  if (name === "react") return React;
+  if (name === "framer-motion" || name === "motion/react") return FramerMotion;
+  throw new Error("Import not allowed: " + name);
 }
 
-export function Section({ row }: { row: SectionRow }) {
-  const items = parseItems(row.items);
+async function compile(src: string): Promise<any> {
+  const { transform } = await import("sucrase");
+  const { code } = transform(src, { transforms: ["jsx", "typescript", "imports"], production: true });
+  const mod: any = { exports: {} };
+  const fn = new Function("require", "module", "exports", "React", code);
+  fn(sandboxRequire, mod, mod.exports, React);
+  return mod.exports.default || mod.exports.Section;
+}
+
+class Boundary extends Component<{ children: React.ReactNode; fallback: React.ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  render() { return this.state.failed ? this.props.fallback : this.props.children; }
+}
+
+function Fallback({ row }: { row: SectionRow }) {
+  const c = row.content || {};
+  const items: any[] = Array.isArray(c.items) ? c.items : [];
   return (
     <section style={{ padding: "72px 24px", maxWidth: 1080, margin: "0 auto" }}>
-      {row.eyebrow ? (
-        <p style={{ textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 12, fontWeight: 600, color: "#e94b6f", margin: 0 }}>{row.eyebrow}</p>
-      ) : null}
-      {row.title ? <h2 style={{ fontSize: 40, fontWeight: 700, margin: "12px 0 0", lineHeight: 1.1 }}>{row.title}</h2> : null}
-      {row.subtitle ? <p style={{ fontSize: 18, color: "#555", margin: "12px 0 0" }}>{row.subtitle}</p> : null}
-      {row.description ? <p style={{ fontSize: 16, color: "#666", margin: "10px 0 0", maxWidth: 640 }}>{row.description}</p> : null}
+      {c.eyebrow ? <p style={{ textTransform: "uppercase", letterSpacing: "0.14em", fontSize: 12, fontWeight: 600, color: "#e94b6f", margin: 0 }}>{c.eyebrow}</p> : null}
+      {(c.title || row.title) ? <h2 style={{ fontSize: 40, fontWeight: 700, margin: "12px 0 0", lineHeight: 1.1 }}>{c.title || row.title}</h2> : null}
+      {(c.subtitle || row.subtitle) ? <p style={{ fontSize: 18, color: "#555", margin: "12px 0 0" }}>{c.subtitle || row.subtitle}</p> : null}
+      {c.description ? <p style={{ fontSize: 16, color: "#666", margin: "10px 0 0", maxWidth: 640 }}>{c.description}</p> : null}
       {items.length ? (
         <div style={{ display: "grid", gap: 16, gridTemplateColumns: "repeat(auto-fit,minmax(240px,1fr))", marginTop: 28 }}>
           {items.map((it, i) => (
@@ -122,17 +143,32 @@ export function Section({ row }: { row: SectionRow }) {
     </section>
   );
 }
+
+export function DynamicSection({ row }: { row: SectionRow }) {
+  const [Comp, setComp] = useState<any>(null);
+  useEffect(() => {
+    let ok = true;
+    if (row.componentCode) compile(row.componentCode).then((c) => ok && setComp(() => c)).catch(() => ok && setComp(null));
+    return () => { ok = false; };
+  }, [row.componentCode]);
+
+  const fallback = <Fallback row={row} />;
+  if (!row.componentCode) return fallback;
+  if (!Comp) return <div style={{ minHeight: 240 }} />; // brief placeholder while compiling
+  return (
+    <Boundary fallback={fallback}>
+      <Comp content={row.content || {}} theme={row.theme || {}} />
+    </Boundary>
+  );
+}
 `);
 
   add("app/layout.tsx", `
 export const metadata = { title: ${JSON.stringify(projectName)} };
-
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body style={{ margin: 0, fontFamily: "system-ui, -apple-system, Segoe UI, Roboto, sans-serif", color: "#0b0b0c" }}>
-        {children}
-      </body>
+      <body style={{ margin: 0, fontFamily: "Inter, system-ui, -apple-system, sans-serif", color: "#0b0b0c" }}>{children}</body>
     </html>
   );
 }
@@ -140,7 +176,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
   add("app/page.tsx", `
 import { getSections } from "@/lib/wix";
-import { Section } from "@/components/Section";
+import { DynamicSection } from "@/components/DynamicSection";
 
 export const dynamic = "force-dynamic";
 
@@ -149,31 +185,23 @@ export default async function Home() {
   if (!sections.length) {
     return <main style={{ padding: 48 }}>No sections published yet. Run "Publish to Wix" in Flowfreak.</main>;
   }
-  return <main>{sections.map((row) => <Section key={row._id} row={row} />)}</main>;
+  return <main>{sections.map((row) => <DynamicSection key={row._id} row={row} />)}</main>;
 }
 `);
 
   add("README.md", `
 # ${projectName} — Wix Headless site
 
-Generated by Flowfreak. This Next.js app renders your project's sections directly
-from the **FlowfreakSections** Wix CMS collection (populated by "Publish to Wix").
+Generated by Flowfreak. Renders your project's sections from the **FlowfreakSectionsV2**
+Wix CMS collection — including each section's real component + animations (compiled in the
+browser with sucrase + framer-motion).
 
-## Run it
+## Run
 1. \`npm install\`
-2. Copy \`.env.local.example\` to \`.env.local\` and set \`NEXT_PUBLIC_WIX_CLIENT_ID\`
-   (your Wix headless OAuth **Client ID** — a public value).
+2. Copy \`.env.local.example\` → \`.env.local\`, set \`WIX_API_KEY\` + \`WIX_SITE_ID\` (server-side).
 3. \`npm run dev\` → http://localhost:3000
 
-## How it works
-- \`lib/wix.ts\` creates a public Wix client and queries \`FlowfreakSections\`
-  filtered to \`PROJECT_ID = ${projectId}\`, ordered by \`order\`.
-- \`components/Section.tsx\` renders each row (eyebrow, title, subtitle, description, items).
-- Re-run "Publish to Wix" in Flowfreak to update content — this site reads it live.
-
-## Deploy
-Deploy anywhere that runs Next.js (Vercel, Netlify, Railway). Set
-\`NEXT_PUBLIC_WIX_CLIENT_ID\` in the host's environment.
+Re-run "Publish to Wix" in Flowfreak to update — this site reads it live.
 `);
 
   return files;
@@ -181,7 +209,7 @@ Deploy anywhere that runs Next.js (Vercel, Netlify, Railway). Set
 
 /** Bundle the files into one Markdown doc (for copy / download / AI scaffold). */
 export function bundleToMarkdown(projectName: string, files: GeneratedFile[]): string {
-  const head = `# ${projectName} — Wix Headless site (Flowfreak export)\n\nSave each file below at its path, then \`npm install && npm run dev\`.\n`;
+  const head = `# ${projectName} — Wix Headless site (Flowfreak export)\n\nSave each file at its path, then \`npm install && npm run dev\`.\n`;
   const body = files
     .map((f) => {
       const lang = f.path.endsWith(".tsx") || f.path.endsWith(".ts") ? "tsx" : f.path.endsWith(".json") ? "json" : f.path.endsWith(".mjs") ? "js" : f.path.endsWith(".md") ? "md" : "";

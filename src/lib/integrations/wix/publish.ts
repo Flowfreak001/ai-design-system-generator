@@ -1,22 +1,25 @@
-// Publishes a Flowfreak project's REAL content (pages → sections) into a Wix
-// CMS collection. Idempotent: each section maps to a stable item id and is
-// upserted, so re-publishing updates in place instead of duplicating.
+// Publishes a Flowfreak project's REAL content AND design (the section's TSX
+// component code + resolved theme) into a Wix CMS collection, so a generated
+// headless frontend can render the exact animated sections — not just the text.
+// Idempotent: each section upserts by a stable id.
 import { getProject } from "@/lib/projects";
 import { SITEMAP_CANVAS_FILE, type SitemapCanvas } from "@/lib/canvas";
+import { DEFAULT_SECTION_THEME } from "@/components/sections/section-theme";
 import { ensureCollection, saveDataItem, type WixField } from "./client";
 
-const COLLECTION_ID = "FlowfreakSections";
+// v2 collection carries the component code + theme + full content JSON.
+const COLLECTION_ID = "FlowfreakSectionsV2";
 const FIELDS: WixField[] = [
   { key: "projectId", displayName: "Project ID", type: "TEXT" },
   { key: "projectName", displayName: "Project", type: "TEXT" },
   { key: "page", displayName: "Page", type: "TEXT" },
   { key: "order", displayName: "Order", type: "NUMBER" },
   { key: "sectionType", displayName: "Section", type: "TEXT" },
-  { key: "eyebrow", displayName: "Eyebrow", type: "TEXT" },
   { key: "title", displayName: "Title", type: "TEXT" },
   { key: "subtitle", displayName: "Subtitle", type: "TEXT" },
-  { key: "description", displayName: "Description", type: "TEXT" },
-  { key: "items", displayName: "Items (JSON)", type: "TEXT" },
+  { key: "componentCode", displayName: "Component TSX", type: "TEXT" },
+  { key: "theme", displayName: "Theme JSON", type: "TEXT" },
+  { key: "content", displayName: "Content JSON", type: "TEXT" },
 ];
 
 export type WixPublishSummary = { collectionId: string; sections: number; pages: number };
@@ -28,27 +31,28 @@ export async function publishProjectToWix(projectId: string, agencyId: string): 
   const raw = project.files.find((f) => f.name === SITEMAP_CANVAS_FILE)?.content;
   const pages = raw ? (JSON.parse(raw) as SitemapCanvas).pages ?? [] : [];
 
-  // Flatten pages → sections into CMS rows with a stable id per section.
   const rows: { id: string; data: Record<string, unknown> }[] = [];
+  let order = 0; // global running order across all pages
   for (const page of pages) {
-    (page.sections ?? []).forEach((s, i) => {
-      const c = s.content ?? {};
+    for (const s of page.sections ?? []) {
+      const content = s.content ?? {};
+      const theme = { ...DEFAULT_SECTION_THEME, ...(s.themeOverride ?? {}) };
       rows.push({
         id: `${projectId}-${page.id}-${s.id}`.slice(0, 128),
         data: {
           projectId,
           projectName: project.name,
           page: page.name,
-          order: i,
+          order: order++,
           sectionType: s.name || "section",
-          eyebrow: c.eyebrow || "",
-          title: c.title || s.note || s.name || "",
-          subtitle: c.subtitle || "",
-          description: c.description || "",
-          items: JSON.stringify(c.items ?? []),
+          title: content.title || s.note || s.name || "",
+          subtitle: content.subtitle || "",
+          componentCode: s.custom?.code || "",
+          theme: JSON.stringify(theme),
+          content: JSON.stringify(content),
         },
       });
-    });
+    }
   }
 
   await ensureCollection(COLLECTION_ID, "Flowfreak Sections", FIELDS);
