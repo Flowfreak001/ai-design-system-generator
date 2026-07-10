@@ -49,7 +49,19 @@ const NAV: NavItem[] = [
   { label: "Pricing", href: "/#pricing" },
 ];
 
-export function SiteHeader() {
+export type HeaderUser = { name: string | null; email: string };
+
+function initialsOf(u: HeaderUser): string {
+  const base = (u.name && u.name.trim()) || u.email;
+  return base
+    .split(/[\s@.]+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0]?.toUpperCase())
+    .join("");
+}
+
+export function SiteHeader({ user }: { user?: HeaderUser | null }) {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState<string | null>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -156,15 +168,32 @@ export function SiteHeader() {
         </div>
 
         <div className="flex items-center gap-2">
-          <LinkButton href="/signin" variant="ghost" size="md" className="hidden sm:inline-flex">
-            Login
-          </LinkButton>
-          <LinkButton href="/#pricing" variant="secondary" size="md" className="hidden md:inline-flex">
-            Request Demo
-          </LinkButton>
-          <LinkButton href="/signup" size="md">
-            Get Started
-          </LinkButton>
+          {user ? (
+            <Link
+              href="/dashboard"
+              aria-label="Go to your dashboard"
+              className="flex items-center gap-2.5 rounded-full border border-line bg-surface py-1 pl-1 pr-3 transition-colors hover:border-ink/25 hover:bg-panel"
+            >
+              <span className="grid size-8 shrink-0 place-items-center rounded-full bg-accent-soft text-[13px] font-semibold text-accent">
+                {initialsOf(user)}
+              </span>
+              <span className="hidden max-w-[140px] truncate text-[15px] font-medium text-ink sm:block">
+                {(user.name && user.name.trim()) || user.email}
+              </span>
+            </Link>
+          ) : (
+            <>
+              <LinkButton href="/signin" variant="ghost" size="md" className="hidden sm:inline-flex">
+                Login
+              </LinkButton>
+              <LinkButton href="/#pricing" variant="secondary" size="md" className="hidden md:inline-flex">
+                Request Demo
+              </LinkButton>
+              <LinkButton href="/signup" size="md">
+                Get Started
+              </LinkButton>
+            </>
+          )}
           <button
             type="button"
             aria-label={open ? "Close menu" : "Open menu"}
@@ -218,7 +247,7 @@ export function SiteHeader() {
               animate="show"
               variants={{ show: { transition: { staggerChildren: 0.05, delayChildren: 0.04 } } }}
             >
-              {[...NAV, { label: "Log in", href: "/signin" }].map((item, i) => (
+              {[...NAV, user ? { label: "Dashboard", href: "/dashboard" } : { label: "Log in", href: "/signin" }].map((item, i) => (
                 <motion.li
                   key={item.label}
                   variants={{

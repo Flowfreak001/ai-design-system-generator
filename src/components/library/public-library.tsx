@@ -136,6 +136,7 @@ export function PublicLibrary({ sections, isAuthed = false, savedIds = [] }: { s
   );
 
   const copyPrompt = async (s: LibrarySection) => {
+    if (!isAuthed) { window.location.href = "/signin?next=/components"; return; }
     try {
       await navigator.clipboard.writeText(buildPrompt(s));
       setCopiedId(s.id);
