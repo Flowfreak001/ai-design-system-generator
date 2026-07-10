@@ -359,14 +359,14 @@ export function ControlSection() {
         <FadeUp delay={0.06}><p className="mt-5 text-lg leading-relaxed text-muted">Plan the structure, keep the brand consistent, and hand off clean outputs — a workflow built to reduce rework and scale across clients.</p></FadeUp>
       </div>
 
-      <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
+      <div className="grid items-center gap-12 md:grid-cols-2 md:gap-16">
         {/* Reference-style mockup — reflects the open accordion item */}
-        <FadeUp className="order-2 lg:order-1">
-          <img src="/use-cases/control.png" alt="Brief Summary — auto-generated from your client brief" className="mx-auto w-full rounded-[26px] md:max-w-[520px] lg:max-w-none" loading="lazy" />
+        <FadeUp className="order-2 md:order-1">
+          <img src="/use-cases/control.png" alt="Brief Summary — auto-generated from your client brief" className="w-full rounded-[26px]" loading="lazy" />
         </FadeUp>
 
         {/* Accordion */}
-        <div className="order-1 lg:order-2">
+        <div className="order-1 md:order-2">
           {CONTROL.map((c, i) => (
             <div key={c.t} className="border-b border-line">
               <button type="button" onClick={() => setOpen(open === i ? -1 : i)} className="flex w-full items-center justify-between gap-4 py-5 text-left">
@@ -437,7 +437,7 @@ const UC_AI = (
 );
 
 const UcImage = ({ src, alt }: { src: string; alt: string }) => (
-  <img src={src} alt={alt} className="mx-auto w-full rounded-2xl md:max-w-[520px] lg:max-w-none" loading="lazy" />
+  <img src={src} alt={alt} className="w-full rounded-2xl" loading="lazy" />
 );
 
 const USE_CASES_SCROLL = [
@@ -450,7 +450,7 @@ export function UseCasesScroll() {
   return (
     <section id="use-cases" className="bg-white">
       {/* Section header — big heading left, copy + CTA right */}
-      <div className="grid gap-8 px-5 pb-0 pt-24 sm:px-12 sm:pt-28 lg:grid-cols-2 lg:items-start lg:gap-16 lg:px-20">
+      <div className="grid gap-8 px-5 pb-0 pt-24 sm:px-12 sm:pt-28 md:grid-cols-2 md:items-start md:gap-16 lg:px-20">
         <FadeUp><h2 className="font-bold tracking-tight text-[clamp(2rem,calc(3.125vw+8px),2.8125rem)] leading-[1.05]">Built for how modern<br className="hidden lg:block" /> teams work.</h2></FadeUp>
         <FadeUp delay={0.06}>
           <p className="text-[18px] leading-relaxed text-muted">Design without limits and deliver client-ready websites with full control over every detail — from first brief to final handoff.</p>
@@ -461,7 +461,7 @@ export function UseCasesScroll() {
       {/* Sticky feature panels */}
       {USE_CASES_SCROLL.map((s, i) => (
         <div key={i} className="sticky top-[70px] flex items-start bg-white">
-          <div className={`grid w-full items-center gap-10 px-5 sm:px-12 lg:grid-cols-2 lg:gap-16 lg:px-20 ${i === 0 ? "pt-[100px]" : "pt-[40px]"} ${i === USE_CASES_SCROLL.length - 1 ? "pb-20 sm:pb-24" : "pb-[40px]"}`}>
+          <div className={`grid w-full items-center gap-10 px-5 sm:px-12 md:grid-cols-2 md:gap-16 lg:px-20 ${i === 0 ? "pt-[100px]" : "pt-[40px]"} ${i === USE_CASES_SCROLL.length - 1 ? "pb-20 sm:pb-24" : "pb-[40px]"}`}>
             <motion.div
               initial={reduce ? false : { opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
@@ -481,7 +481,7 @@ export function UseCasesScroll() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: false, amount: 0.4 }}
               transition={reduce ? { duration: 0 } : { duration: 0.55, ease: EASE, delay: 0.08 }}
-              className="order-first lg:order-last"
+              className="order-first md:order-last"
             >
               {s.art}
             </motion.div>
