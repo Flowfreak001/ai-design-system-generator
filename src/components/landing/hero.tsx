@@ -286,7 +286,7 @@ export function CanvasShowcase() {
         >
           {/* Left copy */}
           <div>
-            <h2 className="font-bold tracking-tight text-[clamp(2rem,4.4vw,3.2rem)] leading-[1.03]">
+            <h2 className="font-bold tracking-tight text-[clamp(2rem,calc(3.125vw+8px),2.8125rem)] leading-[1.03]">
               One calm canvas for your website workflow.
             </h2>
             <p className="mt-6 max-w-md text-lg leading-relaxed text-muted">

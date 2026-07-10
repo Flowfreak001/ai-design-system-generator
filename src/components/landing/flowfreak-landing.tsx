@@ -17,7 +17,7 @@ function PricingSection() {
       <div className="relative z-10 mx-auto max-w-[1240px] px-5 py-20 sm:px-12 sm:py-28" id="pricing">
         <div className="mx-auto max-w-2xl text-center">
           <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.14em] text-accent">Pricing</p>
-          <FadeUp><h2 className="font-bold tracking-tight text-white text-[clamp(2rem,4.4vw,3.2rem)] leading-[1.04]">Simple plans for agencies and creators.</h2></FadeUp>
+          <FadeUp><h2 className="font-bold tracking-tight text-white text-[clamp(2rem,calc(3.125vw+8px),2.8125rem)] leading-[1.04]">Simple plans for agencies and creators.</h2></FadeUp>
           <FadeUp delay={0.06}><p className="mt-4 text-[16px] leading-relaxed text-white/60">Start free, upgrade when you&apos;re ready. No credit card required.</p></FadeUp>
         </div>
 

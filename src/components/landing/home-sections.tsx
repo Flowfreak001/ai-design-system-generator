@@ -355,7 +355,7 @@ export function ControlSection() {
   return (
     <Wrap>
       <div className="mb-12 max-w-2xl">
-        <FadeUp><h2 className="font-bold tracking-tight text-[clamp(2rem,4.4vw,3.2rem)] leading-[1.05]">Design production-ready sites with complete control.</h2></FadeUp>
+        <FadeUp><h2 className="font-bold tracking-tight text-[clamp(2rem,calc(3.125vw+8px),2.8125rem)] leading-[1.05]">Design production-ready sites with complete control.</h2></FadeUp>
         <FadeUp delay={0.06}><p className="mt-5 text-lg leading-relaxed text-muted">Plan the structure, keep the brand consistent, and hand off clean outputs — a workflow built to reduce rework and scale across clients.</p></FadeUp>
       </div>
 
@@ -451,7 +451,7 @@ export function UseCasesScroll() {
     <section id="use-cases" className="bg-white">
       {/* Section header — big heading left, copy + CTA right */}
       <div className="grid gap-8 px-5 pb-0 pt-24 sm:px-12 sm:pt-28 lg:grid-cols-2 lg:items-start lg:gap-16 lg:px-20">
-        <FadeUp><h2 className="font-bold tracking-tight text-[clamp(2rem,4.4vw,3.2rem)] leading-[1.05]">Built for how modern teams work.</h2></FadeUp>
+        <FadeUp><h2 className="font-bold tracking-tight text-[clamp(2rem,calc(3.125vw+8px),2.8125rem)] leading-[1.05]">Built for how modern teams work.</h2></FadeUp>
         <FadeUp delay={0.06}>
           <p className="text-[18px] leading-relaxed text-muted">Design without limits and deliver client-ready websites with full control over every detail — from first brief to final handoff.</p>
           <div className="mt-6"><LinkButton href="/#pricing" size="lg">See plans</LinkButton></div>
@@ -641,7 +641,7 @@ export function TestimonialsSection() {
       <div className="mx-auto max-w-[1240px] px-5 sm:px-12">
         <FadeUp className="mx-auto flex max-w-[600px] flex-col items-center text-center">
           <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.14em] text-accent">Testimonials</p>
-          <h2 className="font-bold tracking-tight text-[clamp(2rem,4.4vw,3.2rem)] leading-[1.05]">Loved by agencies, freelancers and builders.</h2>
+          <h2 className="font-bold tracking-tight text-[clamp(2rem,calc(3.125vw+8px),2.8125rem)] leading-[1.05]">Loved by agencies, freelancers and builders.</h2>
           <p className="mt-4 text-lg leading-relaxed text-muted">See how teams ship client-ready websites faster with Flowfreak.</p>
         </FadeUp>
 
