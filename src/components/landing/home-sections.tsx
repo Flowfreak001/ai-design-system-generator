@@ -451,7 +451,7 @@ export function UseCasesScroll() {
     <section id="use-cases" className="bg-white">
       {/* Section header — big heading left, copy + CTA right */}
       <div className="mx-auto grid max-w-[1200px] gap-8 px-5 pb-0 pt-24 sm:px-12 sm:pt-28 lg:grid-cols-2 lg:items-start lg:gap-16">
-        <FadeUp><h2 className="font-bold tracking-tight text-[clamp(2.4rem,5.4vw,4rem)] leading-[0.98]">Built for how modern teams work.</h2></FadeUp>
+        <FadeUp><h2 className="font-bold tracking-tight text-[clamp(2rem,4.4vw,3.2rem)] leading-[1.05]">Built for how modern teams work.</h2></FadeUp>
         <FadeUp delay={0.06}>
           <p className="text-[18px] leading-relaxed text-muted">Design without limits and deliver client-ready websites with full control over every detail — from first brief to final handoff.</p>
           <div className="mt-6"><LinkButton href="/#pricing" size="lg">See plans</LinkButton></div>
