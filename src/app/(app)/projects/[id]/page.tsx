@@ -18,6 +18,7 @@ import {
   addLibrarySectionToPageAction,
 } from "./editor/actions";
 import { DeleteProjectButton } from "@/components/projects/delete-project-button";
+import { WixPublishButton } from "@/components/projects/wix-publish-button";
 import { TypeBadge } from "@/components/projects/status-badge";
 import { WorkflowBlueprint } from "@/components/projects/workflow-blueprint";
 import { NotesSection } from "@/components/projects/notes-section";
@@ -206,6 +207,7 @@ export default async function ProjectWorkspacePage({
           >
             ✦ Open Design Editor
           </Link>
+          <WixPublishButton projectId={id} />
           <DeleteProjectButton projectName={project.name} action={remove} />
         </div>
       </FadeUp>
