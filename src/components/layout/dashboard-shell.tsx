@@ -9,7 +9,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { signOutAction } from "@/app/(app)/auth-actions";
-import { FlowfreakMark, FlowfreakLogo } from "@/components/layout/logo";
+import { FlowfreakWordmark } from "@/components/layout/logo";
 import type { SessionUser } from "@/lib/auth";
 import type { ReactNode } from "react";
 
@@ -296,7 +296,7 @@ export function DashboardShell({
             </svg>
           </button>
           <Link href="/" aria-label="Flowfreak home" className="shrink-0">
-            <FlowfreakLogo />
+            <FlowfreakWordmark height={38} />
           </Link>
           <span className="mx-1 hidden h-5 w-px shrink-0 bg-line sm:block" />
           <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-1.5 truncate text-[13.5px]">
@@ -377,9 +377,8 @@ export function DashboardShell({
           />
           <aside className="absolute inset-y-0 left-0 flex w-[260px] max-w-[85vw] flex-col border-r border-line bg-surface shadow-xl animate-in slide-in-from-left duration-200">
             <div className="flex items-center justify-between pt-4 pb-3 pl-3.5 pr-2">
-              <Link href="/" className="flex min-w-0 items-center gap-2" aria-label="Flowfreak home">
-                <FlowfreakMark className="shrink-0 text-ink" />
-                <span className="truncate text-[16px] font-bold tracking-[-0.02em] text-ink">Flowfreak</span>
+              <Link href="/" className="flex min-w-0 items-center" aria-label="Flowfreak home">
+                <FlowfreakWordmark height={38} />
               </Link>
               <button
                 type="button"

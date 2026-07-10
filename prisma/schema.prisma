@@ -55,8 +55,22 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  agency        Agency?        @relation(fields: [agencyId], references: [id])
+  agency        Agency?              @relation(fields: [agencyId], references: [id])
   savedSections SavedSection[]
+  resetTokens   PasswordResetToken[]
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 // A section a user bookmarked from the library. Stores the built-in section id

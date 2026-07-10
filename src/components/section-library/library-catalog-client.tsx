@@ -11,7 +11,7 @@ import { Button, LinkButton } from "@/components/ui/button";
 import { PageContainer } from "@/components/layout/page-container";
 import type { SectionTheme } from "@/components/sections/types";
 import type { LibrarySection } from "@/lib/section-library/manual-sections";
-import { SECTION_LIBRARY_CATEGORIES } from "@/lib/section-library/manual-sections";
+import { SECTION_LIBRARY_CATEGORIES, sectionCategories } from "@/lib/section-library/manual-sections";
 import { DEFAULT_SECTION_THEME } from "@/components/sections/section-theme";
 import { SectionErrorBoundary, renderLibrarySection as renderSection } from "@/components/section-library/section-render";
 import { ExportModal } from "@/components/section-library/export-modal";
@@ -127,13 +127,13 @@ export function LibraryCatalogClient({
   const [, start] = useTransition();
 
   const cats = useMemo(
-    () => ["all", ...SECTION_LIBRARY_CATEGORIES.filter((c) => sections.some((s) => s.category === c))],
+    () => ["all", ...SECTION_LIBRARY_CATEGORIES.filter((c) => sections.some((s) => sectionCategories(s).includes(c)))],
     [sections],
   );
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
     return sections.filter((s) => {
-      if (cat !== "all" && s.category !== cat) return false;
+      if (cat !== "all" && !sectionCategories(s).includes(cat as (typeof SECTION_LIBRARY_CATEGORIES)[number])) return false;
       if (!needle) return true;
       return [s.name, s.description, ...s.tags].join(" ").toLowerCase().includes(needle);
     });

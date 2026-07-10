@@ -9,7 +9,7 @@
 import type { SessionUser } from "@/lib/auth";
 
 /** Emails always treated as admin (belt-and-suspenders alongside role). */
-export const ADMIN_EMAILS = ["demo@projectos.dev"];
+export const ADMIN_EMAILS = ["demo@projectos.dev", "sunil@flowfreak.com"];
 
 export function isAdmin(user: Pick<SessionUser, "role" | "email">): boolean {
   return user.role === "admin" || ADMIN_EMAILS.includes(user.email.toLowerCase());

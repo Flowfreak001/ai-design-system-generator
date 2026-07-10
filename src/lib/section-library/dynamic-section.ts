@@ -22,6 +22,7 @@ export interface DynamicSectionDef {
   name: string;
   slug: string;
   category: SectionLibraryCategory;
+  categories?: SectionLibraryCategory[];
   layoutType: string;
   description: string;
   tags: string[];
@@ -70,6 +71,7 @@ export function dynamicToLibrarySection(def: DynamicSectionDef): LibrarySection 
     id: def.id,
     name: def.name,
     category: def.category,
+    categories: def.categories,
     layoutType: def.layoutType,
     description: def.description,
     tags: def.tags,

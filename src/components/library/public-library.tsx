@@ -4,7 +4,7 @@ import React, { useMemo, useRef, useEffect, useState, useTransition } from "reac
 import { toggleSavedSectionAction } from "@/lib/saved-sections/actions";
 import { DEFAULT_SECTION_THEME } from "@/components/sections/section-theme";
 import { SectionErrorBoundary, renderLibrarySection } from "@/components/section-library/section-render";
-import { SECTION_LIBRARY_CATEGORIES, type LibrarySection, type SectionLibraryCategory } from "@/lib/section-library/manual-sections";
+import { SECTION_LIBRARY_CATEGORIES, sectionCategories, type LibrarySection, type SectionLibraryCategory } from "@/lib/section-library/manual-sections";
 import { buildExportPrompt } from "@/lib/section-library/prompt-export";
 import { Button, LinkButton } from "@/components/ui/button";
 
@@ -130,7 +130,7 @@ export function PublicLibrary({ sections, isAuthed = false, savedIds = [] }: { s
 
   const categories = useMemo(
     () => SECTION_LIBRARY_CATEGORIES
-      .map((c) => ({ cat: c, count: sections.filter((s) => s.category === c).length }))
+      .map((c) => ({ cat: c, count: sections.filter((s) => sectionCategories(s).includes(c)).length }))
       .filter((c) => c.count > 0),
     [sections],
   );
@@ -149,7 +149,7 @@ export function PublicLibrary({ sections, isAuthed = false, savedIds = [] }: { s
     const q = query.trim().toLowerCase();
     return sections.filter((s) => {
       if (active === "saved") { if (!saved.has(s.id)) return false; }
-      else if (active !== "all" && s.category !== active) return false;
+      else if (active !== "all" && !sectionCategories(s).includes(active)) return false;
       if (!q) return true;
       return [s.name, s.description, ...s.tags].join(" ").toLowerCase().includes(q);
     });

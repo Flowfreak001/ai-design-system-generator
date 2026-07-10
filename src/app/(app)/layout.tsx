@@ -1,10 +1,9 @@
-import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { DashboardShell } from "@/components/layout/dashboard-shell";
-import { FlowfreakLogo } from "@/components/layout/logo";
 
 // Authenticated users get the dashboard shell (sidebar + top bar).
-// Unauthenticated (signin/signup) get a minimal centered page.
+// Unauthenticated (signin/signup) render full-bleed — the AuthForm owns the
+// whole split-screen (form panel + brand panel) including its own logo.
 // Auth *gating* lives in projects/ and dashboard/ layouts.
 export default async function AppLayout({
   children,
@@ -15,14 +14,5 @@ export default async function AppLayout({
     return <DashboardShell user={user}>{children}</DashboardShell>;
   }
 
-  return (
-    <div className="flex min-h-screen flex-1 flex-col">
-      <header className="flex h-16 items-center px-5 sm:px-8">
-        <Link href="/" aria-label="Flowfreak home">
-          <FlowfreakLogo />
-        </Link>
-      </header>
-      <main className="flex flex-1 flex-col">{children}</main>
-    </div>
-  );
+  return <div className="min-h-screen">{children}</div>;
 }

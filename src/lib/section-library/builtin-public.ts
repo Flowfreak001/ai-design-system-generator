@@ -7,7 +7,7 @@ import { slugify, dynamicToLibrarySection, type DynamicSectionDef } from "./dyna
 import type { LibrarySection, SectionLibraryCategory } from "./manual-sections";
 
 type BuiltinSection = {
-  id: string; name: string; category: string; layoutType: string; description: string;
+  id: string; name: string; category: string; categories?: string[]; layoutType: string; description: string;
   tags: string[]; editableFields: string[]; codeMode: string; originality: string;
   defaultContent: unknown; tsxCode: string;
 };
@@ -22,6 +22,7 @@ export function getBuiltinLibrarySections(): LibrarySection[] {
       name: b.name,
       slug: slugify(b.name),
       category: b.category as SectionLibraryCategory,
+      categories: (b.categories as SectionLibraryCategory[] | undefined),
       layoutType: b.layoutType,
       description: b.description,
       tags: b.tags ?? [],

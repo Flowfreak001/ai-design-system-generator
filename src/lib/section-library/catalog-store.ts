@@ -12,12 +12,13 @@ import type { SectionLibraryCategory, SectionLibraryStatus } from "./manual-sect
 type CodeHistory = { code: string; at: string }[];
 
 function rowToDef(r: LibrarySectionModel): DynamicSectionDef {
-  const config = (r.config ?? {}) as { description?: string };
+  const config = (r.config ?? {}) as { description?: string; categories?: string[] };
   return {
     id: r.id,
     name: r.name,
     slug: r.slug,
     category: r.category as SectionLibraryCategory,
+    categories: config.categories?.length ? (config.categories as SectionLibraryCategory[]) : undefined,
     layoutType: r.layoutType,
     description: config.description ?? "",
     tags: r.tags,
@@ -74,7 +75,12 @@ export async function upsertCatalogSection(
     visibility: def.visibility,
     codeMode: def.codeMode === "html" ? "html-css" : "studio-tsx",
     tsxCode: def.componentCode,
-    config: { description: def.description } as unknown as Prisma.InputJsonValue,
+    // Persist the multi-category set (always includes the primary) in config JSON
+    // — no schema column needed. Empty when only the primary applies.
+    config: {
+      description: def.description,
+      categories: def.categories?.length ? Array.from(new Set([def.category, ...def.categories])) : [],
+    } as unknown as Prisma.InputJsonValue,
     defaultContent: def.defaultContent as unknown as Prisma.InputJsonValue,
     editableFields: def.editableFields,
     tags: def.tags,

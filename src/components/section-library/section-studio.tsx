@@ -334,9 +334,48 @@ export function SectionStudio({
                   {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
                 </select>
               </label>
-              <select value={draft.category} onChange={(e) => set("category", e.target.value as SectionLibraryCategory)} className={INPUT}>
-                {SECTION_LIBRARY_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
+              <label className="text-[11px] font-medium text-muted">Primary category
+                <select
+                  value={draft.category}
+                  onChange={(e) => {
+                    const c = e.target.value as SectionLibraryCategory;
+                    setDraft((d) => {
+                      const cats = d.categories?.length ? d.categories : [d.category];
+                      return { ...d, category: c, categories: Array.from(new Set([c, ...cats])) };
+                    });
+                  }}
+                  className={INPUT}
+                >
+                  {SECTION_LIBRARY_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </label>
+              <div className="flex flex-col gap-1.5">
+                <span className="text-[11px] font-medium text-muted">Also appears under (assign extra categories)</span>
+                <div className="flex flex-wrap gap-1.5">
+                  {SECTION_LIBRARY_CATEGORIES.map((c) => {
+                    const cats = draft.categories?.length ? draft.categories : [draft.category];
+                    const on = cats.includes(c);
+                    const isPrimary = c === draft.category;
+                    return (
+                      <button
+                        key={c}
+                        type="button"
+                        disabled={isPrimary}
+                        onClick={() => {
+                          const cur = draft.categories?.length ? [...draft.categories] : [draft.category];
+                          let next = on ? cur.filter((x) => x !== c) : [...cur, c];
+                          if (!next.includes(draft.category)) next = [draft.category, ...next];
+                          set("categories", Array.from(new Set(next)) as SectionLibraryCategory[]);
+                        }}
+                        className={`rounded-full border px-2.5 py-1 text-[11px] capitalize transition-colors ${on ? "border-accent bg-accent-soft text-accent" : "border-line text-body hover:bg-panel"} ${isPrimary ? "cursor-default opacity-90" : ""}`}
+                        title={isPrimary ? "Primary category" : on ? "Remove category" : "Add category"}
+                      >
+                        {c}{isPrimary ? " ★" : ""}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
               <select value={draft.codeMode} onChange={(e) => set("codeMode", e.target.value as DynamicSectionDef["codeMode"])} className={INPUT}>
                 <option value="react">React / TSX</option>
                 <option value="html">HTML + CSS</option>

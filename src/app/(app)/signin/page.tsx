@@ -6,11 +6,18 @@ import { signInAction } from "../auth-actions";
 
 export const metadata: Metadata = { title: "Sign in" };
 
-export default async function SignInPage() {
+export default async function SignInPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ reset?: string }>;
+}) {
   if (await auth()) redirect("/dashboard");
+  const { reset } = await searchParams;
   return (
-    <div className="flex flex-1 items-center justify-center px-5 py-20">
-      <AuthForm mode="signin" action={signInAction} />
-    </div>
+    <AuthForm
+      mode="signin"
+      action={signInAction}
+      notice={reset ? "Your password was updated — sign in with your new password." : undefined}
+    />
   );
 }

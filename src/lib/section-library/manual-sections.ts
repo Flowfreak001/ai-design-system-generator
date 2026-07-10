@@ -15,10 +15,20 @@ import type { SectionType } from "@/components/sections/types";
 export const SECTION_LIBRARY_CATEGORIES = [
   "site header", "hero banner", "hero", "features", "services", "pricing", "testimonials", "case-studies",
   "logos", "stats", "faq", "contact", "cta", "gallery", "process", "footer",
-  "comparison", "dashboard", "ecommerce", "parallax", "custom",
+  "comparison", "dashboard", "ecommerce", "parallax", "sticky scroll", "awards", "custom",
 ] as const;
 
 export type SectionLibraryCategory = (typeof SECTION_LIBRARY_CATEGORIES)[number];
+
+/**
+ * A section usually belongs to more than one category (a parallax gallery is a
+ * "gallery" AND "parallax", a sticky-scroll hero is a "hero banner" AND
+ * "sticky scroll"). `category` stays the primary/badge value; `categories`
+ * (when present) is the full set used for filtering. Falls back to `[category]`.
+ */
+export function sectionCategories(s: { category: SectionLibraryCategory; categories?: SectionLibraryCategory[] }): SectionLibraryCategory[] {
+  return s.categories && s.categories.length ? s.categories : [s.category];
+}
 
 export type SectionLibraryStatus = "draft" | "ready" | "archived";
 
@@ -46,6 +56,9 @@ export interface LibrarySection {
   id: string;
   name: string;
   category: SectionLibraryCategory;
+  /** All categories this section fits (for multi-category filtering). Optional;
+   *  falls back to `[category]` via `sectionCategories()`. */
+  categories?: SectionLibraryCategory[];
   layoutType: string;
   description: string;
   tags: string[];
