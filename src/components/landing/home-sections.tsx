@@ -450,7 +450,7 @@ export function UseCasesScroll() {
   return (
     <section id="use-cases" className="bg-white">
       {/* Section header — big heading left, copy + CTA right */}
-      <div className="mx-auto grid max-w-[1200px] gap-8 px-5 pb-0 pt-24 sm:px-12 sm:pt-28 lg:grid-cols-2 lg:items-start lg:gap-16">
+      <div className="grid gap-8 px-5 pb-0 pt-24 sm:px-12 sm:pt-28 lg:grid-cols-2 lg:items-start lg:gap-16 lg:px-20">
         <FadeUp><h2 className="font-bold tracking-tight text-[clamp(2rem,4.4vw,3.2rem)] leading-[1.05]">Built for how modern teams work.</h2></FadeUp>
         <FadeUp delay={0.06}>
           <p className="text-[18px] leading-relaxed text-muted">Design without limits and deliver client-ready websites with full control over every detail — from first brief to final handoff.</p>
@@ -461,7 +461,7 @@ export function UseCasesScroll() {
       {/* Sticky feature panels */}
       {USE_CASES_SCROLL.map((s, i) => (
         <div key={i} className="sticky top-[70px] flex items-start bg-white">
-          <div className={`mx-auto grid w-full max-w-[1200px] items-center gap-10 px-5 sm:px-12 lg:grid-cols-2 lg:gap-16 ${i === 0 ? "pt-[100px]" : "pt-[40px]"} ${i === USE_CASES_SCROLL.length - 1 ? "pb-20 sm:pb-24" : "pb-[40px]"}`}>
+          <div className={`grid w-full items-center gap-10 px-5 sm:px-12 lg:grid-cols-2 lg:gap-16 lg:px-20 ${i === 0 ? "pt-[100px]" : "pt-[40px]"} ${i === USE_CASES_SCROLL.length - 1 ? "pb-20 sm:pb-24" : "pb-[40px]"}`}>
             <motion.div
               initial={reduce ? false : { opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
