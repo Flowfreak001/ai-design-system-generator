@@ -1,11 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { LinkButton } from "@/components/ui/button";
 import { FlowfreakWordmark } from "@/components/layout/logo";
 import { useScrollDirection } from "@/lib/motion/use-scroll-direction";
+import { signOutAction } from "@/app/(app)/auth-actions";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -51,6 +52,14 @@ const NAV: NavItem[] = [
 
 export type HeaderUser = { name: string | null; email: string };
 
+// Account dropdown links (logged-in users) — mirrors the app's dashboard menu.
+const USER_MENU_LINKS: { href: string; label: string; icon: ReactNode }[] = [
+  { href: "/saved", label: "Saved", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6.5 4h11a1 1 0 0 1 1 1v15l-6.5-4.2L5.5 20V5a1 1 0 0 1 1-1Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" /></svg> },
+  { href: "/projects", label: "Projects", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" /></svg> },
+  { href: "/clients", label: "Clients", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="9" cy="8.5" r="3" stroke="currentColor" strokeWidth="1.7" /><path d="M3.5 19c.8-3 3-4.5 5.5-4.5S13.7 16 14.5 19M16 6.5a3 3 0 0 1 0 5.8M20.5 19c-.5-2-1.6-3.4-3.2-4.1" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg> },
+  { href: "/account", label: "Profile", icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8.5" r="3.5" stroke="currentColor" strokeWidth="1.7" /><path d="M5 19.5c1-3.4 3.6-5 7-5s6 1.6 7 5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" /></svg> },
+];
+
 function initialsOf(u: HeaderUser): string {
   const base = (u.name && u.name.trim()) || u.email;
   return base
@@ -69,6 +78,7 @@ function firstNameOf(u: HeaderUser): string {
 
 export function SiteHeader({ user }: { user?: HeaderUser | null }) {
   const [open, setOpen] = useState(false);
+  const [userMenu, setUserMenu] = useState(false);
   const [active, setActive] = useState<string | null>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reduce = useReducedMotion();
@@ -175,18 +185,54 @@ export function SiteHeader({ user }: { user?: HeaderUser | null }) {
 
         <div className="flex items-center gap-2">
           {user ? (
-            <Link
-              href="/dashboard"
-              aria-label="Go to your dashboard"
-              className="flex items-center gap-2.5 rounded-full border border-ink bg-surface py-1 pl-1 pr-3 transition-colors hover:bg-panel"
-            >
-              <span className="grid size-8 shrink-0 place-items-center rounded-full bg-accent-soft text-[13px] font-semibold text-accent">
-                {initialsOf(user)}
-              </span>
-              <span className="hidden max-w-[140px] truncate text-[15px] font-medium text-ink sm:block">
-                {firstNameOf(user)}
-              </span>
-            </Link>
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setUserMenu((v) => !v)}
+                aria-haspopup="menu"
+                aria-expanded={userMenu}
+                aria-label="Account menu"
+                className="flex items-center gap-2 rounded-full bg-surface py-1 pl-1 pr-2.5 outline-none transition-colors hover:bg-panel focus-visible:ring-2 focus-visible:ring-accent"
+              >
+                <span className="grid size-8 shrink-0 place-items-center rounded-full bg-accent-soft text-[13px] font-semibold text-accent">
+                  {initialsOf(user)}
+                </span>
+                <span className="hidden max-w-[140px] truncate text-[15px] font-medium text-ink sm:block">
+                  {firstNameOf(user)}
+                </span>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true" className={`text-muted transition-transform duration-200 ${userMenu ? "rotate-180" : ""}`}>
+                  <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </button>
+              {userMenu && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setUserMenu(false)} aria-hidden="true" />
+                  <div role="menu" className="absolute right-0 top-12 z-50 w-64 overflow-hidden rounded-xl border border-line bg-surface p-1.5 shadow-[0_20px_60px_-24px_rgba(0,0,0,0.28)]">
+                    <div className="flex items-center gap-2.5 px-2.5 py-2">
+                      <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-accent text-[12px] font-semibold text-white">{initialsOf(user)}</span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-[13px] font-medium leading-tight text-ink">{(user.name && user.name.trim()) || firstNameOf(user)}</span>
+                        <span className="block truncate text-[11.5px] leading-tight text-muted">{user.email}</span>
+                      </span>
+                    </div>
+                    <div className="my-1 border-t border-line" />
+                    {USER_MENU_LINKS.map((m) => (
+                      <Link key={m.href} href={m.href} role="menuitem" onClick={() => setUserMenu(false)} className="flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] text-body transition-colors hover:bg-panel hover:text-ink">
+                        {m.icon}
+                        {m.label}
+                      </Link>
+                    ))}
+                    <div className="my-1 border-t border-line" />
+                    <form action={signOutAction}>
+                      <button type="submit" role="menuitem" className="flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-[13px] text-body transition-colors hover:bg-panel hover:text-ink">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M15 4h3a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-3M10 8l-4 4 4 4M6 12h11" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                        Sign out
+                      </button>
+                    </form>
+                  </div>
+                </>
+              )}
+            </div>
           ) : (
             <>
               <LinkButton href="/signin" variant="ghost" size="md" className="hidden sm:inline-flex">
