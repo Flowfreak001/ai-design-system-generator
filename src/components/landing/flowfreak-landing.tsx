@@ -1,60 +1,8 @@
 import Link from "next/link";
 import { LinkButton } from "@/components/ui/button";
-import { FadeUp, Stagger, StaggerItem, AnimatedHeading } from "@/components/ui/motion";
+import { FadeUp, Stagger, StaggerItem } from "@/components/ui/motion";
 import { Hero, CanvasShowcase } from "@/components/landing/hero";
 import { PlatformPillars, ComponentCarousel, ControlSection, DarkSpotlight, FaqSection, UseCasesScroll, TestimonialsSection } from "@/components/landing/home-sections";
-
-/* ─────────────────────────── How it works (alternating feature rows) ─────────────────────────── */
-type WorkflowStep = { eyebrow: string; title: string; text: string; img: string; points: string[] };
-const WORKFLOW: WorkflowStep[] = [
-  { eyebrow: "Step 01", title: "Capture the client brief", text: "Turn messy notes, calls and guided answers into a structured brief — goals, pages, features, SEO and the gaps flagged before any design starts.", img: "/use-cases/spot-brief.png", points: ["Guided discovery questions", "Auto-flagged missing info", "Goals, pages & SEO in one place"] },
-  { eyebrow: "Step 02", title: "Plan the site structure", text: "Generate the sitemap, page goals, CTAs and wireframe sections from the approved brief, so every page has a purpose before a pixel is styled.", img: "/use-cases/spot-plan.png", points: ["Sitemap from the brief", "Per-page goals & CTAs", "Wireframe sections mapped out"] },
-  { eyebrow: "Step 03", title: "Design from real sections", text: "Assemble pages from a curated, brand-driven component library instead of prompting from a blank canvas each time.", img: "/use-cases/spot-build.png", points: ["Curated component library", "Brand tokens applied everywhere", "No blank-canvas prompting"] },
-  { eyebrow: "Step 04", title: "Export to your stack", text: "Ship structured prompts and files to Claude, Cursor, Lovable, Figma and Webflow — clean handoff, no rebuilding required.", img: "/use-cases/control.png", points: ["Structured prompts & files", "Claude, Cursor, Figma, Webflow", "Clean handoff, zero rebuild"] },
-];
-function WorkflowRow({ step, index }: { step: WorkflowStep; index: number }) {
-  const flipped = index % 2 === 1;
-  return (
-    <div className="grid items-center gap-8 lg:grid-cols-2 lg:gap-16">
-      <FadeUp className={flipped ? "lg:order-2" : ""}>
-        <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.14em] text-accent">{step.eyebrow}</p>
-        <h3 className="font-bold tracking-tight text-ink text-[clamp(1.6rem,3vw,2.3rem)] leading-[1.1]">{step.title}</h3>
-        <p className="mt-4 max-w-xl text-[16px] leading-relaxed text-muted">{step.text}</p>
-        <ul className="mt-6 grid gap-2.5">
-          {step.points.map((p) => (
-            <li key={p} className="flex items-start gap-2.5 text-[14.5px] text-body">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="mt-0.5 shrink-0 text-accent"><circle cx="12" cy="12" r="9" fill="currentColor" fillOpacity="0.12" /><path d="m8.5 12 2.4 2.4L15.5 9.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
-              {p}
-            </li>
-          ))}
-        </ul>
-      </FadeUp>
-      <FadeUp delay={0.08} className={flipped ? "lg:order-1" : ""}>
-        <div className="overflow-hidden rounded-[20px] border border-line bg-panel p-3 shadow-[0_40px_90px_-50px_rgba(15,23,42,0.4)]">
-          <img src={step.img} alt={step.title} className="w-full rounded-xl" loading="lazy" />
-        </div>
-      </FadeUp>
-    </div>
-  );
-}
-function WorkflowStack() {
-  return (
-    <section id="workflow" className="mx-auto max-w-[1240px] px-5 py-20 sm:px-12 sm:py-28">
-      <div className="mx-auto mb-16 max-w-2xl text-center">
-        <p className="mb-3 text-[12px] font-semibold uppercase tracking-[0.14em] text-accent">How it works</p>
-        <AnimatedHeading
-          text="From first brief to build-ready, in four steps."
-          className="font-bold tracking-tight text-[clamp(2rem,4.4vw,3.2rem)] leading-[1.05]"
-        />
-      </div>
-      <div className="grid gap-20 sm:gap-28">
-        {WORKFLOW.map((step, i) => (
-          <WorkflowRow key={step.title} step={step} index={i} />
-        ))}
-      </div>
-    </section>
-  );
-}
 
 /* ─────────────────────────── Pricing ─────────────────────────── */
 const PLANS = [
@@ -148,7 +96,6 @@ export function FlowfreakLanding() {
       <ComponentCarousel />
       <DarkSpotlight />
       <ControlSection />
-      <WorkflowStack />
       <UseCasesScroll />
       <PricingSection />
       <TestimonialsSection />
