@@ -81,7 +81,7 @@ export function Hero() {
             Start Building
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="-mr-0.5"><path d="M5 12h14m-6-6 6 6-6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /></svg>
           </LinkButton>
-          <LinkButton href="/components" variant="secondary" size="lg">Explore Library</LinkButton>
+          <LinkButton href="/components" variant="secondary" size="lg" className="bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_7%)] hover:bg-[color-mix(in_oklch,var(--secondary),var(--foreground)_12%)]">Explore Library</LinkButton>
         </motion.div>
       </div>
     </section>

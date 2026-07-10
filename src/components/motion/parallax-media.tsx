@@ -49,7 +49,9 @@ export function ParallaxMedia({
         style={
           active
             ? { position: "absolute", inset: 0, transform: "scale(1.12)", willChange: "transform" }
-            : undefined
+            : // Inactive (mobile / reduced-motion): still fill the box so full-bleed
+              // `absolute inset-0` children render, matching desktop/iPad.
+              { position: "absolute", inset: 0 }
         }
       >
         {children}
