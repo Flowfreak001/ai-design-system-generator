@@ -87,7 +87,7 @@ export function PlatformPillars() {
         </FadeUp>
       </div>
 
-      <Stagger className="mt-14 grid gap-5 lg:grid-cols-3">
+      <Stagger className="mt-14 grid gap-5 md:grid-cols-3">
         {PILLARS.map((p) => (
           <StaggerItem key={p.title}>
             <a href={p.href} className="group block overflow-hidden rounded-[24px] transition-transform duration-300 hover:-translate-y-1" style={{ backgroundColor: p.bg }}>
@@ -362,7 +362,7 @@ export function ControlSection() {
       <div className="grid items-center gap-12 lg:grid-cols-2 lg:gap-16">
         {/* Reference-style mockup — reflects the open accordion item */}
         <FadeUp className="order-2 lg:order-1">
-          <img src="/use-cases/control.png" alt="Brief Summary — auto-generated from your client brief" className="w-full rounded-[26px]" loading="lazy" />
+          <img src="/use-cases/control.png" alt="Brief Summary — auto-generated from your client brief" className="mx-auto w-full rounded-[26px] md:max-w-[520px] lg:max-w-none" loading="lazy" />
         </FadeUp>
 
         {/* Accordion */}
@@ -437,7 +437,7 @@ const UC_AI = (
 );
 
 const UcImage = ({ src, alt }: { src: string; alt: string }) => (
-  <img src={src} alt={alt} className="w-full rounded-2xl" loading="lazy" />
+  <img src={src} alt={alt} className="mx-auto w-full rounded-2xl md:max-w-[520px] lg:max-w-none" loading="lazy" />
 );
 
 const USE_CASES_SCROLL = [
