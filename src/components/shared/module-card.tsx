@@ -24,7 +24,7 @@ export function ModuleCard({ module, icon }: { module: ProductModule; icon?: Rea
   return (
     <Link
       href={module.href}
-      className="card group flex h-full flex-col p-5 transition-colors hover:border-line-strong"
+      className="card group flex h-full flex-col p-5 transition-shadow hover:shadow-[0_2px_4px_rgba(8,9,10,0.05),0_10px_24px_-8px_rgba(8,9,10,0.14)]"
     >
       <div className="flex items-start justify-between gap-3">
         <span className={`grid h-9 w-9 place-items-center rounded-xl bg-panel ${ACCENT[module.accent]}`}>
