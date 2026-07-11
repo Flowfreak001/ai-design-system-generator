@@ -50,8 +50,8 @@ export function NewProjectButton({
             >
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <h2 className="text-[20px] font-semibold tracking-[-0.02em] text-ink">Start something new</h2>
-                  <p className="mt-1 text-[13px] text-muted">Build a live Wix Headless site from a template, or plan a design project.</p>
+                  <h2 className="text-[21px] font-semibold tracking-[-0.02em] text-ink">Start something new</h2>
+                  <p className="mt-1 text-[13.5px] text-body">Build a live Wix Headless site from a template, or plan a design project.</p>
                 </div>
                 <button
                   type="button"

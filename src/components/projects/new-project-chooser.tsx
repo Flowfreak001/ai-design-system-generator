@@ -83,10 +83,10 @@ function ChoiceCard({ icon, tint, title, body, tags, onClick }: {
         </span>
         <span className="text-[15px] font-semibold text-ink">{title}</span>
       </div>
-      <p className="mt-2.5 text-[13px] leading-relaxed text-muted">{body}</p>
+      <p className="mt-2.5 text-[13px] leading-relaxed text-body">{body}</p>
       <div className="mt-3 flex flex-wrap gap-1.5">
         {tags.map((t) => (
-          <span key={t} className="rounded-md bg-panel px-2 py-0.5 text-[11px] font-medium text-muted">{t}</span>
+          <span key={t} className="rounded-md bg-panel px-2 py-0.5 text-[11px] font-medium text-body">{t}</span>
         ))}
       </div>
     </motion.button>
@@ -141,7 +141,7 @@ function WixHeadlessCreate({ onBack }: { onBack: () => void }) {
               </span>
               <span className="min-w-0">
                 <span className="flex items-center gap-1.5 text-[13px] font-semibold text-ink">{tpl.name}</span>
-                <span className="mt-0.5 block text-[11.5px] leading-snug text-muted">{tpl.tagline}</span>
+                <span className="mt-0.5 block text-[11.5px] leading-snug text-body">{tpl.tagline}</span>
               </span>
               {!tpl.available && <span className="absolute right-2.5 top-2.5 rounded-full bg-panel px-1.5 py-0.5 text-[10px] font-medium text-muted">Soon</span>}
               {active && (
