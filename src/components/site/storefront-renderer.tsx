@@ -14,7 +14,7 @@ import type { LibraryDefaultContent } from "@/lib/section-library/manual-section
 
 export type SiteNavItem = { name: string; href: string; active: boolean };
 
-const ANNOUNCE = "New customers save 10% with code WELCOME10 · Free shipping on orders over $100";
+const ANNOUNCE = "Save 10% on your first order with code HELLO10 · Complimentary shipping over $100";
 
 export function StorefrontRenderer({
   siteName,
@@ -31,17 +31,23 @@ export function StorefrontRenderer({
   const [cartOpen, setCartOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [mobile, setMobile] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
   const t = theme;
 
+  // Measure the rendered width (robust in scaled preview frames + real devices).
   useEffect(() => {
-    const check = () => setMobile(window.innerWidth < 768);
-    check();
-    window.addEventListener("resize", check);
-    return () => window.removeEventListener("resize", check);
+    const el = rootRef.current;
+    if (!el) return;
+    const measure = () => setMobile(el.getBoundingClientRect().width < 768);
+    measure(); // immediate measure — RO's initial callback isn't guaranteed
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    window.addEventListener("resize", measure);
+    return () => { ro.disconnect(); window.removeEventListener("resize", measure); };
   }, []);
 
   return (
-    <div style={{ background: t.backgroundColor, color: t.textColor, fontFamily: t.bodyFont, minHeight: "100dvh" }}>
+    <div ref={rootRef} style={{ background: t.backgroundColor, color: t.textColor, fontFamily: t.bodyFont, minHeight: "100dvh" }}>
       {/* Looping announcement marquee */}
       <style>{`@keyframes sf-marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}@media (prefers-reduced-motion: reduce){.sf-track{animation:none!important}}`}</style>
       <div style={{ overflow: "hidden", whiteSpace: "nowrap", background: t.textColor, color: t.backgroundColor, padding: "8px 0", fontSize: 12, letterSpacing: "0.08em", textTransform: "uppercase", fontWeight: 600 }}>
@@ -88,7 +94,7 @@ export function StorefrontRenderer({
           )}
       </main>
 
-      <StoreFooter siteName={siteName} theme={t} />
+      <StoreFooter siteName={siteName} theme={t} mobile={mobile} />
       <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} theme={t} />
     </div>
   );
@@ -168,25 +174,27 @@ function CartDrawer({ open, onClose, theme }: { open: boolean; onClose: () => vo
 }
 
 // ── Rich store footer ──
-function StoreFooter({ siteName, theme }: { siteName: string; theme: SectionTheme }) {
+function StoreFooter({ siteName, theme, mobile }: { siteName: string; theme: SectionTheme; mobile: boolean }) {
   const t = theme;
+  const [openCol, setOpenCol] = useState<string | null>(null);
   const features = [
-    { title: "New customers get 15% off", text: "on your first purchase" },
-    { title: "Free shipping", text: "on orders over $100" },
-    { title: "Buy now, pay later", text: "flexible checkout" },
+    { title: "Complimentary shipping", text: "on orders over $100" },
+    { title: "Easy 30-day returns", text: "shop with confidence" },
+    { title: "Secure checkout", text: "pay your way" },
   ];
   const cols = [
-    { head: "Help", links: ["FAQ", "Contact", "Size Chart"] },
-    { head: "Company", links: ["About", "Blog", "Careers"] },
+    { head: "Help", links: ["FAQ", "Contact", "Size guide"] },
+    { head: "Company", links: ["Our story", "Journal", "Careers"] },
   ];
+  const white = (o: number) => `rgba(255,255,255,${o})`;
   return (
     <footer style={{ marginTop: 8, background: "#0e0e10", color: "#fff", fontFamily: t.bodyFont }}>
-      <style>{`.sf-fcols{grid-template-columns:1.4fr repeat(2,0.8fr) 1.6fr}@media(max-width:900px){.sf-fcols{grid-template-columns:1fr 1fr}}@media(max-width:560px){.sf-fcols{grid-template-columns:1fr}}`}</style>
+      <style>{`.sf-fcols{grid-template-columns:1.4fr repeat(2,0.8fr) 1.6fr}@media(max-width:900px){.sf-fcols{grid-template-columns:1fr 1fr}}@media(max-width:768px){.sf-fcols{grid-template-columns:1fr}}`}</style>
       {/* Feature strip */}
       <div style={{ background: t.backgroundColor, color: t.textColor, borderRadius: "0 0 22px 22px", padding: "28px 24px" }}>
-        <div style={{ maxWidth: 1200, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))" }}>
+        <div style={{ maxWidth: 1200, margin: "0 auto", display: "grid", gridTemplateColumns: mobile ? "1fr" : "repeat(auto-fit,minmax(220px,1fr))", gap: mobile ? 12 : 0 }}>
           {features.map((f, i) => (
-            <div key={i} style={{ textAlign: "center", padding: "8px 20px", borderLeft: i === 0 ? "none" : `1px solid ${t.borderColor}` }}>
+            <div key={i} style={{ textAlign: mobile ? "left" : "center", padding: mobile ? "0" : "8px 20px", borderLeft: !mobile && i > 0 ? `1px solid ${t.borderColor}` : "none" }}>
               <p style={{ margin: 0, fontFamily: t.headingFont, fontSize: 17, fontWeight: 700 }}>{f.title}</p>
               <p style={{ margin: "4px 0 0", fontSize: 13.5, color: t.mutedTextColor }}>{f.text}</p>
             </div>
@@ -195,23 +203,32 @@ function StoreFooter({ siteName, theme }: { siteName: string; theme: SectionThem
       </div>
 
       <div style={{ maxWidth: 1280, margin: "0 auto", padding: "56px 24px 24px" }}>
-        <div className="sf-fcols" style={{ display: "grid", gap: 32, alignItems: "start" }}>
-          <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: "rgba(255,255,255,0.7)", maxWidth: 240 }}>
-            All products in this store are for demo purposes only.
+        <div className="sf-fcols" style={{ display: "grid", gap: mobile ? 4 : 32, alignItems: "start" }}>
+          <p style={{ margin: mobile ? "0 0 12px" : 0, fontSize: 14, lineHeight: 1.6, color: white(0.7), maxWidth: 260 }}>
+            Considered essentials, made to last — and to move with you.
           </p>
           {cols.map((c) => (
-            <div key={c.head}>
-              <p style={{ margin: 0, fontSize: 12.5, fontWeight: 700, letterSpacing: "0.02em" }}>{c.head}</p>
-              {c.links.map((l) => (
-                <a key={l} href="#" style={{ display: "block", marginTop: 14, fontSize: 14, color: "rgba(255,255,255,0.7)", textDecoration: "none" }}>{l}</a>
-              ))}
+            <div key={c.head} style={mobile ? { borderTop: `1px solid ${white(0.12)}` } : undefined}>
+              {mobile ? (
+                <button type="button" onClick={() => setOpenCol(openCol === c.head ? null : c.head)} style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", padding: "18px 0", background: "none", border: "none", color: "#fff", cursor: "pointer", fontSize: 13, fontWeight: 700 }}>
+                  {c.head}
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"><path d={openCol === c.head ? "M5 12h14" : "M12 5v14M5 12h14"} /></svg>
+                </button>
+              ) : <p style={{ margin: 0, fontSize: 12.5, fontWeight: 700, letterSpacing: "0.02em" }}>{c.head}</p>}
+              {(!mobile || openCol === c.head) && (
+                <div style={{ paddingBottom: mobile ? 16 : 0 }}>
+                  {c.links.map((l) => (
+                    <a key={l} href="#" style={{ display: "block", marginTop: mobile ? 12 : 14, fontSize: 14, color: white(0.7), textDecoration: "none" }}>{l}</a>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
-          <div>
-            <p style={{ margin: 0, fontFamily: t.headingFont, fontSize: 20, fontWeight: 800, letterSpacing: "-0.01em", lineHeight: 1.1 }}>Sign up for offers and get 10% off</p>
-            <p style={{ margin: "12px 0 0", fontSize: 14, color: "rgba(255,255,255,0.7)" }}>Join our newsletter for the latest updates.</p>
-            <div style={{ marginTop: 16, display: "flex", alignItems: "center", border: "1px solid rgba(255,255,255,0.3)", borderRadius: t.radius, padding: "4px 4px 4px 16px" }}>
-              <input placeholder="Your email" style={{ flex: 1, background: "none", border: "none", outline: "none", color: "#fff", fontSize: 14 }} />
+          <div style={mobile ? { marginTop: 24 } : undefined}>
+            <p style={{ margin: 0, fontFamily: t.headingFont, fontSize: 20, fontWeight: 800, letterSpacing: "-0.01em", lineHeight: 1.1 }}>Join the list, save 10%</p>
+            <p style={{ margin: "12px 0 0", fontSize: 14, color: white(0.7) }}>Be first to hear about new arrivals and offers.</p>
+            <div style={{ marginTop: 16, display: "flex", alignItems: "center", border: `1px solid ${white(0.3)}`, borderRadius: t.radius, padding: "4px 4px 4px 16px" }}>
+              <input placeholder="Email address" style={{ flex: 1, minWidth: 0, background: "none", border: "none", outline: "none", color: "#fff", fontSize: 14 }} />
               <button type="button" aria-label="Subscribe" style={{ height: 36, width: 36, borderRadius: 8, background: t.accentColor, color: "#fff", border: "none", cursor: "pointer", display: "grid", placeItems: "center" }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
               </button>
