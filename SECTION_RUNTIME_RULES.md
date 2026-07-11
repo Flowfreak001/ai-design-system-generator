@@ -1,5 +1,18 @@
 # Section Runtime Rules
 
+## ⛔ STRICT: never copy text or media from a reference
+
+When building a section from a screenshot, reference URL, or example, **replicate the LAYOUT and STYLE only — never the words, names, or media.** This is non-negotiable.
+
+- **Do NOT reuse** any headline, quote, testimonial body, person name, job title, company/brand name, stat number, label, or CTA wording from the reference. Not even "close paraphrases" that keep the distinctive phrasing.
+- **Write original placeholder copy** in the same tone/length so the layout reads realistically (e.g. invent neutral names like "Jordan Blake", roles like "Head of Design", generic quotes about the work).
+- **No real logos, brand marks, screenshots, or stock/reference photos.** Use the neutral placeholder-media pattern (surface box / avatar glyph / gradient).
+- If the reference shows a real brand (Monarch®, Wonder Studio, Bloom Production, etc.), that is DATA to be replaced, never reproduced.
+
+This applies to every generated section, always — screenshots are design references, not content sources.
+
+---
+
 **Do not apply normal browser viewport responsive assumptions to generated sections rendered inside the Flowfreak preview canvas.**
 
 Flowfreak has two rendering contexts. Identify the context BEFORE writing responsive code.
