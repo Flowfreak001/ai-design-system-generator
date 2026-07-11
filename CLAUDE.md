@@ -1,4 +1,5 @@
 @AGENTS.md
+@RESPONSIVE_RULES.md
 
 # Project OS — Agency Project OS + Small Business Automation Builder
 
