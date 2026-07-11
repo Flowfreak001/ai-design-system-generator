@@ -39,7 +39,7 @@ export function NewProjectChooser({ clients }: { clients: { id: string; name: st
   if (mode === "wix") return <WixHeadlessCreate onBack={() => setMode("choose")} />;
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
+    <div className="grid gap-6 sm:grid-cols-2">
       <ChoiceCard
         icon="headless"
         tint="rose"
@@ -75,10 +75,10 @@ function ChoiceCard({ icon, tint, title, body, tags, onClick }: {
       whileHover={{ y: -2 }}
       whileTap={{ scale: 0.995 }}
       transition={{ duration: 0.18, ease: EASE }}
-      className="group flex h-full flex-col rounded-xl border border-line bg-surface p-5 text-left transition-colors hover:border-ink/20 hover:shadow-[0_2px_10px_rgba(17,24,39,0.05)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+      className="group flex h-full flex-col rounded-[6px] border border-line bg-surface p-5 text-left transition-colors hover:border-ink/20 hover:shadow-[0_2px_10px_rgba(17,24,39,0.05)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
     >
       <div className="flex items-center gap-3">
-        <span className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${TINT[tint] ?? TINT.slate}`}>
+        <span className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md ${TINT[tint] ?? TINT.slate}`}>
           <Icon name={icon} className="h-[18px] w-[18px]" />
         </span>
         <span className="text-[15px] font-semibold text-ink">{title}</span>
@@ -113,14 +113,14 @@ function WixHeadlessCreate({ onBack }: { onBack: () => void }) {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.28, ease: EASE }}
-      className="rounded-2xl border border-line bg-surface p-6 shadow-[0_1px_2px_rgba(17,24,39,0.04)] sm:p-7"
+      className="rounded-[10px] border border-line bg-surface p-6 shadow-[0_1px_2px_rgba(17,24,39,0.04)] sm:p-7"
     >
       <button type="button" onClick={onBack} className="inline-flex items-center gap-1 text-[12.5px] font-medium text-muted transition-colors hover:text-ink">
         <Icon name="arrow" className="h-3.5 w-3.5 rotate-180" /> Back
       </button>
 
       <p className="mt-4 text-[13px] font-semibold text-ink">Choose a template</p>
-      <div className="mt-2.5 grid gap-2.5 sm:grid-cols-2">
+      <div className="mt-3 grid gap-4 sm:grid-cols-2">
         {SITE_TEMPLATES.map((tpl) => {
           const active = template === tpl.id;
           return (
@@ -132,11 +132,11 @@ function WixHeadlessCreate({ onBack }: { onBack: () => void }) {
               whileHover={tpl.available ? { y: -2 } : undefined}
               whileTap={tpl.available ? { scale: 0.99 } : undefined}
               transition={{ duration: 0.18, ease: EASE }}
-              className={`relative flex items-start gap-3 rounded-xl border p-3.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+              className={`relative flex items-start gap-3 rounded-[6px] border p-3.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
                 active ? "border-accent bg-accent-soft/50" : "border-line hover:border-ink/20"
               } ${tpl.available ? "" : "cursor-not-allowed opacity-60"}`}
             >
-              <span className={`mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${active ? "bg-accent text-white" : "bg-panel text-ink"}`}>
+              <span className={`mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md ${active ? "bg-accent text-white" : "bg-panel text-ink"}`}>
                 <Icon name={TEMPLATE_ICON[tpl.id] ?? "content"} className="h-[18px] w-[18px]" />
               </span>
               <span className="min-w-0">
@@ -156,7 +156,7 @@ function WixHeadlessCreate({ onBack }: { onBack: () => void }) {
 
       <label className="mt-6 block text-[13px] font-semibold text-ink">Project name <span className="text-accent">*</span>
         <input value={name} onChange={(e) => setName(e.target.value)} autoFocus placeholder="e.g. Aurora Home — online store"
-          className="mt-1.5 w-full rounded-xl border border-line bg-surface px-3.5 py-2.5 text-[14px] text-ink outline-none placeholder:text-faint focus:border-accent" />
+          className="mt-1.5 w-full rounded-[6px] border border-line bg-surface px-3.5 py-2.5 text-[14px] text-ink outline-none placeholder:text-faint focus:border-accent" />
       </label>
 
       {state?.error && <p className="mt-4 rounded-lg bg-danger-soft px-3 py-2 text-[12.5px] text-danger">{state.error}</p>}
