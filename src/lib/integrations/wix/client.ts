@@ -5,6 +5,8 @@ import { wixConfig } from "./env";
 
 const ITEMS_URL = "https://www.wixapis.com/wix-data/v2/items";
 const SAVE_URL = "https://www.wixapis.com/wix-data/v2/items/save";
+const QUERY_URL = "https://www.wixapis.com/wix-data/v2/items/query";
+const REMOVE_URL = "https://www.wixapis.com/wix-data/v2/items/remove";
 const COLLECTIONS_URL = "https://www.wixapis.com/wix-data/v2/collections";
 
 export type WixField = { key: string; displayName: string; type: "TEXT" | "NUMBER" | "RICH_TEXT" };
@@ -36,6 +38,20 @@ export async function insertDataItem(collectionId: string, data: Record<string, 
 export async function saveDataItem(collectionId: string, id: string, data: Record<string, unknown>): Promise<void> {
   const r = await post(SAVE_URL, { dataCollectionId: collectionId, dataItem: { id, data } });
   if (!r.ok) throw new Error(`Wix save failed (${r.status}): ${r.text.slice(0, 400)}`);
+}
+
+/** Return the ids of all items in a collection matching an equality filter. */
+export async function queryItemIds(collectionId: string, filter: Record<string, unknown>): Promise<string[]> {
+  const r = await post(QUERY_URL, { dataCollectionId: collectionId, query: { filter, cursorPaging: { limit: 100 } } });
+  if (!r.ok) throw new Error(`Wix query failed (${r.status}): ${r.text.slice(0, 400)}`);
+  const j = JSON.parse(r.text || "{}") as { dataItems?: { id?: string; data?: { _id?: string } }[] };
+  return (j.dataItems ?? []).map((it) => it.id ?? it.data?._id).filter((x): x is string => Boolean(x));
+}
+
+/** Remove one item by id. */
+export async function removeDataItem(collectionId: string, id: string): Promise<void> {
+  const r = await post(REMOVE_URL, { dataCollectionId: collectionId, dataItemId: id });
+  if (!r.ok) throw new Error(`Wix remove failed (${r.status}): ${r.text.slice(0, 400)}`);
 }
 
 /**

@@ -5,7 +5,7 @@
 import { getProject } from "@/lib/projects";
 import { SITEMAP_CANVAS_FILE, type SitemapCanvas } from "@/lib/canvas";
 import { DEFAULT_SECTION_THEME } from "@/components/sections/section-theme";
-import { ensureCollection, saveDataItem, type WixField } from "./client";
+import { ensureCollection, saveDataItem, queryItemIds, removeDataItem, type WixField } from "./client";
 
 // v2 collection carries the component code + theme + full content JSON.
 const COLLECTION_ID = "FlowfreakSectionsV2";
@@ -22,7 +22,7 @@ const FIELDS: WixField[] = [
   { key: "content", displayName: "Content JSON", type: "TEXT" },
 ];
 
-export type WixPublishSummary = { collectionId: string; sections: number; pages: number };
+export type WixPublishSummary = { collectionId: string; sections: number; pages: number; removed: number };
 
 export async function publishProjectToWix(projectId: string, agencyId: string): Promise<WixPublishSummary> {
   const project = await getProject(projectId, agencyId);
@@ -58,5 +58,21 @@ export async function publishProjectToWix(projectId: string, agencyId: string): 
   await ensureCollection(COLLECTION_ID, "Flowfreak Sections", FIELDS);
   for (const r of rows) await saveDataItem(COLLECTION_ID, r.id, r.data);
 
-  return { collectionId: COLLECTION_ID, sections: rows.length, pages: pages.length };
+  // Sync: delete any Wix rows for this project that are no longer in the canvas,
+  // so removing a section in Flowfreak drops it from the live site on re-publish.
+  const currentIds = new Set(rows.map((r) => r.id));
+  let removed = 0;
+  try {
+    const existingIds = await queryItemIds(COLLECTION_ID, { projectId });
+    for (const id of existingIds) {
+      if (!currentIds.has(id)) {
+        await removeDataItem(COLLECTION_ID, id);
+        removed++;
+      }
+    }
+  } catch {
+    /* best-effort cleanup — never fail the publish over stale-row removal */
+  }
+
+  return { collectionId: COLLECTION_ID, sections: rows.length, pages: pages.length, removed };
 }

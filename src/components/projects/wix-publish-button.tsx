@@ -26,8 +26,10 @@ export function WixPublishButton({ projectId }: { projectId: string }) {
         <span className={`text-[12px] ${result.ok ? "text-success" : "text-danger"}`} role="status">
           {result.ok
             ? result.sections > 0
-              ? `Published ${result.sections} section${result.sections === 1 ? "" : "s"} → ${result.collectionId} ✓`
-              : "No sections to publish yet — add some in the editor"
+              ? `Published ${result.sections} section${result.sections === 1 ? "" : "s"}${result.removed ? `, removed ${result.removed}` : ""} → ${result.collectionId} ✓`
+              : result.removed
+                ? `Cleared ${result.removed} removed section${result.removed === 1 ? "" : "s"} from Wix ✓`
+                : "No sections to publish yet — add some in the editor"
             : result.error}
         </span>
       )}
