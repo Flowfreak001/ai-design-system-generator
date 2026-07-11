@@ -143,6 +143,7 @@ function StoreFooter({ siteName, theme }: { siteName: string; theme: SectionThem
   ];
   return (
     <footer style={{ marginTop: 8, background: "#0e0e10", color: "#fff", fontFamily: t.bodyFont }}>
+      <style>{`.sf-fcols{grid-template-columns:1.4fr repeat(2,0.8fr) 1.6fr}@media(max-width:900px){.sf-fcols{grid-template-columns:1fr 1fr}}@media(max-width:560px){.sf-fcols{grid-template-columns:1fr}}`}</style>
       {/* Feature strip */}
       <div style={{ background: t.backgroundColor, color: t.textColor, borderRadius: "0 0 22px 22px", padding: "28px 24px" }}>
         <div style={{ maxWidth: 1200, margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))" }}>
@@ -156,7 +157,7 @@ function StoreFooter({ siteName, theme }: { siteName: string; theme: SectionThem
       </div>
 
       <div style={{ maxWidth: 1280, margin: "0 auto", padding: "56px 24px 24px" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "1.4fr repeat(2, 0.8fr) 1.6fr", gap: 32, alignItems: "start" }}>
+        <div className="sf-fcols" style={{ display: "grid", gap: 32, alignItems: "start" }}>
           <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: "rgba(255,255,255,0.7)", maxWidth: 240 }}>
             All products in this store are for demo purposes only.
           </p>
