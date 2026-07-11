@@ -50,17 +50,20 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
             <p style={{ margin: "6px 0 0", fontSize: 13.5, color: product.inStock ? t.mutedTextColor : "#b45309" }}>
               {product.inStock ? "In stock" : "Out of stock"}{product.variantCount > 1 ? ` · ${product.variantCount} options` : ""}
             </p>
-            <button
-              type="button"
-              disabled={!product.inStock}
-              style={{
-                marginTop: 24, width: "100%", maxWidth: 320, padding: "14px 20px",
-                background: t.buttonBgColor, color: t.buttonTextColor, border: "none",
-                borderRadius: t.radius, fontSize: 15, fontWeight: 600, cursor: product.inStock ? "pointer" : "not-allowed", opacity: product.inStock ? 1 : 0.5,
-              }}
-            >
-              Add to cart
-            </button>
+            <form method="post" action={`/s/${slug}/checkout`} style={{ marginTop: 24 }}>
+              <input type="hidden" name="product" value={product.slug} />
+              <button
+                type="submit"
+                disabled={!product.inStock}
+                style={{
+                  width: "100%", maxWidth: 320, padding: "14px 20px",
+                  background: t.buttonBgColor, color: t.buttonTextColor, border: "none",
+                  borderRadius: t.radius, fontSize: 15, fontWeight: 600, cursor: product.inStock ? "pointer" : "not-allowed", opacity: product.inStock ? 1 : 0.5,
+                }}
+              >
+                {product.inStock ? "Buy now" : "Out of stock"}
+              </button>
+            </form>
             <p style={{ marginTop: 10, fontSize: 12, color: t.mutedTextColor }}>Checkout is handled securely by Wix.</p>
           </div>
         </div>

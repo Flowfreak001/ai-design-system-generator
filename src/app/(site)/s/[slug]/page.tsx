@@ -13,9 +13,25 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return { title: site ? site.name : "Store", robots: { index: false } };
 }
 
-export default async function StorefrontPage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function StorefrontPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ checkout_error?: string }>;
+}) {
   const { slug } = await params;
+  const { checkout_error } = await searchParams;
   const site = await loadPublishedSite(slug);
   if (!site) notFound();
-  return <StorefrontRenderer sections={site.sections} style={site.style} />;
+  return (
+    <>
+      {checkout_error && (
+        <div style={{ background: "#fef2f2", color: "#991b1b", padding: "10px 16px", fontSize: 13, textAlign: "center" }}>
+          Checkout couldn’t start: {checkout_error}
+        </div>
+      )}
+      <StorefrontRenderer sections={site.sections} style={site.style} />
+    </>
+  );
 }
