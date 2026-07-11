@@ -1,9 +1,7 @@
-// Public multi-tenant storefront. Renders a published project's assembled
-// sections with live Wix data. No auth — this is the visitor-facing site.
+// Public multi-tenant storefront (home page). No auth — visitor-facing.
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 import { loadPublishedSite } from "@/lib/site-runtime";
-import { StorefrontRenderer } from "@/components/site/storefront-renderer";
+import { SiteView } from "@/components/site/site-view";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +11,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return { title: site ? site.name : "Store", robots: { index: false } };
 }
 
-export default async function StorefrontPage({
+export default async function StorefrontHome({
   params,
   searchParams,
 }: {
@@ -22,8 +20,6 @@ export default async function StorefrontPage({
 }) {
   const { slug } = await params;
   const { checkout_error } = await searchParams;
-  const site = await loadPublishedSite(slug);
-  if (!site) notFound();
   return (
     <>
       {checkout_error && (
@@ -31,7 +27,7 @@ export default async function StorefrontPage({
           Checkout couldn’t start: {checkout_error}
         </div>
       )}
-      <StorefrontRenderer sections={site.sections} style={site.style} />
+      <SiteView slug={slug} />
     </>
   );
 }

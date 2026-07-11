@@ -6,10 +6,11 @@ import { SITEMAP_CANVAS_FILE, STYLE_GUIDE_CANVAS_FILE, type SitemapCanvas, type 
 import { fetchWixProducts } from "@/lib/integrations/wix/stores";
 import { productsToItems } from "@/lib/integrations/wix/ecommerce-content";
 
+export type SitePage = { key: string; name: string; sections: CanvasSection[] };
 export type PublishedSite = {
   projectId: string;
   name: string;
-  sections: CanvasSection[];
+  pages: SitePage[];
   style: StyleGuideCanvas | null;
 };
 
@@ -33,23 +34,24 @@ export async function loadPublishedSite(slug: string): Promise<PublishedSite | n
   const canvas = parse<SitemapCanvas>(canvasFile?.content);
   if (!canvas) return null;
 
-  const sections = canvas.pages.flatMap((p) => p.sections ?? []);
+  const pages: SitePage[] = canvas.pages.map((p) => ({ key: p.id, name: p.name, sections: p.sections ?? [] }));
+  const allSections = pages.flatMap((p) => p.sections);
 
-  // Re-bind ecommerce sections to the live catalog (best-effort).
-  if (sections.some((s) => s.sourceLibrarySectionId?.endsWith("ecommerce-product-grid"))) {
+  // Re-bind ecommerce sections to the live catalog (best-effort), pointing each
+  // card at this site's product route: /product/<x> → /s/<slug>/p/<x>.
+  if (allSections.some((s) => s.sourceLibrarySectionId?.endsWith("ecommerce-product-grid"))) {
     try {
-      // Point each card at this site's product route: /product/<x> → /s/<slug>/p/<x>.
       const items = productsToItems(await fetchWixProducts(project.id, 12)).map((it) => ({
         ...it,
         href: it.href ? it.href.replace(/^\/product\//, `/s/${slug}/p/`) : it.href,
       }));
       if (items.length) {
-        for (const s of sections) {
+        for (const s of allSections) {
           if (s.sourceLibrarySectionId?.endsWith("ecommerce-product-grid") && s.content) s.content.items = items;
         }
       }
     } catch { /* keep stored items */ }
   }
 
-  return { projectId: project.id, name: project.name, sections, style: parse<StyleGuideCanvas>(styleFile?.content) };
+  return { projectId: project.id, name: project.name, pages, style: parse<StyleGuideCanvas>(styleFile?.content) };
 }

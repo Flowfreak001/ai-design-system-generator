@@ -8,6 +8,7 @@ import {
   createSiteFromTemplateAction,
   publishSiteAction,
   unpublishSiteAction,
+  downloadDesignFileAction,
 } from "@/app/(app)/projects/[id]/site-actions";
 
 /** Assemble + publish a hosted storefront from a prebuilt template. */
@@ -49,6 +50,19 @@ export function SiteBuilderPanel({
   const unpublish = () =>
     start(async () => { await unpublishSiteAction(projectId); setPublished(false); setMsg("Taken offline."); });
 
+  const downloadDesignFile = () =>
+    start(async () => {
+      setError(null); setMsg(null);
+      const res = await downloadDesignFileAction(projectId);
+      if (!res.ok) { setError(res.error); return; }
+      const blob = new Blob([res.markdown], { type: "text/markdown" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = res.filename; a.click();
+      URL.revokeObjectURL(url);
+      setMsg(`Design file downloaded — ${res.pages} pages · ${res.sections} sections.`);
+    });
+
   return (
     <div className="card p-5">
       <div className="flex items-start justify-between gap-4">
@@ -87,7 +101,10 @@ export function SiteBuilderPanel({
               {pending ? "Assembling…" : assembled ? "Re-assemble" : "Assemble site"}
             </Button>
             {assembled && (
-              <a href={`/projects/${projectId}/editor`} className="text-[12.5px] text-muted underline hover:text-ink">Edit in designer</a>
+              <>
+                <Button variant="secondary" size="sm" disabled={pending} onClick={downloadDesignFile}>Download design file</Button>
+                <a href={`/projects/${projectId}/editor`} className="text-[12.5px] text-muted underline hover:text-ink">Edit in designer</a>
+              </>
             )}
           </div>
 

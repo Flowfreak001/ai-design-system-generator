@@ -93,10 +93,18 @@ export async function createProjectAction(
 
   const project = await createProject(parsed.data, user.agencyId ?? undefined);
 
+  // Wix Headless flow: mark the project with the chosen site template. Its pages
+  // are assembled from the template blueprint (bound to live Wix data) on the
+  // project page, so we skip the generic sitemap derivation below.
+  const siteTemplate = str(formData, "siteTemplate");
+  if (siteTemplate) {
+    await prisma.project.update({ where: { id: project.id }, data: { siteTemplate } });
+  }
+
   // Auto-build the sitemap from the selected pages so the very next step is a
   // ready-to-edit sitemap (each page pre-populated with default sections),
   // rather than an empty canvas the user has to assemble by hand.
-  const pages = (parsed.data.keyItems ?? []).map((p) => String(p).trim()).filter(Boolean);
+  const pages = siteTemplate ? [] : (parsed.data.keyItems ?? []).map((p) => String(p).trim()).filter(Boolean);
   if (pages.length) {
     try {
       const sitemap = deriveSitemapCanvas(pages, null);

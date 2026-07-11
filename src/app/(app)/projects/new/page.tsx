@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { requireUser } from "@/lib/auth";
 import { listClients } from "@/lib/clients";
-import { QuickStart } from "@/components/projects/quick-start";
+import { NewProjectChooser } from "@/components/projects/new-project-chooser";
 
 export const metadata: Metadata = { title: "New design system" };
 
@@ -16,12 +16,12 @@ export default async function NewProjectPage({
 
   return (
     <div className="mx-auto max-w-2xl px-5 py-8 sm:px-8">
-      <h2 className="text-center text-[26px] font-semibold tracking-[-0.02em]">Start a website</h2>
+      <h2 className="text-center text-[26px] font-semibold tracking-[-0.02em]">Start something new</h2>
       <p className="mx-auto mt-1 max-w-md text-center text-sm text-muted">
-        Name your website to get started.
+        Build a live Wix Headless site from a template, or plan a design project.
       </p>
       <div className="mt-8">
-        <QuickStart clients={clients.map((c) => ({ id: c.id, name: c.name }))} />
+        <NewProjectChooser clients={clients.map((c) => ({ id: c.id, name: c.name }))} />
       </div>
     </div>
   );

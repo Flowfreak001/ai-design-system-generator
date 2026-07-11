@@ -21,6 +21,7 @@ import { listCatalogSections, getCatalogSection } from "@/lib/section-library/ca
 import { getWixConnection } from "@/lib/integrations/wix/connection-store";
 import { fetchWixProducts } from "@/lib/integrations/wix/stores";
 import { productsToItems } from "@/lib/integrations/wix/ecommerce-content";
+import { buildDesignBundle } from "@/lib/integrations/wix/design-bundle";
 
 async function saveCanvas(projectId: string, canvas: SitemapCanvas) {
   const content = JSON.stringify({ ...canvas, updatedAt: new Date().toISOString() }, null, 2);
@@ -102,7 +103,7 @@ export async function createSiteFromTemplateAction(projectId: string, templateId
       });
       sectionCount++;
     }
-    pages.push({ id: `p-${slugify(tp.name)}-${Math.random().toString(36).slice(2, 5)}`, name: tp.name, source: "user-added", sections });
+    pages.push({ id: tp.key, name: tp.name, source: "user-added", sections });
   }
 
   await saveCanvas(projectId, { pages, approved: true });
@@ -130,6 +131,17 @@ export async function publishSiteAction(projectId: string, rawSlug: string): Pro
   await prisma.project.update({ where: { id: projectId }, data: { siteSlug: slug, sitePublished: true } });
   revalidatePath(`/projects/${projectId}`);
   return { ok: true, slug, url: `/s/${slug}` };
+}
+
+export type DesignFileResult = { ok: true; filename: string; markdown: string; pages: number; sections: number } | { ok: false; error: string };
+
+/** Build a downloadable design file (all pages' sections + theme + Wix wiring). */
+export async function downloadDesignFileAction(projectId: string): Promise<DesignFileResult> {
+  const user = await requireUser();
+  if (!user.agencyId || !(await ownsProject(projectId, user.agencyId))) return { ok: false, error: "Not found." };
+  const bundle = await buildDesignBundle(projectId);
+  if (!bundle) return { ok: false, error: "Assemble a site first." };
+  return { ok: true, ...bundle };
 }
 
 /** Take the site offline (keeps the assembled canvas + slug). */
