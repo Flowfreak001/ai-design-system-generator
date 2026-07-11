@@ -13,7 +13,7 @@
 
 @theme {
   /* Surfaces */
-  --color-canvas: #fafaf8; /* page background */
+  --color-canvas: #efeeea; /* page background — warm light gray so white cards pop */
   --color-surface: #ffffff; /* cards */
   --color-panel: #f4f1ee; /* soft panels / wells */
 
