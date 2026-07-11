@@ -3,9 +3,10 @@
 
 import Link from "next/link";
 import { listProjects } from "@/lib/projects";
+import { listClients } from "@/lib/clients";
 import { requireUser } from "@/lib/auth";
-import { LinkButton } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/page-header";
+import { NewProjectButton } from "@/components/projects/new-project-modal";
 import { FadeUp, Stagger, StaggerItem } from "@/components/ui/motion";
 import type { ProjectBrief } from "@/types";
 
@@ -14,6 +15,8 @@ export const dynamic = "force-dynamic";
 export default async function ProjectsPage() {
   const user = await requireUser();
   const projects = user.agencyId ? await listProjects(user.agencyId) : [];
+  const clients = user.agencyId ? await listClients(user.agencyId) : [];
+  const clientOpts = clients.map((c) => ({ id: c.id, name: c.name }));
 
   const cards = projects.map((p) => {
     const brief = (p.inputs[0]?.data ?? {}) as Partial<ProjectBrief>;
@@ -39,7 +42,7 @@ export default async function ProjectsPage() {
             ? `${cards.length} ${cards.length === 1 ? "project" : "projects"}`
             : "Each project turns a client brief into a complete design system — files, preview, export."
         }
-        action={<LinkButton href="/projects/new">New project</LinkButton>}
+        action={<NewProjectButton clients={clientOpts} />}
       />
 
       {cards.length === 0 ? (
@@ -51,9 +54,7 @@ export default async function ProjectsPage() {
             websites and brand assets are optional — the system fills gaps with
             clear assumptions.
           </p>
-          <LinkButton href="/projects/new" size="lg" className="mt-6">
-            New project
-          </LinkButton>
+          <div className="mt-6"><NewProjectButton clients={clientOpts} label="New project" size="lg" /></div>
         </FadeUp>
       ) : (
         <Stagger className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">

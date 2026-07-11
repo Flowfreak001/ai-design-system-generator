@@ -8,6 +8,8 @@ import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/db/client";
 import { listProjects } from "@/lib/projects";
 import { LinkButton } from "@/components/ui/button";
+import { listClients } from "@/lib/clients";
+import { NewProjectButton } from "@/components/projects/new-project-modal";
 import { PageHeader } from "@/components/layout/page-header";
 import { FadeUp, Stagger, StaggerItem } from "@/components/ui/motion";
 import { deriveStatus, recommendedNextAction, STATUS_STYLES } from "@/lib/status";
@@ -27,6 +29,7 @@ function greeting() {
 export default async function DashboardPage() {
   const user = await requireUser();
   const agencyId = user.agencyId ?? "__none__";
+  const clientOpts = (user.agencyId ? await listClients(user.agencyId) : []).map((c) => ({ id: c.id, name: c.name }));
 
   const [activeClients, totalClients, files, recentRuns, projects] = await Promise.all([
     prisma.business.count({ where: { agencyId, stage: "Active" } }),
@@ -77,7 +80,7 @@ export default async function DashboardPage() {
         action={
           <div className="flex gap-2.5">
             <LinkButton href="/clients/new" variant="secondary">Add client</LinkButton>
-            <LinkButton href="/projects/new">New project</LinkButton>
+            <NewProjectButton clients={clientOpts} />
           </div>
         }
       />
@@ -128,7 +131,7 @@ export default async function DashboardPage() {
                 {enriched.length === 0 ? "No projects yet." : "Everything is exported — nothing waiting on you."}
               </p>
               {enriched.length === 0 && (
-                <LinkButton href="/projects/new" className="mt-4">Create your first project</LinkButton>
+                <div className="mt-4"><NewProjectButton clients={clientOpts} label="Create your first project" /></div>
               )}
             </div>
           ) : (
