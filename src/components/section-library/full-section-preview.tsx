@@ -101,7 +101,7 @@ export function FullSectionPreview({ section, publicMode = false }: { section: L
         <div className="bg-white">
           {rendered}
           {scrollRoom && (
-            <div className="grid min-h-[60vh] place-items-center border-t border-dashed border-line bg-panel" aria-hidden>
+            <div className="grid min-h-[60vh] place-items-center border-t border-dashed border-line bg-white" aria-hidden>
               <p className="flex items-center gap-2 text-[12.5px] font-medium text-muted">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 4v16m0 0-5-5m5 5 5-5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
                 Scroll room — this section animates with scroll
