@@ -399,3 +399,15 @@ model LibrarySection {
 
   @@index([agencyId, status])
 }
+
+// A connected Wix account (per agency) via the Wix App OAuth install flow.
+// We store the app instanceId (durable) and mint short-lived access tokens on
+// demand with client_credentials. siteId is captured when known.
+model WixConnection {
+  id         String   @id @default(cuid())
+  agencyId   String   @unique
+  instanceId String
+  siteId     String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
