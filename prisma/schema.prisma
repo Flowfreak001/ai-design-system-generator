@@ -119,6 +119,13 @@ model Project {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
+  // Hosted "Wix Site" module: a published storefront lives at /s/<siteSlug>,
+  // rendered by our multi-tenant renderer from this project's sections + the
+  // connected Wix site's live business data.
+  siteSlug      String?  @unique
+  sitePublished Boolean  @default(false)
+  siteTemplate  String?
+
   agency    Agency?         @relation(fields: [agencyId], references: [id])
   business  Business?       @relation(fields: [businessId], references: [id])
   inputs    ProjectInput[]

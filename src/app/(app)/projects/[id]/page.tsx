@@ -22,6 +22,7 @@ import { WixPublishButton } from "@/components/projects/wix-publish-button";
 import { WixExportButton } from "@/components/projects/wix-export-button";
 import { WixConnectPanel } from "@/components/projects/wix-connect-panel";
 import { WixStorePreview } from "@/components/projects/wix-store-preview";
+import { SiteBuilderPanel } from "@/components/projects/site-builder-panel";
 import { getWixConnection } from "@/lib/integrations/wix/connection-store";
 import { TypeBadge } from "@/components/projects/status-badge";
 import { WorkflowBlueprint } from "@/components/projects/workflow-blueprint";
@@ -107,6 +108,11 @@ export default async function ProjectWorkspacePage({
   const overview = (
     <div className="grid gap-4">
       <WixConnectPanel projectId={id} connected={wixConn ? { instanceId: wixConn.instanceId, siteId: wixConn.siteId } : null} />
+      <SiteBuilderPanel
+        projectId={id}
+        connected={!!wixConn}
+        initial={{ template: project.siteTemplate ?? null, slug: project.siteSlug ?? null, published: project.sitePublished }}
+      />
       {wixConn && <WixStorePreview projectId={id} />}
       <ProjectSetup
         projectId={id}

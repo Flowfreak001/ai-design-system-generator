@@ -57,6 +57,26 @@ export async function fetchWixProducts(projectId: string, limit = 12): Promise<W
   return (json.products ?? []).map(mapProduct);
 }
 
+/** Read a single product by its slug from the project's connected Wix Store. */
+export async function fetchWixProduct(projectId: string, slug: string): Promise<WixProduct | null> {
+  const auth = await resolveWixAuth(projectId);
+  const run = (headers: Record<string, string>) =>
+    fetch(PRODUCTS_QUERY_URL, {
+      method: "POST",
+      cache: "no-store",
+      headers,
+      body: JSON.stringify({ query: { filter: { slug }, cursorPaging: { limit: 1 } } }),
+    });
+
+  let res = auth ? await run(appHeaders(auth)) : await run(envHeaders());
+  if (auth && res.status === 403) res = await run(envHeaders());
+  if (!res.ok) return null;
+
+  const json = (await res.json()) as { products?: WixProductRow[] };
+  const row = json.products?.[0];
+  return row ? mapProduct(row) : null;
+}
+
 // ── internal ────────────────────────────────────────────────────────────────
 type WixProductRow = {
   id: string;
