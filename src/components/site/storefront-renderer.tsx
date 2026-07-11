@@ -87,7 +87,7 @@ export function StorefrontRenderer({
           .filter((s) => s.status !== "rejected")
           .map((s) =>
             s.custom?.code ? (
-              <DynamicSectionRenderer key={s.id} code={s.custom.code} mode={s.custom.mode} content={(s.content ?? {}) as LibraryDefaultContent} theme={theme} />
+              <DynamicSectionRenderer key={s.id} code={s.custom.code} mode={s.custom.mode} content={(s.content ?? {}) as LibraryDefaultContent} theme={theme} isPreview={false} />
             ) : (
               <FallbackBlock key={s.id} content={s.content} theme={theme} />
             ),

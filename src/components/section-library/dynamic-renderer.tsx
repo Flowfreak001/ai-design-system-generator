@@ -17,6 +17,9 @@
 import { Component, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import * as React from "react";
 import * as FramerMotion from "framer-motion";
+import { SectionRuntimeShell } from "@/components/section-runtime";
+import { SECTION_BREAKPOINTS, isCompactBreakpoint, resolveSectionBreakpoint } from "@/components/section-runtime/section-breakpoints";
+import { useSectionRuntime } from "@/components/section-runtime/section-runtime-context";
 import type { SectionTheme } from "@/components/sections/types";
 import type { LibraryDefaultContent } from "@/lib/section-library/manual-sections";
 
@@ -24,11 +27,21 @@ export type SectionCodeMode = "react" | "html";
 
 type CompiledComponent = (props: { content: LibraryDefaultContent; theme: SectionTheme; items?: LibraryDefaultContent["items"] }) => ReactNode;
 
+// The shared responsive runtime handed to sandboxed sections. Context crosses
+// the sandbox because compiled code runs against OUR React instance.
+const SECTION_RUNTIME_MODULE = Object.freeze({
+  useSectionRuntime,
+  SECTION_BREAKPOINTS,
+  resolveSectionBreakpoint,
+  isCompactBreakpoint,
+});
+
 // Restricted module resolver for authored code (`import X from '...'`).
 function sandboxRequire(name: string): unknown {
   if (name === "react") return React;
   if (name === "framer-motion" || name === "motion/react") return FramerMotion;
-  throw new Error(`Import not allowed: "${name}". Only react and framer-motion are available.`);
+  if (name === "section-runtime" || name === "@flowfreak/section-runtime") return SECTION_RUNTIME_MODULE;
+  throw new Error(`Import not allowed: "${name}". Only react, framer-motion and section-runtime are available.`);
 }
 
 /** Compile TSX source into a renderable component (throws on error). */
@@ -69,7 +82,7 @@ function Notice({ tone, title, body }: { tone: "error" | "muted"; title: string;
 export type SectionRenderStatus = { state: "compiling" | "ok" | "error"; message?: string };
 
 export function DynamicSectionRenderer({
-  code, mode = "react", content, theme, onStatus,
+  code, mode = "react", content, theme, onStatus, isPreview = true, previewScale = 1, debug = false,
 }: {
   code: string;
   mode?: SectionCodeMode;
@@ -77,6 +90,12 @@ export function DynamicSectionRenderer({
   theme: SectionTheme;
   /** Reports compile/runtime status so a host (e.g. the Studio) can show it. */
   onStatus?: (s: SectionRenderStatus) => void;
+  /** False only on real published surfaces (hosted storefront); previews default true. */
+  isPreview?: boolean;
+  /** Visual scale the host applies (thumbnails/modal); informational. */
+  previewScale?: number;
+  /** Dev-only diagnostics overlay (width/breakpoint) on the section root. */
+  debug?: boolean;
 }) {
   const [Comp, setComp] = useState<CompiledComponent | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -110,10 +129,14 @@ export function DynamicSectionRenderer({
 
   return (
     <RenderBoundary onError={(m) => { runtimeErr.current = m; setError(m); status.current?.({ state: "error", message: m }); }}>
-      <div className={cls} style={{ WebkitTapHighlightColor: "transparent" }}>
+      {/* SectionRuntimeShell = the ONE responsive system for sections: it
+          measures this root, resolves the container breakpoint, provides
+          useSectionRuntime() and stamps data-breakpoint for CSS targeting. */}
+      <SectionRuntimeShell isPreview={isPreview} previewScale={previewScale} debug={debug}
+        className={cls} style={{ WebkitTapHighlightColor: "transparent" }}>
         <style>{`.${cls} :focus-visible{outline:2px solid ${ringAccent};outline-offset:2px;border-radius:5px}`}</style>
         <Comp content={content} theme={theme} items={content.items} />
-      </div>
+      </SectionRuntimeShell>
     </RenderBoundary>
   );
 }
