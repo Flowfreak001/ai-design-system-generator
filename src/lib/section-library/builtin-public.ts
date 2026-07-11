@@ -14,9 +14,12 @@ type BuiltinSection = {
 
 const EPOCH = new Date(0).toISOString();
 
-/** All built-in sections as read-only LibrarySections (public catalog). */
+/** All built-in sections as read-only LibrarySections (public catalog).
+ *  Newest-first: builtin-sections.json is append-ordered, so reversing puts the
+ *  most recently added sections at the top — matching the authed catalog's
+ *  `orderBy: updatedAt desc`. */
 export function getBuiltinLibrarySections(): LibrarySection[] {
-  return (BUILTIN_SECTIONS as unknown as BuiltinSection[]).map((b) => {
+  return [...(BUILTIN_SECTIONS as unknown as BuiltinSection[])].reverse().map((b) => {
     const def: DynamicSectionDef = {
       id: `builtin-${b.id}`,
       name: b.name,
