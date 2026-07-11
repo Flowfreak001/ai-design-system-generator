@@ -96,10 +96,18 @@ export function FullSectionPreview({ section, publicMode = false }: { section: L
       {device === "desktop" ? (
         // Real full-width scrollable page. The section ends naturally (grey
         // panel below = end of preview); trailing scroll room is added ONLY
-        // for scroll-linked sections, which need it to progress.
+        // for scroll-linked sections, which need it to progress — and it's
+        // visibly labeled so it reads as runway, not a blank broken page.
         <div className="bg-white">
           {rendered}
-          {scrollRoom && <div className="min-h-[70vh] bg-white" aria-hidden />}
+          {scrollRoom && (
+            <div className="grid min-h-[60vh] place-items-center border-t border-dashed border-line bg-panel" aria-hidden>
+              <p className="flex items-center gap-2 text-[12.5px] font-medium text-muted">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 4v16m0 0-5-5m5 5 5-5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                Scroll room — this section animates with scroll
+              </p>
+            </div>
+          )}
         </div>
       ) : (
         // Emulated device: fixed viewport, rounded bezel, own scroll + overflow
