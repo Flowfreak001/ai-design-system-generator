@@ -2,13 +2,35 @@
 
 // New-project fork: choose a Wix Headless Site (template gallery → assembled,
 // deployable site) or a Design Project (the existing QuickStart flow).
-import { startTransition, useActionState, useState } from "react";
+import { startTransition, useActionState, useState, type ReactNode } from "react";
+import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { QuickStart } from "@/components/projects/quick-start";
 import { createProjectAction, type FormState } from "@/app/(app)/projects/actions";
 import { SITE_TEMPLATES } from "@/lib/site-templates";
 
 type Mode = "choose" | "wix" | "design";
+
+const EASE = [0.22, 1, 0.36, 1] as const;
+
+// ── Inline line icons (stroke 1.7, currentColor) — no emoji, one visual family ─
+function Icon({ name, className }: { name: string; className?: string }) {
+  const p = { fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+  const paths: Record<string, ReactNode> = {
+    // live site / globe with spark
+    headless: <><circle cx="12" cy="12" r="9" {...p} /><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18" {...p} /></>,
+    // design / pen-nib
+    design: <><path d="M12 3 5 10l-2 9 9-2 7-7-7-7Z" {...p} /><path d="m11 11 5-5M8.5 15.5 5 19" {...p} /></>,
+    store: <><path d="M4 8h16l-1 12H5L4 8Z" {...p} /><path d="M9 8a3 3 0 0 1 6 0" {...p} /></>,
+    bookings: <><rect x="3.5" y="4.5" width="17" height="16" rx="2" {...p} /><path d="M3.5 9h17M8 3v3M16 3v3M8 13h3" {...p} /></>,
+    events: <><path d="M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2 2 2 0 0 0 0 4 2 2 0 0 1 0 4H6a2 2 0 0 1-2-2 2 2 0 0 0 0-4Z" {...p} /><path d="M14 6v12" strokeDasharray="1.5 2.5" {...p} /></>,
+    content: <><rect x="4" y="3.5" width="16" height="17" rx="2" {...p} /><path d="M8 8h8M8 12h8M8 16h5" {...p} /></>,
+    arrow: <path d="M5 12h14M13 6l6 6-6 6" {...p} />,
+  };
+  return <svg viewBox="0 0 24 24" width="22" height="22" className={className} aria-hidden="true">{paths[name]}</svg>;
+}
+
+const TEMPLATE_ICON: Record<string, string> = { store: "store", bookings: "bookings", events: "events", content: "content" };
 
 export function NewProjectChooser({ clients }: { clients: { id: string; name: string }[] }) {
   const [mode, setMode] = useState<Mode>("choose");
@@ -17,26 +39,52 @@ export function NewProjectChooser({ clients }: { clients: { id: string; name: st
   if (mode === "wix") return <WixHeadlessCreate onBack={() => setMode("choose")} />;
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      <button
-        type="button"
+    <div className="grid gap-4 sm:grid-cols-2">
+      <ChoiceCard
+        icon="headless"
+        title="Wix Headless Site"
+        body="Pick a template, bind it to your Wix data, and publish a live site — or download the design file."
+        tags={["Store", "Bookings", "Events"]}
         onClick={() => setMode("wix")}
-        className="rounded-2xl border border-line bg-surface p-6 text-left transition-colors hover:border-accent hover:bg-accent-soft/30"
-      >
-        <span className="text-2xl">🚀</span>
-        <p className="mt-3 text-[16px] font-semibold text-ink">Wix Headless Site</p>
-        <p className="mt-1 text-[13px] text-muted">Pick a template (store, bookings, events…), bind it to your Wix data, and publish a live site — or download the design file.</p>
-      </button>
-      <button
-        type="button"
+        primary
+      />
+      <ChoiceCard
+        icon="design"
+        title="Design Project"
+        body="Plan and design a website from a brief or reference site using the section library and studio."
+        tags={["Brief", "Reference", "Studio"]}
         onClick={() => setMode("design")}
-        className="rounded-2xl border border-line bg-surface p-6 text-left transition-colors hover:border-accent hover:bg-accent-soft/30"
-      >
-        <span className="text-2xl">🎨</span>
-        <p className="mt-3 text-[16px] font-semibold text-ink">Design Project</p>
-        <p className="mt-1 text-[13px] text-muted">Plan and design a website from a brief or reference site using the section library and studio.</p>
-      </button>
+      />
     </div>
+  );
+}
+
+function ChoiceCard({ icon, title, body, tags, onClick, primary }: {
+  icon: string; title: string; body: string; tags: string[]; onClick: () => void; primary?: boolean;
+}) {
+  return (
+    <motion.button
+      type="button"
+      onClick={onClick}
+      whileHover={{ y: -3 }}
+      whileTap={{ scale: 0.99 }}
+      transition={{ duration: 0.2, ease: EASE }}
+      className="group flex h-full flex-col rounded-2xl border border-line bg-surface p-5 text-left shadow-[0_1px_2px_rgba(17,24,39,0.04)] transition-colors hover:border-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+    >
+      <span className={`inline-flex h-11 w-11 items-center justify-center rounded-xl ${primary ? "bg-accent text-white" : "bg-accent-soft text-accent"}`}>
+        <Icon name={icon} />
+      </span>
+      <p className="mt-4 text-[16px] font-semibold text-ink">{title}</p>
+      <p className="mt-1 text-[13px] leading-relaxed text-muted">{body}</p>
+      <div className="mt-3 flex flex-wrap gap-1.5">
+        {tags.map((t) => (
+          <span key={t} className="rounded-full bg-panel px-2 py-0.5 text-[11px] font-medium text-muted">{t}</span>
+        ))}
+      </div>
+      <span className="mt-4 inline-flex items-center gap-1 text-[12.5px] font-medium text-accent">
+        Continue <Icon name="arrow" className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+      </span>
+    </motion.button>
   );
 }
 
@@ -56,27 +104,49 @@ function WixHeadlessCreate({ onBack }: { onBack: () => void }) {
   };
 
   return (
-    <div className="rounded-2xl border border-line bg-surface p-6 sm:p-8">
-      <button type="button" onClick={onBack} className="text-[12.5px] text-muted underline hover:text-ink">← Back</button>
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.28, ease: EASE }}
+      className="rounded-2xl border border-line bg-surface p-6 shadow-[0_1px_2px_rgba(17,24,39,0.04)] sm:p-7"
+    >
+      <button type="button" onClick={onBack} className="inline-flex items-center gap-1 text-[12.5px] font-medium text-muted transition-colors hover:text-ink">
+        <Icon name="arrow" className="h-3.5 w-3.5 rotate-180" /> Back
+      </button>
 
       <p className="mt-4 text-[13px] font-semibold text-ink">Choose a template</p>
-      <div className="mt-2 grid gap-2 sm:grid-cols-2">
-        {SITE_TEMPLATES.map((tpl) => (
-          <button
-            key={tpl.id}
-            type="button"
-            disabled={!tpl.available}
-            onClick={() => tpl.available && setTemplate(tpl.id)}
-            className={`relative rounded-xl border p-3.5 text-left transition-colors ${
-              template === tpl.id ? "border-accent bg-accent-soft/40" : "border-line hover:border-ink/25"
-            } ${tpl.available ? "" : "cursor-not-allowed opacity-55"}`}
-          >
-            <span className="text-xl">{tpl.glyph}</span>
-            <p className="mt-1.5 text-[13px] font-semibold text-ink">{tpl.name}</p>
-            <p className="mt-0.5 text-[11.5px] text-muted">{tpl.tagline}</p>
-            {!tpl.available && <span className="absolute right-2.5 top-2.5 rounded-full bg-panel px-1.5 py-0.5 text-[10px] font-medium text-muted">Soon</span>}
-          </button>
-        ))}
+      <div className="mt-2.5 grid gap-2.5 sm:grid-cols-2">
+        {SITE_TEMPLATES.map((tpl) => {
+          const active = template === tpl.id;
+          return (
+            <motion.button
+              key={tpl.id}
+              type="button"
+              disabled={!tpl.available}
+              onClick={() => tpl.available && setTemplate(tpl.id)}
+              whileHover={tpl.available ? { y: -2 } : undefined}
+              whileTap={tpl.available ? { scale: 0.99 } : undefined}
+              transition={{ duration: 0.18, ease: EASE }}
+              className={`relative flex items-start gap-3 rounded-xl border p-3.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent ${
+                active ? "border-accent bg-accent-soft/50" : "border-line hover:border-ink/20"
+              } ${tpl.available ? "" : "cursor-not-allowed opacity-60"}`}
+            >
+              <span className={`mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${active ? "bg-accent text-white" : "bg-panel text-ink"}`}>
+                <Icon name={TEMPLATE_ICON[tpl.id] ?? "content"} className="h-[18px] w-[18px]" />
+              </span>
+              <span className="min-w-0">
+                <span className="flex items-center gap-1.5 text-[13px] font-semibold text-ink">{tpl.name}</span>
+                <span className="mt-0.5 block text-[11.5px] leading-snug text-muted">{tpl.tagline}</span>
+              </span>
+              {!tpl.available && <span className="absolute right-2.5 top-2.5 rounded-full bg-panel px-1.5 py-0.5 text-[10px] font-medium text-muted">Soon</span>}
+              {active && (
+                <span className="absolute right-2.5 top-2.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-accent text-white">
+                  <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12.5 4 4 10-10" /></svg>
+                </span>
+              )}
+            </motion.button>
+          );
+        })}
       </div>
 
       <label className="mt-6 block text-[13px] font-semibold text-ink">Project name <span className="text-accent">*</span>
@@ -86,12 +156,12 @@ function WixHeadlessCreate({ onBack }: { onBack: () => void }) {
 
       {state?.error && <p className="mt-4 rounded-lg bg-danger-soft px-3 py-2 text-[12.5px] text-danger">{state.error}</p>}
 
-      <div className="mt-6 flex justify-end">
-        <Button size="lg" onClick={submit} disabled={pending || !name.trim()} className="min-w-[160px]">
+      <div className="mt-6 flex items-center justify-between gap-3">
+        <p className="text-[11.5px] text-muted">Next: connect Wix, then assemble &amp; publish — or download the design file.</p>
+        <Button size="lg" onClick={submit} disabled={pending || !name.trim()} className="min-w-[150px]">
           {pending ? "Creating…" : "Create site"}
         </Button>
       </div>
-      <p className="mt-3 text-[11.5px] text-muted">Next: connect your Wix site, then assemble & publish — or download the design file.</p>
-    </div>
+    </motion.div>
   );
 }
