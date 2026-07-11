@@ -101,10 +101,12 @@ export function FullSectionPreview({ section, publicMode = false }: { section: L
           {/* Realistic device: light aluminium bezel, rounded shell, camera + home indicator. */}
           <div
             className={`relative bg-gradient-to-b from-[#3a3a3c] via-[#1c1c1e] to-[#2c2c2e] shadow-[0_30px_70px_-25px_rgba(0,0,0,0.55)] ring-1 ring-black/40 ${device === "mobile" ? "rounded-[48px] p-[11px]" : "rounded-[40px] p-[14px]"}`}
-            // transform makes this the containing block for the section's
-            // position:fixed overlays (mobile drawer), so they stay inside the
-            // device frame instead of covering the whole preview page.
-            style={{ width: dim.w ?? undefined, height: `min(${dim.h}px, calc(100dvh - 140px))`, maxWidth: "100%", transform: "translateZ(0)" }}
+            // `contain: layout paint` makes this the containing block for the
+            // section's position:fixed overlays (mobile drawer / mega-menu) so
+            // they stay inside the device frame instead of covering the whole
+            // preview page. (transform:translateZ(0) normalizes to a 2D identity
+            // matrix, which Chrome does NOT treat as a fixed-containing block.)
+            style={{ width: dim.w ?? undefined, height: `min(${dim.h}px, calc(100dvh - 140px))`, maxWidth: "100%", contain: "layout paint" }}
           >
             <div className={`relative h-full w-full overflow-hidden bg-white ring-1 ring-black/5 ${device === "mobile" ? "rounded-[37px]" : "rounded-[26px]"}`}>
               <div className="h-full overflow-y-auto overscroll-contain">
