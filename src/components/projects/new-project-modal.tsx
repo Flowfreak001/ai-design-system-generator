@@ -42,7 +42,7 @@ export function NewProjectButton({
           >
             <button aria-label="Close" className="fixed inset-0 bg-ink/40 backdrop-blur-[2px]" onClick={() => setOpen(false)} />
             <motion.div
-              className="relative z-10 my-auto w-full max-w-3xl rounded-[10px] border border-line bg-canvas p-6 shadow-2xl sm:p-8"
+              className="relative z-10 my-auto w-full max-w-3xl rounded-[8px] border border-line bg-canvas p-6 shadow-2xl sm:p-8"
               initial={{ opacity: 0, y: 12, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 8, scale: 0.98 }}
