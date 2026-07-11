@@ -843,6 +843,10 @@ Anything rendered full-viewport: `app/`, `components/` (landing, layout, project
 
 ### B. Sandboxed dynamic library sections (Rule 3 is INVERTED here)
 
+> **Sections no longer write their own measurement code.** Use the shared Section Runtime —
+> `import { useSectionRuntime } from "section-runtime"` — see `SECTION_RUNTIME_RULES.md` for the
+> full contract (standard breakpoints, data-breakpoint CSS, overlay rules, QA validator).
+
 Files: `src/lib/section-library/builtin-sections.json` section `tsxCode`, anything authored for the sucrase/`DynamicSectionRenderer` engine, and any component that must render correctly inside the **scaled device-preview frame** (`full-section-preview.tsx`, the library card thumbnails, the preview modal).
 
 These render inside a transformed/scaled frame, so **viewport-relative CSS silently resolves against the OUTER page, not the section's frame**. Therefore, inside these sections:
