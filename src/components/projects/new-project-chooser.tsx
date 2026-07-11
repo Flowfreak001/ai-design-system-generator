@@ -39,51 +39,68 @@ export function NewProjectChooser({ clients }: { clients: { id: string; name: st
   if (mode === "wix") return <WixHeadlessCreate onBack={() => setMode("choose")} />;
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
+    <div className="grid gap-5 sm:grid-cols-2">
       <ChoiceCard
         icon="headless"
+        eyebrow="Publish"
         title="Wix Headless Site"
         body="Pick a template, bind it to your Wix data, and publish a live site — or download the design file."
         tags={["Store", "Bookings", "Events"]}
+        footer="Live site + design file"
         onClick={() => setMode("wix")}
         primary
       />
       <ChoiceCard
         icon="design"
+        eyebrow="Design"
         title="Design Project"
         body="Plan and design a website from a brief or reference site using the section library and studio."
         tags={["Brief", "Reference", "Studio"]}
+        footer="Sections + studio"
         onClick={() => setMode("design")}
       />
     </div>
   );
 }
 
-function ChoiceCard({ icon, title, body, tags, onClick, primary }: {
-  icon: string; title: string; body: string; tags: string[]; onClick: () => void; primary?: boolean;
+function ChoiceCard({ icon, eyebrow, title, body, tags, footer, onClick, primary }: {
+  icon: string; eyebrow: string; title: string; body: string; tags: string[]; footer: string; onClick: () => void; primary?: boolean;
 }) {
   return (
     <motion.button
       type="button"
       onClick={onClick}
-      whileHover={{ y: -3 }}
-      whileTap={{ scale: 0.99 }}
-      transition={{ duration: 0.2, ease: EASE }}
-      className="group flex h-full flex-col rounded-2xl border border-line bg-surface p-5 text-left shadow-[0_1px_2px_rgba(17,24,39,0.04)] transition-colors hover:border-accent/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+      whileHover={{ y: -4 }}
+      whileTap={{ scale: 0.995 }}
+      transition={{ duration: 0.22, ease: EASE }}
+      className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-line bg-surface p-6 text-left shadow-[0_1px_2px_rgba(17,24,39,0.04)] transition-[box-shadow,border-color] hover:border-accent/40 hover:shadow-[0_18px_40px_-20px_rgba(233,75,111,0.35)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
     >
-      <span className={`inline-flex h-11 w-11 items-center justify-center rounded-xl ${primary ? "bg-accent text-white" : "bg-accent-soft text-accent"}`}>
-        <Icon name={icon} />
-      </span>
-      <p className="mt-4 text-[16px] font-semibold text-ink">{title}</p>
-      <p className="mt-1 text-[13px] leading-relaxed text-muted">{body}</p>
-      <div className="mt-3 flex flex-wrap gap-1.5">
+      {/* corner glow */}
+      <span aria-hidden className={`pointer-events-none absolute -right-16 -top-16 h-40 w-40 rounded-full blur-2xl transition-opacity ${primary ? "bg-accent/20" : "bg-accent/10"} opacity-60 group-hover:opacity-100`} />
+
+      <div className="relative flex items-start justify-between">
+        <span className={`inline-flex h-12 w-12 items-center justify-center rounded-2xl shadow-sm ring-1 ${primary ? "bg-gradient-to-br from-accent to-accent-hover text-white ring-accent/30" : "bg-accent-soft text-accent ring-accent/15"}`}>
+          <Icon name={icon} />
+        </span>
+        <span className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-line bg-surface text-muted transition-colors group-hover:border-accent group-hover:bg-accent group-hover:text-white">
+          <Icon name="arrow" className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+        </span>
+      </div>
+
+      <p className="relative mt-5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">{eyebrow}</p>
+      <p className="relative mt-1 text-[18px] font-semibold tracking-[-0.01em] text-ink">{title}</p>
+      <p className="relative mt-1.5 text-[13.5px] leading-relaxed text-muted">{body}</p>
+
+      <div className="relative mt-4 flex flex-wrap gap-1.5">
         {tags.map((t) => (
-          <span key={t} className="rounded-full bg-panel px-2 py-0.5 text-[11px] font-medium text-muted">{t}</span>
+          <span key={t} className="rounded-full border border-line bg-canvas px-2.5 py-1 text-[11px] font-medium text-body">{t}</span>
         ))}
       </div>
-      <span className="mt-4 inline-flex items-center gap-1 text-[12.5px] font-medium text-accent">
-        Continue <Icon name="arrow" className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-      </span>
+
+      <div className="relative mt-auto flex items-center gap-2 pt-6">
+        <span className="h-px flex-1 bg-line" />
+        <span className="text-[11.5px] font-medium text-faint">{footer}</span>
+      </div>
     </motion.button>
   );
 }
