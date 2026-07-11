@@ -11,6 +11,18 @@ import {
   downloadDesignFileAction,
 } from "@/app/(app)/projects/[id]/site-actions";
 
+// Inline line icons (stroke 1.7) — one visual family, no emoji.
+function TemplateIcon({ id }: { id: string }) {
+  const p = { fill: "none", stroke: "currentColor", strokeWidth: 1.7, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+  const paths: Record<string, React.ReactNode> = {
+    store: <><path d="M4 8h16l-1 12H5L4 8Z" {...p} /><path d="M9 8a3 3 0 0 1 6 0" {...p} /></>,
+    bookings: <><rect x="3.5" y="4.5" width="17" height="16" rx="2" {...p} /><path d="M3.5 9h17M8 3v3M16 3v3M8 13h3" {...p} /></>,
+    events: <><path d="M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2 2 2 0 0 0 0 4 2 2 0 0 1 0 4H6a2 2 0 0 1-2-2 2 2 0 0 0 0-4Z" {...p} /><path d="M14 6v12" strokeDasharray="1.5 2.5" {...p} /></>,
+    content: <><rect x="4" y="3.5" width="16" height="17" rx="2" {...p} /><path d="M8 8h8M8 12h8M8 16h5" {...p} /></>,
+  };
+  return <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">{paths[id] ?? paths.content}</svg>;
+}
+
 /** Assemble + publish a hosted storefront from a prebuilt template. */
 export function SiteBuilderPanel({
   projectId,
@@ -82,18 +94,35 @@ export function SiteBuilderPanel({
       ) : (
         <>
           {/* Template picker */}
-          <div className="mt-4 grid gap-2 sm:grid-cols-2">
-            {SITE_TEMPLATES.map((tpl) => (
-              <button
-                key={tpl.id}
-                type="button"
-                onClick={() => setTemplate(tpl.id)}
-                className={`rounded-xl border p-3 text-left transition-colors ${template === tpl.id ? "border-accent bg-accent-soft/40" : "border-line hover:border-ink/25"}`}
-              >
-                <p className="text-[13px] font-semibold text-ink">{tpl.name}</p>
-                <p className="mt-0.5 text-[11.5px] text-muted">{tpl.tagline}</p>
-              </button>
-            ))}
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            {SITE_TEMPLATES.map((tpl) => {
+              const active = template === tpl.id;
+              return (
+                <button
+                  key={tpl.id}
+                  type="button"
+                  disabled={!tpl.available}
+                  onClick={() => tpl.available && setTemplate(tpl.id)}
+                  className={`relative flex items-start gap-3 rounded-[8px] border p-3.5 text-left transition-colors ${
+                    active ? "border-accent bg-accent-soft/50" : "border-line hover:border-ink/20"
+                  } ${tpl.available ? "" : "cursor-not-allowed opacity-60"}`}
+                >
+                  <span className={`mt-0.5 inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md ${active ? "bg-accent text-white" : "bg-panel text-ink"}`}>
+                    <TemplateIcon id={tpl.id} />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-[13px] font-semibold text-ink">{tpl.name}</span>
+                    <span className="mt-0.5 block text-[11.5px] leading-snug text-body">{tpl.tagline}</span>
+                  </span>
+                  {!tpl.available && <span className="absolute right-2.5 top-2.5 rounded-full bg-panel px-1.5 py-0.5 text-[10px] font-medium text-muted">Soon</span>}
+                  {active && (
+                    <span className="absolute right-2.5 top-2.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-accent text-white">
+                      <svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="m5 12.5 4 4 10-10" /></svg>
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
           <div className="mt-3 flex flex-wrap items-center gap-2">
