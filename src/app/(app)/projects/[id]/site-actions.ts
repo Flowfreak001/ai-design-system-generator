@@ -77,7 +77,7 @@ export async function createSiteFromTemplateAction(projectId: string, templateId
       const def = await getCatalogSection(id, user.agencyId);
       if (!def || def.status !== "ready") continue;
       const dc = def.defaultContent ?? {};
-      const isProductGrid = rawId === "ecommerce-product-grid";
+      const isProductGrid = rawId === "ecommerce-product-grid" || rawId === "ecommerce-trending-carousel";
       sections.push({
         id: rid(),
         name: def.name,

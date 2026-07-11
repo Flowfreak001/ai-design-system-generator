@@ -37,9 +37,11 @@ export async function loadPublishedSite(slug: string): Promise<PublishedSite | n
   const pages: SitePage[] = canvas.pages.map((p) => ({ key: p.id, name: p.name, sections: p.sections ?? [] }));
   const allSections = pages.flatMap((p) => p.sections);
 
-  // Re-bind ecommerce sections to the live catalog (best-effort), pointing each
-  // card at this site's product route: /product/<x> → /s/<slug>/p/<x>.
-  if (allSections.some((s) => s.sourceLibrarySectionId?.endsWith("ecommerce-product-grid"))) {
+  // Product-bound sections (grid + carousel) re-bind to the live catalog at
+  // request time, pointing each card at this site's product route.
+  const isProductBound = (s: CanvasSection) =>
+    !!s.sourceLibrarySectionId && /ecommerce-(product-grid|trending-carousel)$/.test(s.sourceLibrarySectionId);
+  if (allSections.some(isProductBound)) {
     try {
       const items = productsToItems(await fetchWixProducts(project.id, 12)).map((it) => ({
         ...it,
@@ -47,7 +49,7 @@ export async function loadPublishedSite(slug: string): Promise<PublishedSite | n
       }));
       if (items.length) {
         for (const s of allSections) {
-          if (s.sourceLibrarySectionId?.endsWith("ecommerce-product-grid") && s.content) s.content.items = items;
+          if (isProductBound(s) && s.content) s.content.items = items;
         }
       }
     } catch { /* keep stored items */ }

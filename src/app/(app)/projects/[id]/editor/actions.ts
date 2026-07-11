@@ -242,7 +242,7 @@ export async function addLibrarySectionToPageAction(
   // Ecommerce binding: when an ecommerce section is added to a project with a
   // connected Wix Store, prefill its items from the LIVE catalog so the section
   // shows the user's real products (falls back to placeholders if the read fails).
-  if (librarySectionId.endsWith("ecommerce-product-grid")) {
+  if (/ecommerce-(product-grid|trending-carousel)$/.test(librarySectionId)) {
     try {
       const products = await fetchWixProducts(projectId, 12);
       if (products.length) section.content!.items = productsToItems(products);

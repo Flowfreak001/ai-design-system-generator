@@ -35,7 +35,7 @@ export const SITE_TEMPLATES: SiteTemplate[] = [
     requiredSolutions: ["stores", "ecom"],
     available: true,
     pages: [
-      { key: "home", name: "Home", sections: ["centered-hero-product-shot", "ecommerce-product-grid", FOOTER] },
+      { key: "home", name: "Home", sections: ["store-hero", "ecommerce-trending-carousel", "store-category-tiles", FOOTER] },
       { key: "shop", name: "Shop", sections: ["ecommerce-product-grid", FOOTER] },
     ],
   },
