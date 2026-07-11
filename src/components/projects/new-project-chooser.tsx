@@ -75,7 +75,7 @@ function ChoiceCard({ icon, tint, title, body, tags, onClick }: {
       whileHover={{ y: -2 }}
       whileTap={{ scale: 0.995 }}
       transition={{ duration: 0.18, ease: EASE }}
-      className="group flex h-full flex-col rounded-[6px] border border-line bg-surface p-5 text-left transition-colors hover:border-ink/20 hover:shadow-[0_2px_10px_rgba(17,24,39,0.05)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+      className="group flex h-full flex-col rounded-[6px] border border-line bg-white p-5 text-left transition-colors hover:border-ink/20 hover:shadow-[0_2px_10px_rgba(17,24,39,0.05)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
     >
       <div className="flex items-center gap-3">
         <span className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md ${TINT[tint] ?? TINT.slate}`}>
