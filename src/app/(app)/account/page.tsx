@@ -66,13 +66,9 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
               <form action={disconnectWixAction}>
                 <Button type="submit" variant="secondary" size="sm">Disconnect</Button>
               </form>
-            ) : wixConfigured ? (
-              <a href="/api/integrations/wix/connect" className="inline-flex h-8 items-center gap-1.5 rounded-[6px] bg-accent px-3 text-[13px] font-medium text-white transition-colors hover:bg-accent-hover">
-                Connect Wix
-              </a>
-            ) : (
+            ) : !wixConfigured ? (
               <span className="text-[12px] text-muted">Not configured</span>
-            )}
+            ) : null}
           </div>
           <div className="mt-3 text-[12.5px]">
             {wixConn ? (
@@ -86,12 +82,12 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
             )}
           </div>
 
-          {/* Simplest connect (Client Credentials): paste your App Instance ID. */}
+          {/* Connect via Client Credentials: paste the App Instance ID. */}
           {!wixConn && wixConfigured && (
             <div className="mt-4 border-t border-line pt-4">
               <p className="text-[12.5px] text-muted">
-                Or connect directly — install our app on your Wix site, then paste its
-                <span className="font-medium text-ink"> App Instance ID</span>:
+                Install our app on your Wix site, then paste its
+                <span className="font-medium text-ink"> App Instance ID</span> to connect:
               </p>
               <WixConnectForm />
             </div>
