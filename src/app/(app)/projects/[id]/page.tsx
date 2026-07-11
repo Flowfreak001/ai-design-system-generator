@@ -21,6 +21,7 @@ import { DeleteProjectButton } from "@/components/projects/delete-project-button
 import { WixPublishButton } from "@/components/projects/wix-publish-button";
 import { WixExportButton } from "@/components/projects/wix-export-button";
 import { WixConnectPanel } from "@/components/projects/wix-connect-panel";
+import { WixStorePreview } from "@/components/projects/wix-store-preview";
 import { getWixConnection } from "@/lib/integrations/wix/connection-store";
 import { TypeBadge } from "@/components/projects/status-badge";
 import { WorkflowBlueprint } from "@/components/projects/workflow-blueprint";
@@ -106,6 +107,7 @@ export default async function ProjectWorkspacePage({
   const overview = (
     <div className="grid gap-4">
       <WixConnectPanel projectId={id} connected={wixConn ? { instanceId: wixConn.instanceId, siteId: wixConn.siteId } : null} />
+      {wixConn && <WixStorePreview projectId={id} />}
       <ProjectSetup
         projectId={id}
         pages={setupPages}

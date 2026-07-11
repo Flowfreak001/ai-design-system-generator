@@ -6,8 +6,7 @@ import { getProject } from "@/lib/projects";
 import { SITEMAP_CANVAS_FILE, type SitemapCanvas } from "@/lib/canvas";
 import { DEFAULT_SECTION_THEME } from "@/components/sections/section-theme";
 import { ensureCollection, saveDataItem, queryItemIds, removeDataItem, type WixField, type WixAuth } from "./client";
-import { getWixConnection } from "./connection-store";
-import { mintAccessToken } from "./oauth";
+import { resolveWixAuth } from "./connection-store";
 
 /**
  * Each project publishes into its OWN Wix collection, so projects (and Wix
@@ -66,11 +65,9 @@ export async function publishProjectToWix(projectId: string, agencyId: string): 
     }
   }
 
-  // Prefer the agency's own connected Wix account (OAuth app token); otherwise
+  // Prefer the project's own connected Wix account (OAuth app token); otherwise
   // fall back to the single-account env API key (auth = undefined).
-  let auth: WixAuth | undefined;
-  const conn = await getWixConnection(projectId);
-  if (conn) auth = { token: await mintAccessToken(conn.instanceId), siteId: conn.siteId };
+  const auth: WixAuth | undefined = await resolveWixAuth(projectId);
 
   await ensureCollection(collectionId, `Flowfreak · ${project.name}`, FIELDS, auth);
   for (const r of rows) await saveDataItem(collectionId, r.id, r.data, auth);

@@ -8,6 +8,7 @@ import { generateWixHeadlessSite, bundleToMarkdown } from "@/lib/integrations/wi
 import { listAppInstallations, type WixInstall } from "@/lib/integrations/wix/installations";
 import { mintAccessToken } from "@/lib/integrations/wix/oauth";
 import { saveWixConnection, deleteWixConnection } from "@/lib/integrations/wix/connection-store";
+import { fetchWixProducts, type WixProduct } from "@/lib/integrations/wix/stores";
 
 export type WixPublishResult =
   | { ok: true; sections: number; pages: number; collectionId: string; removed: number }
@@ -76,6 +77,22 @@ export async function connectWixToProjectAction(projectId: string, instanceId: s
   await saveWixConnection(projectId, user.agencyId, instanceId, siteId ?? null);
   revalidatePath(`/projects/${projectId}`);
   return { ok: true };
+}
+
+// ── Wix Stores (read the connected site's live catalog) ─────────────────────
+export type WixProductsState = { error?: string; products?: WixProduct[] } | undefined;
+
+/** Read the connected Wix site's live product catalog for THIS project. */
+export async function fetchStoreProductsAction(projectId: string): Promise<WixProductsState> {
+  const user = await requireUser();
+  if (!user.agencyId) return { error: "No workspace found for your account." };
+  const project = await getProject(projectId, user.agencyId);
+  if (!project) return { error: "Project not found." };
+  try {
+    return { products: await fetchWixProducts(projectId, 12) };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Couldn't read the store." };
+  }
 }
 
 /** Disconnect this project's Wix site. */
