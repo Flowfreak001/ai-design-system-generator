@@ -405,9 +405,12 @@ model LibrarySection {
 // demand with client_credentials. siteId is captured when known.
 model WixConnection {
   id         String   @id @default(cuid())
-  agencyId   String   @unique
+  projectId  String   @unique
+  agencyId   String
   instanceId String
   siteId     String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+
+  @@index([agencyId])
 }

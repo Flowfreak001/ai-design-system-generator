@@ -60,7 +60,7 @@ export async function publishProjectToWix(projectId: string, agencyId: string): 
   // Prefer the agency's own connected Wix account (OAuth app token); otherwise
   // fall back to the single-account env API key (auth = undefined).
   let auth: WixAuth | undefined;
-  const conn = await getWixConnection(agencyId);
+  const conn = await getWixConnection(projectId);
   if (conn) auth = { token: await mintAccessToken(conn.instanceId), siteId: conn.siteId };
 
   await ensureCollection(COLLECTION_ID, "Flowfreak Sections", FIELDS, auth);

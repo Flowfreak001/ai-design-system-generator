@@ -20,6 +20,8 @@ import {
 import { DeleteProjectButton } from "@/components/projects/delete-project-button";
 import { WixPublishButton } from "@/components/projects/wix-publish-button";
 import { WixExportButton } from "@/components/projects/wix-export-button";
+import { WixConnectPanel } from "@/components/projects/wix-connect-panel";
+import { getWixConnection } from "@/lib/integrations/wix/connection-store";
 import { TypeBadge } from "@/components/projects/status-badge";
 import { WorkflowBlueprint } from "@/components/projects/workflow-blueprint";
 import { NotesSection } from "@/components/projects/notes-section";
@@ -99,8 +101,11 @@ export default async function ProjectWorkspacePage({
     })
     .map(dynamicToLibrarySection);
 
+  const wixConn = await getWixConnection(id);
+
   const overview = (
     <div className="grid gap-4">
+      <WixConnectPanel projectId={id} connected={wixConn ? { instanceId: wixConn.instanceId, siteId: wixConn.siteId } : null} />
       <ProjectSetup
         projectId={id}
         pages={setupPages}
