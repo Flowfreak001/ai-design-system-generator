@@ -5,7 +5,7 @@
 // account / cart with a slide-in cart drawer), and a rich dark footer (feature
 // strip, link columns, newsletter, oversized outline wordmark). Page sections
 // render through the same sucrase engine the editor uses.
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DynamicSectionRenderer } from "@/components/section-library/dynamic-renderer";
 import { createSectionTheme } from "@/components/sections/section-theme";
 import type { CanvasSection, StyleGuideCanvas } from "@/lib/canvas";
@@ -29,7 +29,16 @@ export function StorefrontRenderer({
 }) {
   const theme: SectionTheme = createSectionTheme(style ?? undefined);
   const [cartOpen, setCartOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [mobile, setMobile] = useState(false);
   const t = theme;
+
+  useEffect(() => {
+    const check = () => setMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   return (
     <div style={{ background: t.backgroundColor, color: t.textColor, fontFamily: t.bodyFont, minHeight: "100dvh" }}>
@@ -46,19 +55,26 @@ export function StorefrontRenderer({
       </div>
 
       {/* Header */}
-      <header style={{ position: "sticky", top: 0, zIndex: 30, display: "grid", gridTemplateColumns: "1fr auto 1fr", alignItems: "center", gap: 16, padding: "16px 24px", background: t.backgroundColor, borderBottom: `1px solid ${t.borderColor}`, backdropFilter: "saturate(180%) blur(6px)" }}>
-        <nav style={{ display: "flex", alignItems: "center", gap: 22, minWidth: 0 }}>
-          {nav.map((n) => (
-            <a key={n.href} href={n.href} style={{ fontSize: 12.5, fontWeight: n.active ? 700 : 500, letterSpacing: "0.06em", textTransform: "uppercase", color: n.active ? t.textColor : t.mutedTextColor, textDecoration: "none", whiteSpace: "nowrap" }}>{n.name}</a>
-          ))}
-        </nav>
-        <a href={nav[0]?.href ?? "#"} style={{ fontFamily: t.headingFont, fontSize: 20, fontWeight: 800, letterSpacing: "0.02em", textTransform: "uppercase", color: t.textColor, textDecoration: "none", textAlign: "center" }}>{siteName}</a>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 18 }}>
+      <header style={{ position: "sticky", top: 0, zIndex: 30, display: "grid", gridTemplateColumns: mobile ? "auto 1fr auto" : "1fr auto 1fr", alignItems: "center", gap: 16, padding: mobile ? "14px 20px" : "16px 24px", background: t.backgroundColor, borderBottom: `1px solid ${t.borderColor}`, backdropFilter: "saturate(180%) blur(6px)" }}>
+        {mobile ? (
+          <IconBtn label="Menu" onClick={() => setMenuOpen(true)}>{icon("menu")}</IconBtn>
+        ) : (
+          <nav style={{ display: "flex", alignItems: "center", gap: 22, minWidth: 0 }}>
+            {nav.map((n) => (
+              <a key={n.href} href={n.href} style={{ fontSize: 12.5, fontWeight: n.active ? 700 : 500, letterSpacing: "0.06em", textTransform: "uppercase", color: n.active ? t.textColor : t.mutedTextColor, textDecoration: "none", whiteSpace: "nowrap" }}>{n.name}</a>
+            ))}
+          </nav>
+        )}
+        <a href={nav[0]?.href ?? "#"} style={{ fontFamily: t.headingFont, fontSize: mobile ? 17 : 20, fontWeight: 800, letterSpacing: "0.02em", textTransform: "uppercase", color: t.textColor, textDecoration: "none", textAlign: "center" }}>{siteName}</a>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: mobile ? 14 : 18 }}>
           <IconBtn label="Search">{icon("search")}</IconBtn>
-          <IconBtn label="Account">{icon("user")}</IconBtn>
+          {!mobile ? <IconBtn label="Account">{icon("user")}</IconBtn> : null}
           <IconBtn label="Cart" onClick={() => setCartOpen(true)}>{icon("bag")}</IconBtn>
         </div>
       </header>
+
+      {/* Mobile menu drawer */}
+      <MenuDrawer open={menuOpen} onClose={() => setMenuOpen(false)} nav={nav} siteName={siteName} theme={t} />
 
       <main>
         {sections
@@ -90,8 +106,30 @@ function icon(name: string) {
     search: <><circle cx="11" cy="11" r="7" {...p} /><path d="m20 20-3.2-3.2" {...p} /></>,
     user: <><circle cx="12" cy="8" r="4" {...p} /><path d="M4 21a8 8 0 0 1 16 0" {...p} /></>,
     bag: <><path d="M5 8h14l-1 12H6L5 8Z" {...p} /><path d="M9 8a3 3 0 0 1 6 0" {...p} /></>,
+    menu: <path d="M4 7h16M4 12h16M4 17h16" {...p} />,
   };
   return <svg width="21" height="21" viewBox="0 0 24 24" aria-hidden="true">{paths[name]}</svg>;
+}
+
+// ── Mobile menu drawer — slide-in from the left ──
+function MenuDrawer({ open, onClose, nav, siteName, theme }: { open: boolean; onClose: () => void; nav: SiteNavItem[]; siteName: string; theme: SectionTheme }) {
+  const t = theme;
+  return (
+    <>
+      <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(15,14,13,0.45)", opacity: open ? 1 : 0, pointerEvents: open ? "auto" : "none", transition: "opacity .25s", zIndex: 55 }} />
+      <aside style={{ position: "fixed", top: 0, left: 0, height: "100dvh", width: "min(360px,86vw)", background: t.backgroundColor, color: t.textColor, boxShadow: "16px 0 40px rgba(0,0,0,0.18)", transform: open ? "translateX(0)" : "translateX(-100%)", transition: "transform .3s cubic-bezier(.22,1,.36,1)", zIndex: 65, display: "flex", flexDirection: "column", padding: 22, fontFamily: t.bodyFont }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span style={{ fontFamily: t.headingFont, fontSize: 20, fontWeight: 800, textTransform: "uppercase" }}>{siteName}</span>
+          <button type="button" aria-label="Close" onClick={onClose} style={{ background: "none", border: "none", cursor: "pointer", color: t.mutedTextColor }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M6 6l12 12M18 6 6 18" /></svg>
+          </button>
+        </div>
+        <nav style={{ marginTop: 26, display: "grid", gap: 22 }}>
+          {nav.map((n) => <a key={n.href} href={n.href} onClick={onClose} style={{ fontFamily: t.headingFont, fontSize: 22, fontWeight: 700, color: t.textColor, textDecoration: "none" }}>{n.name}</a>)}
+        </nav>
+      </aside>
+    </>
+  );
 }
 
 // ── Cart drawer — slide-in from the right; action pinned to the bottom. ──
