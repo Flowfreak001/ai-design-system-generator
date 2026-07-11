@@ -7,7 +7,7 @@ import { publishProjectToWix } from "@/lib/integrations/wix/publish";
 import { generateWixHeadlessSite, bundleToMarkdown } from "@/lib/integrations/wix/site-generator";
 import { listAppInstallations, type WixInstall } from "@/lib/integrations/wix/installations";
 import { mintAccessToken } from "@/lib/integrations/wix/oauth";
-import { saveWixConnection, deleteWixConnection } from "@/lib/integrations/wix/connection-store";
+import { saveWixConnection, deleteWixConnection, saveWixClientId } from "@/lib/integrations/wix/connection-store";
 import { fetchWixProducts, type WixProduct } from "@/lib/integrations/wix/stores";
 
 export type WixPublishResult =
@@ -93,6 +93,22 @@ export async function fetchStoreProductsAction(projectId: string): Promise<WixPr
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Couldn't read the store." };
   }
+}
+
+/** Save the project's Wix Headless client id (enables Wix-hosted checkout). */
+export async function setWixClientIdAction(projectId: string, clientId: string): Promise<{ ok?: boolean; error?: string }> {
+  const user = await requireUser();
+  if (!user.agencyId) return { error: "No workspace found for your account." };
+  const project = await getProject(projectId, user.agencyId);
+  if (!project) return { error: "Project not found." };
+  const trimmed = clientId.trim();
+  try {
+    await saveWixClientId(projectId, trimmed || null);
+  } catch {
+    return { error: "Connect a Wix site first, then add the client ID." };
+  }
+  revalidatePath(`/projects/${projectId}`);
+  return { ok: true };
 }
 
 /** Disconnect this project's Wix site. */

@@ -7,6 +7,7 @@ import {
   discoverWixInstallsAction,
   connectWixToProjectAction,
   disconnectWixFromProjectAction,
+  setWixClientIdAction,
 } from "@/app/(app)/projects/[id]/wix-actions";
 import type { WixInstall } from "@/lib/integrations/wix/installations";
 
@@ -16,13 +17,23 @@ export function WixConnectPanel({
   connected,
 }: {
   projectId: string;
-  connected: { instanceId: string; siteId: string | null } | null;
+  connected: { instanceId: string; siteId: string | null; clientId: string | null } | null;
 }) {
   const [pending, start] = useTransition();
   const [installs, setInstalls] = useState<WixInstall[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [manual, setManual] = useState(false);
   const [isConnected, setIsConnected] = useState(Boolean(connected));
+  const [clientId, setClientId] = useState(connected?.clientId ?? "");
+  const [clientSaved, setClientSaved] = useState<boolean | null>(null);
+
+  const saveClientId = (formData: FormData) =>
+    start(async () => {
+      setError(null); setClientSaved(null);
+      const res = await setWixClientIdAction(projectId, String(formData.get("clientId") ?? ""));
+      if (res?.error) setError(res.error);
+      else setClientSaved(true);
+    });
 
   const find = () =>
     start(async () => {
@@ -65,7 +76,18 @@ export function WixConnectPanel({
       </div>
 
       {isConnected ? (
-        <p className="mt-3 text-[12.5px] text-success">✓ Connected{connected?.siteId ? ` · site ${connected.siteId.slice(0, 8)}…` : ""}</p>
+        <>
+          <p className="mt-3 text-[12.5px] text-success">✓ Connected{connected?.siteId ? ` · site ${connected.siteId.slice(0, 8)}…` : ""}</p>
+          <div className="mt-3 border-t border-line pt-3">
+            <label className="text-[12.5px] font-medium text-ink">Headless client ID <span className="font-normal text-muted">(for checkout)</span></label>
+            <p className="mt-0.5 text-[11.5px] text-muted">From your Wix site → Settings → Headless Settings → OAuth apps.</p>
+            <form action={saveClientId} className="mt-2 flex flex-wrap items-center gap-2">
+              <Input name="clientId" value={clientId} onChange={(e) => setClientId(e.target.value)} placeholder="00000000-0000-0000-0000-000000000000" className="h-9 sm:max-w-xs" />
+              <Button type="submit" size="sm" variant="secondary" disabled={pending}>{pending ? "Saving…" : "Save"}</Button>
+              {clientSaved && <span className="text-[12px] text-success">Saved ✓</span>}
+            </form>
+          </div>
+        </>
       ) : !manual ? (
         <div className="mt-3">
           <Button variant="secondary" size="sm" disabled={pending} onClick={find}>

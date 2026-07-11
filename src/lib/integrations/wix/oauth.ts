@@ -50,3 +50,25 @@ export async function mintAccessToken(instanceId: string): Promise<string> {
   if (!json.access_token) throw new Error("Wix token response missing access_token.");
   return json.access_token;
 }
+
+/**
+ * Mint an anonymous VISITOR access token for a headless OAuth client (valid ~4h).
+ * Required for visitor-identity flows like Wix-hosted checkout redirect sessions.
+ * Headless visitor auth needs only the client id — no secret.
+ * Docs: go-headless/.../visitors/handle-visitors-using-the-rest-api
+ */
+export async function mintVisitorToken(clientId: string): Promise<string> {
+  const res = await fetch(TOKEN_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    cache: "no-store",
+    body: JSON.stringify({ clientId, grantType: "anonymous" }),
+  });
+  if (!res.ok) {
+    const body = await res.text().catch(() => "");
+    throw new Error(`Wix visitor token mint failed (${res.status}): ${body.slice(0, 200)}`);
+  }
+  const json = (await res.json()) as { access_token?: string };
+  if (!json.access_token) throw new Error("Wix visitor token response missing access_token.");
+  return json.access_token;
+}

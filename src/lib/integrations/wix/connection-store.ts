@@ -19,12 +19,17 @@ export function getWixConnection(projectId: string) {
   return prisma.wixConnection.findUnique({ where: { projectId } });
 }
 
-export function saveWixConnection(projectId: string, agencyId: string, instanceId: string, siteId?: string | null) {
+export function saveWixConnection(projectId: string, agencyId: string, instanceId: string, siteId?: string | null, clientId?: string | null) {
   return prisma.wixConnection.upsert({
     where: { projectId },
-    update: { instanceId, siteId: siteId ?? undefined, agencyId },
-    create: { projectId, agencyId, instanceId, siteId: siteId ?? undefined },
+    update: { instanceId, siteId: siteId ?? undefined, agencyId, clientId: clientId ?? undefined },
+    create: { projectId, agencyId, instanceId, siteId: siteId ?? undefined, clientId: clientId ?? undefined },
   });
+}
+
+/** Save just the headless client id for a project (keeps other fields). */
+export function saveWixClientId(projectId: string, clientId: string | null) {
+  return prisma.wixConnection.update({ where: { projectId }, data: { clientId } });
 }
 
 export function deleteWixConnection(projectId: string) {

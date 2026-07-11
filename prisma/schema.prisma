@@ -416,6 +416,9 @@ model WixConnection {
   agencyId   String
   instanceId String
   siteId     String?
+  // Headless OAuth client id (from the site's Headless Settings). Needed for
+  // visitor-identity calls like Wix-hosted checkout redirect sessions.
+  clientId   String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 

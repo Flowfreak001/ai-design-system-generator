@@ -107,7 +107,7 @@ export default async function ProjectWorkspacePage({
 
   const overview = (
     <div className="grid gap-4">
-      <WixConnectPanel projectId={id} connected={wixConn ? { instanceId: wixConn.instanceId, siteId: wixConn.siteId } : null} />
+      <WixConnectPanel projectId={id} connected={wixConn ? { instanceId: wixConn.instanceId, siteId: wixConn.siteId, clientId: wixConn.clientId } : null} />
       <SiteBuilderPanel
         projectId={id}
         connected={!!wixConn}
