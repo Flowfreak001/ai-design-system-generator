@@ -16,6 +16,8 @@ import type { GeneratedSectionSpec, SectionPattern } from "@/lib/references/type
 import { getLibrarySection, type LibraryDefaultContent } from "@/lib/section-library/manual-sections";
 import { type DynamicSectionDef } from "@/lib/section-library/dynamic-section";
 import { getCatalogSection, upsertCatalogSection, deleteCatalogSection } from "@/lib/section-library/catalog-store";
+import { fetchWixProducts } from "@/lib/integrations/wix/stores";
+import { productsToItems } from "@/lib/integrations/wix/ecommerce-content";
 import { isAdmin, canEditLibrarySection, canDeleteLibrarySection, canAddLibrarySection } from "@/lib/section-library/permissions";
 
 async function loadCanvas(projectId: string): Promise<SitemapCanvas | null> {
@@ -237,6 +239,16 @@ export async function addLibrarySectionToPageAction(
     },
     ...(custom ? { custom } : {}),
   };
+  // Ecommerce binding: when an ecommerce section is added to a project with a
+  // connected Wix Store, prefill its items from the LIVE catalog so the section
+  // shows the user's real products (falls back to placeholders if the read fails).
+  if (librarySectionId.endsWith("ecommerce-product-grid")) {
+    try {
+      const products = await fetchWixProducts(projectId, 12);
+      if (products.length) section.content!.items = productsToItems(products);
+    } catch { /* keep placeholder items on any store-read failure */ }
+  }
+
   page.sections.push(section);
   await saveCanvasFile(projectId, SITEMAP_CANVAS_FILE, { ...canvas, updatedAt: new Date().toISOString() });
   revalidatePath(`/projects/${projectId}/editor`);
