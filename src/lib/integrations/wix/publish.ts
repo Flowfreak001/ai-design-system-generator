@@ -9,8 +9,15 @@ import { ensureCollection, saveDataItem, queryItemIds, removeDataItem, type WixF
 import { getWixConnection } from "./connection-store";
 import { mintAccessToken } from "./oauth";
 
-// v2 collection carries the component code + theme + full content JSON.
-const COLLECTION_ID = "FlowfreakSectionsV2";
+/**
+ * Each project publishes into its OWN Wix collection, so projects (and Wix
+ * sites) stay cleanly separated. Wix collection ids must be alphanumeric and
+ * start with a letter — cuids qualify, but we sanitize defensively.
+ */
+export function collectionIdForProject(projectId: string): string {
+  const safe = projectId.replace(/[^a-zA-Z0-9]/g, "").slice(0, 80) || "default";
+  return `FlowfreakSections_${safe}`;
+}
 const FIELDS: WixField[] = [
   { key: "projectId", displayName: "Project ID", type: "TEXT" },
   { key: "projectName", displayName: "Project", type: "TEXT" },
@@ -29,6 +36,8 @@ export type WixPublishSummary = { collectionId: string; sections: number; pages:
 export async function publishProjectToWix(projectId: string, agencyId: string): Promise<WixPublishSummary> {
   const project = await getProject(projectId, agencyId);
   if (!project) throw new Error("Project not found.");
+
+  const collectionId = collectionIdForProject(projectId);
 
   const raw = project.files.find((f) => f.name === SITEMAP_CANVAS_FILE)?.content;
   const pages = raw ? (JSON.parse(raw) as SitemapCanvas).pages ?? [] : [];
@@ -63,18 +72,18 @@ export async function publishProjectToWix(projectId: string, agencyId: string): 
   const conn = await getWixConnection(projectId);
   if (conn) auth = { token: await mintAccessToken(conn.instanceId), siteId: conn.siteId };
 
-  await ensureCollection(COLLECTION_ID, "Flowfreak Sections", FIELDS, auth);
-  for (const r of rows) await saveDataItem(COLLECTION_ID, r.id, r.data, auth);
+  await ensureCollection(collectionId, `Flowfreak · ${project.name}`, FIELDS, auth);
+  for (const r of rows) await saveDataItem(collectionId, r.id, r.data, auth);
 
   // Sync: delete any Wix rows for this project that are no longer in the canvas,
   // so removing a section in Flowfreak drops it from the live site on re-publish.
   const currentIds = new Set(rows.map((r) => r.id));
   let removed = 0;
   try {
-    const existingIds = await queryItemIds(COLLECTION_ID, { projectId }, auth);
+    const existingIds = await queryItemIds(collectionId, { projectId }, auth);
     for (const id of existingIds) {
       if (!currentIds.has(id)) {
-        await removeDataItem(COLLECTION_ID, id, auth);
+        await removeDataItem(collectionId, id, auth);
         removed++;
       }
     }
@@ -82,5 +91,5 @@ export async function publishProjectToWix(projectId: string, agencyId: string): 
     /* best-effort cleanup — never fail the publish over stale-row removal */
   }
 
-  return { collectionId: COLLECTION_ID, sections: rows.length, pages: pages.length, removed };
+  return { collectionId, sections: rows.length, pages: pages.length, removed };
 }
