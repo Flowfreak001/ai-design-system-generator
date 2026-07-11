@@ -24,8 +24,6 @@ export type SiteTemplate = {
   pages: SiteTemplatePage[];
 };
 
-const FOOTER = "footer-columns-logo";
-
 export const SITE_TEMPLATES: SiteTemplate[] = [
   {
     id: "store",
@@ -35,8 +33,9 @@ export const SITE_TEMPLATES: SiteTemplate[] = [
     requiredSolutions: ["stores", "ecom"],
     available: true,
     pages: [
-      { key: "home", name: "Home", sections: ["store-hero", "ecommerce-trending-carousel", "store-category-tiles", FOOTER] },
-      { key: "shop", name: "Shop", sections: ["ecommerce-product-grid", FOOTER] },
+      // Header + footer are provided by the hosted storefront chrome.
+      { key: "home", name: "Home", sections: ["store-hero", "ecommerce-trending-carousel", "store-category-tiles"] },
+      { key: "shop", name: "Shop", sections: ["ecommerce-product-grid"] },
     ],
   },
   {
