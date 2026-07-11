@@ -86,8 +86,7 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
           {!wixConn && wixConfigured && (
             <div className="mt-4 border-t border-line pt-4">
               <p className="text-[12.5px] text-muted">
-                Install our app on your Wix site, then paste its
-                <span className="font-medium text-ink"> App Instance ID</span> to connect:
+                Install our app on your Wix site, then click below — we’ll find your sites automatically.
               </p>
               <WixConnectForm />
             </div>
