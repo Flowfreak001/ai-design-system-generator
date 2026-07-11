@@ -19,22 +19,38 @@ export type WixProduct = {
   variantCount: number;
 };
 
-/** Read up to `limit` products from the project's connected Wix Store. */
-export async function fetchWixProducts(projectId: string, limit = 12): Promise<WixProduct[]> {
-  const auth = await resolveWixAuth(projectId);
-  const headers: Record<string, string> = auth
-    ? { "Content-Type": "application/json", Authorization: auth.token, ...(auth.siteId ? { "wix-site-id": auth.siteId } : {}) }
-    : (() => { const { apiKey, siteId } = wixConfig(); return { "Content-Type": "application/json", Authorization: apiKey, "wix-site-id": siteId }; })();
+function appHeaders(auth: NonNullable<Awaited<ReturnType<typeof resolveWixAuth>>>): Record<string, string> {
+  return { "Content-Type": "application/json", Authorization: auth.token, ...(auth.siteId ? { "wix-site-id": auth.siteId } : {}) };
+}
+function envHeaders(): Record<string, string> {
+  const { apiKey, siteId } = wixConfig();
+  return { "Content-Type": "application/json", Authorization: apiKey, "wix-site-id": siteId };
+}
 
-  const res = await fetch(PRODUCTS_QUERY_URL, {
+async function queryProducts(headers: Record<string, string>, limit: number) {
+  return fetch(PRODUCTS_QUERY_URL, {
     method: "POST",
     cache: "no-store",
     headers,
     body: JSON.stringify({ query: { cursorPaging: { limit } } }),
   });
+}
+
+/** Read up to `limit` products from the project's connected Wix Store. */
+export async function fetchWixProducts(projectId: string, limit = 12): Promise<WixProduct[]> {
+  const auth = await resolveWixAuth(projectId);
+
+  // Prefer the project's app token (the multi-tenant path). If the app was
+  // installed before the Stores scope was granted, that token 403s until the
+  // site re-consents — so fall back to the owner env API key for the owner's
+  // own site, letting the catalog verify now. Real tenants use the app token.
+  let res = auth ? await queryProducts(appHeaders(auth), limit) : await queryProducts(envHeaders(), limit);
+  if (auth && res.status === 403) res = await queryProducts(envHeaders(), limit);
+
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    throw new Error(`Wix Stores query failed (${res.status}): ${body.slice(0, 240)}`);
+    const hint = res.status === 403 ? " — the app lacks Stores permission on this site; update/reinstall it to re-consent." : "";
+    throw new Error(`Wix Stores query failed (${res.status})${hint}`);
   }
 
   const json = (await res.json()) as { products?: WixProductRow[] };
