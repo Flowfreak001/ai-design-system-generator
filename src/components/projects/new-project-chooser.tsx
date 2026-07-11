@@ -113,7 +113,6 @@ function WixHeadlessCreate({ onBack }: { onBack: () => void }) {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.28, ease: EASE }}
-      className="rounded-[8px] border border-line bg-surface p-6 shadow-[0_1px_2px_rgba(17,24,39,0.04)] sm:p-7"
     >
       <button type="button" onClick={onBack} className="inline-flex items-center gap-1 text-[12.5px] font-medium text-muted transition-colors hover:text-ink">
         <Icon name="arrow" className="h-3.5 w-3.5 rotate-180" /> Back
