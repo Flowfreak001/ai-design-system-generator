@@ -46,6 +46,11 @@ export function FullSectionPreview({ section, publicMode = false }: { section: L
 
   const rendered = <SectionErrorBoundary>{renderLibrarySection(section, theme, device === "mobile")}</SectionErrorBoundary>;
 
+  // Trailing scroll room is only useful for scroll-LINKED sections (useScroll
+  // parallax/reveal effects need space below to progress). Static sections
+  // (headers, footers, grids) end compactly — no dead gap under them.
+  const scrollRoom = /useScroll/.test(section.componentCode ?? "");
+
   return (
     <div className="min-h-screen bg-panel">
       {/* Slim top bar (doesn't scroll with the page). */}
@@ -89,10 +94,12 @@ export function FullSectionPreview({ section, publicMode = false }: { section: L
       </div>
 
       {device === "desktop" ? (
-        // Real full-width scrollable page (scroll-linked effects have room).
-        <div className={`bg-white ${publicMode ? "min-h-[calc(100vh-46px)]" : ""}`}>
+        // Real full-width scrollable page. The section ends naturally (grey
+        // panel below = end of preview); trailing scroll room is added ONLY
+        // for scroll-linked sections, which need it to progress.
+        <div className="bg-white">
           {rendered}
-          {!publicMode && <div className="min-h-[70vh]" aria-hidden />}
+          {scrollRoom && <div className="min-h-[70vh] bg-white" aria-hidden />}
         </div>
       ) : (
         // Emulated device: fixed viewport, rounded bezel, own scroll + overflow
@@ -111,7 +118,7 @@ export function FullSectionPreview({ section, publicMode = false }: { section: L
             <div className={`relative h-full w-full overflow-hidden bg-white ring-1 ring-black/5 ${device === "mobile" ? "rounded-[37px]" : "rounded-[26px]"}`}>
               <div className="h-full overflow-y-auto overscroll-contain">
                 {rendered}
-                <div style={{ minHeight: "40%" }} aria-hidden />
+                {scrollRoom && <div style={{ minHeight: "40%" }} aria-hidden />}
               </div>
               {device === "mobile" && (
                 /* home indicator */
