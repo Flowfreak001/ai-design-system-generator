@@ -7,6 +7,7 @@ import { ProfileCard } from "./profile-card";
 import { getWixConnection } from "@/lib/integrations/wix/connection-store";
 import { isWixAppConfigured } from "@/lib/integrations/wix/oauth";
 import { disconnectWixAction } from "./wix-actions";
+import { WixConnectForm } from "./wix-connect-form";
 import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
@@ -80,14 +81,21 @@ export default async function AccountPage({ searchParams }: { searchParams: Prom
               <span className="text-success">✓ Wix connected — you can now Publish to your account.</span>
             ) : wixStatus === "error" ? (
               <span className="text-danger">Couldn’t complete the Wix connection. Please try again.</span>
-            ) : wixStatus === "badstate" ? (
-              <span className="text-danger">Security check failed — please retry the connection.</span>
-            ) : wixStatus === "unconfigured" ? (
-              <span className="text-danger">Wix app isn’t configured on the server yet.</span>
             ) : (
               <span className="text-muted">Not connected — Publish uses the shared account until you connect.</span>
             )}
           </div>
+
+          {/* Simplest connect (Client Credentials): paste your App Instance ID. */}
+          {!wixConn && wixConfigured && (
+            <div className="mt-4 border-t border-line pt-4">
+              <p className="text-[12.5px] text-muted">
+                Or connect directly — install our app on your Wix site, then paste its
+                <span className="font-medium text-ink"> App Instance ID</span>:
+              </p>
+              <WixConnectForm />
+            </div>
+          )}
         </div>
       </FadeUp>
     </PageContainer>
