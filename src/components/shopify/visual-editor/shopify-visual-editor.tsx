@@ -134,7 +134,9 @@ export function ShopifyVisualEditor({ projectId, storeName, brand, initialPages 
   const tb = "grid h-8 w-8 place-items-center rounded-md text-muted hover:bg-panel hover:text-ink disabled:opacity-30";
 
   return (
-    <div className="flex h-[100dvh] flex-col bg-panel">
+    // Full-screen overlay so the app sidebar/topbar are hidden while editing
+    // (matches the design editor). The editor owns the whole viewport.
+    <div className="fixed inset-0 z-50 flex h-screen flex-col bg-panel">
       {/* Top toolbar */}
       <header className="flex items-center gap-2 border-b border-line bg-white px-3 py-2">
         <Link href={`/projects/${projectId}/shopify`} className="inline-flex items-center gap-1.5 rounded-md px-2 py-1.5 text-[12.5px] font-medium text-muted hover:bg-panel hover:text-ink">

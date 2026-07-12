@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import { StorefrontPreview } from "@/components/shopify/storefront-preview";
 import { CONTENT_SECTIONS, getSection, type BrandTokens, type ShopifyPage, type ShopifySectionInstance } from "@/modules/shopify";
 import { saveBrandAction, savePagesAction, exportThemeAction } from "@/app/(app)/projects/[id]/shopify/actions";
+import { deleteProjectAction } from "@/app/(app)/projects/actions";
+import { useRouter } from "next/navigation";
 import { SettingInput, BlockEditor, Field, inputCls } from "@/components/shopify/section-controls";
 
 type Tab = "overview" | "brand" | "pages" | "preview" | "export";
@@ -132,6 +134,46 @@ function Overview({ init, pages, brand, storeName, onGo }: { init: BuilderInit; 
       </div>
       <div className="rounded-[10px] border border-dashed border-line bg-panel/40 p-4 text-[12px] text-muted">
         <b className="text-body">Not yet connected to Shopify.</b> Direct theme publishing via OAuth is a later phase — for now, export the theme ZIP and upload it in your Shopify admin (Online Store → Themes → Upload).
+      </div>
+      <DeleteProjectRow projectId={init.projectId} projectName={storeName || init.projectName} />
+    </div>
+  );
+}
+// Danger zone — permanently delete this Shopify project (theme + data).
+function DeleteProjectRow({ projectId, projectName }: { projectId: string; projectName: string }) {
+  const router = useRouter();
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  async function remove() {
+    setBusy(true);
+    try {
+      await deleteProjectAction(projectId);
+      router.push("/projects");
+    } catch {
+      setBusy(false);
+      setConfirming(false);
+    }
+  }
+  return (
+    <div className="rounded-[10px] border border-danger-soft bg-danger-soft/20 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-[13px] font-semibold text-ink">Delete this Shopify project</div>
+          <div className="text-[12px] text-body">Permanently removes the theme, brand and all pages. This can’t be undone.</div>
+        </div>
+        {!confirming ? (
+          <Button size="sm" variant="secondary" onClick={() => setConfirming(true)} className="border-danger/40 text-danger hover:bg-danger-soft/50">
+            <Icon d={ICONS.trash} className="-ml-0.5 mr-1" /> Delete project
+          </Button>
+        ) : (
+          <div className="flex items-center gap-2">
+            <span className="text-[12px] font-medium text-danger">Delete “{projectName}”?</span>
+            <Button size="sm" variant="secondary" onClick={() => setConfirming(false)} disabled={busy}>Cancel</Button>
+            <button onClick={remove} disabled={busy} className="inline-flex items-center gap-1.5 rounded-md bg-danger px-3 py-1.5 text-[13px] font-semibold text-white hover:opacity-90 disabled:opacity-60">
+              {busy ? "Deleting…" : "Yes, delete"}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
