@@ -10,8 +10,39 @@ import { CSS } from "@dnd-kit/utilities";
 import {
   AnnouncementBar, Header, Footer, renderSection, storeVars, sectionSchemeVars, STORE_CSS, mainSectionId,
 } from "@/components/shopify/storefront-preview";
+import { useState } from "react";
 import type { BrandTokens, ShopifySectionInstance } from "@/modules/shopify";
 import { getSection } from "@/modules/shopify";
+
+/** Elementor-style "insert a section here" affordance shown between sections. */
+function InsertZone({ index, available, onInsert }: {
+  index: number; available: { id: string; name: string; category: string }[]; onInsert: (index: number, id: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="relative z-30 h-0" onClick={(e) => e.stopPropagation()}>
+      <div className="group/ins absolute inset-x-0 -top-3 flex h-6 items-center justify-center">
+        <button onClick={() => setOpen((o) => !o)} aria-label="Insert section"
+          className="grid h-6 w-6 place-items-center rounded-full bg-accent text-white opacity-0 shadow transition-opacity group-hover/ins:opacity-100">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>
+        </button>
+      </div>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
+          <div className="absolute left-1/2 top-1 z-40 max-h-[280px] w-56 -translate-x-1/2 overflow-y-auto rounded-xl border border-line bg-white p-1 shadow-xl">
+            {available.map((d) => (
+              <button key={d.id} onClick={() => { onInsert(index, d.id); setOpen(false); }}
+                className="flex w-full items-center justify-between gap-2 rounded-md px-2.5 py-1.5 text-left text-[12.5px] text-ink hover:bg-panel">
+                <span className="truncate">{d.name}</span><span className="shrink-0 text-[10.5px] uppercase text-muted">{d.category}</span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 function Toolbar({ onUp, onDown, onDup, onHide, onDel, hidden, dragProps }: {
   onUp: () => void; onDown: () => void; onDup: () => void; onHide: () => void; onDel: () => void; hidden: boolean;
@@ -50,9 +81,10 @@ function SortableSection({ inst, brand, selected, onSelect, onUp, onDown, onDup,
   );
 }
 
-export function EditorCanvas({ brand, storeName, template, sections, selectedKey, onSelect, onUp, onDown, onDup, onHide, onDel }: {
+export function EditorCanvas({ brand, storeName, template, sections, available, selectedKey, onSelect, onInsert, onUp, onDown, onDup, onHide, onDel }: {
   brand: BrandTokens; storeName: string; template: string; sections: ShopifySectionInstance[];
-  selectedKey: string | null; onSelect: (key: string | null) => void;
+  available: { id: string; name: string; category: string }[];
+  selectedKey: string | null; onSelect: (key: string | null) => void; onInsert: (index: number, id: string) => void;
   onUp: (i: number) => void; onDown: (i: number) => void; onDup: (key: string) => void; onHide: (key: string) => void; onDel: (key: string) => void;
 }) {
   const mainId = mainSectionId(template);
@@ -69,15 +101,19 @@ export function EditorCanvas({ brand, storeName, template, sections, selectedKey
             <div className={selectedKey === "__main" ? "outline outline-2 -outline-offset-2 outline-accent" : ""} style={sectionSchemeVars(brand, mainInst)}>{renderSection(mainInst)}</div>
           </div>
         )}
+        <InsertZone index={0} available={available} onInsert={onInsert} />
         <SortableContext items={sections.map((s) => s.key)} strategy={verticalListSortingStrategy}>
           {sections.map((inst, i) => (
-            <SortableSection key={inst.key} inst={inst} brand={brand} selected={selectedKey === inst.key}
-              onSelect={() => onSelect(inst.key)} onUp={() => onUp(i)} onDown={() => onDown(i)}
-              onDup={() => onDup(inst.key)} onHide={() => onHide(inst.key)} onDel={() => onDel(inst.key)} />
+            <div key={inst.key}>
+              <SortableSection inst={inst} brand={brand} selected={selectedKey === inst.key}
+                onSelect={() => onSelect(inst.key)} onUp={() => onUp(i)} onDown={() => onDown(i)}
+                onDup={() => onDup(inst.key)} onHide={() => onHide(inst.key)} onDel={() => onDel(inst.key)} />
+              <InsertZone index={i + 1} available={available} onInsert={onInsert} />
+            </div>
           ))}
         </SortableContext>
         {sections.length === 0 && !mainInst && (
-          <div className="ff-empty" style={{ padding: "80px 24px" }}>Add sections from the left panel to build this page.</div>
+          <div className="ff-empty" style={{ padding: "80px 24px" }}>Add sections from the left panel — or click a <b>+</b> above.</div>
         )}
       </main>
       <Footer />

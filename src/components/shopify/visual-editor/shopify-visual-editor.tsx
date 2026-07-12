@@ -9,7 +9,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DndContext, PointerSensor, useSensor, useSensors, closestCenter, type DragEndEvent } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
-import { resolveSchemes, getSection, type BrandTokens, type ShopifyPage, type ShopifySectionInstance } from "@/modules/shopify";
+import { resolveSchemes, getSection, CONTENT_SECTIONS, type BrandTokens, type ShopifyPage, type ShopifySectionInstance, type ShopifySectionDefinition } from "@/modules/shopify";
 import { savePagesAction, exportThemeAction } from "@/app/(app)/projects/[id]/shopify/actions";
 import { mainSectionId } from "@/components/shopify/storefront-preview";
 import { ComponentLibrary } from "./component-library";
@@ -52,6 +52,12 @@ export function ShopifyVisualEditor({ projectId, storeName, brand, initialPages 
   }, [pages, projectId]);
 
   const activeSections = useMemo(() => pages.find((p) => p.template === template && !p.handle)?.sections ?? [], [pages, template]);
+  const available = useMemo(
+    () => CONTENT_SECTIONS
+      .filter((d) => d.supportedTemplates.includes(template as ShopifySectionDefinition["supportedTemplates"][number]))
+      .map((d) => ({ id: d.id, name: d.name, category: d.category })),
+    [template],
+  );
 
   const setSections = useCallback((sections: ShopifySectionInstance[]) => {
     const idx = pages.findIndex((p) => p.template === template && !p.handle);
@@ -160,8 +166,8 @@ export function ShopifyVisualEditor({ projectId, storeName, brand, initialPages 
           <div className="min-h-0 overflow-y-auto bg-panel/60 p-5">
             <div className="mx-auto overflow-hidden rounded-[10px] border border-line bg-white shadow-sm transition-all" style={{ maxWidth: deviceW }}>
               <EditorCanvas
-                brand={brand} storeName={storeName} template={template} sections={activeSections}
-                selectedKey={selectedKey} onSelect={setSelectedKey}
+                brand={brand} storeName={storeName} template={template} sections={activeSections} available={available}
+                selectedKey={selectedKey} onSelect={setSelectedKey} onInsert={(index, id) => addSection(id, index)}
                 onUp={(i) => move(i, -1)} onDown={(i) => move(i, 1)} onDup={duplicate} onHide={hide} onDel={del}
               />
             </div>
