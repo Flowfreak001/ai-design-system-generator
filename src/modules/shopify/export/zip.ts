@@ -20,19 +20,34 @@ function crc32(buf: Buffer): number {
   return (c ^ 0xffffffff) >>> 0;
 }
 
-/** Build a valid .zip Buffer from theme files (STORE / no compression). */
+type ZipEntry = { path: string; data: Buffer; isDir: boolean };
+
+/** Build a valid .zip Buffer from theme files (STORE / no compression).
+ *  Includes explicit DIRECTORY entries — real Shopify theme zips (Dawn) have them,
+ *  and the Admin importer can drop nested files (e.g. templates/customers/*) when
+ *  they are missing. Deterministic: fixed timestamps + sorted entries. */
 export function createThemeZip(files: GeneratedThemeFile[]): Buffer {
-  const entries = [...files].sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
+  // Every parent directory of every file, as a trailing-slash entry.
+  const dirs = new Set<string>();
+  for (const f of files) {
+    const parts = f.path.split("/");
+    for (let i = 1; i < parts.length; i++) dirs.add(parts.slice(0, i).join("/") + "/");
+  }
+  const entries: ZipEntry[] = [
+    ...[...dirs].map((p) => ({ path: p, data: Buffer.alloc(0), isDir: true })),
+    ...files.map((f) => ({ path: f.path, data: Buffer.from(f.contents, "utf8"), isDir: false })),
+  ].sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
+
   const DOS_TIME = 0; // fixed => deterministic
   const DOS_DATE = 0x21; // 1980-01-01
   const localParts: Buffer[] = [];
   const central: Buffer[] = [];
   let offset = 0;
 
-  for (const file of entries) {
-    const nameBuf = Buffer.from(file.path, "utf8");
-    const data = Buffer.from(file.contents, "utf8");
-    const crc = crc32(data);
+  for (const entry of entries) {
+    const nameBuf = Buffer.from(entry.path, "utf8");
+    const data = entry.data;
+    const crc = entry.isDir ? 0 : crc32(data);
 
     const local = Buffer.alloc(30);
     local.writeUInt32LE(0x04034b50, 0); // local file header sig
@@ -64,7 +79,7 @@ export function createThemeZip(files: GeneratedThemeFile[]): Buffer {
     cen.writeUInt16LE(0, 32); // comment len
     cen.writeUInt16LE(0, 34); // disk
     cen.writeUInt16LE(0, 36); // internal attrs
-    cen.writeUInt32LE(0, 38); // external attrs
+    cen.writeUInt32LE(entry.isDir ? 0x10 : 0, 38); // external attrs: MS-DOS directory bit
     cen.writeUInt32LE(offset, 42);
     central.push(cen, nameBuf);
 
