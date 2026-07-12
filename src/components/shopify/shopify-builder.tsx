@@ -9,7 +9,7 @@ import { useState, useMemo, useRef, useEffect, useCallback, type ReactNode } fro
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { StorefrontPreview } from "@/components/shopify/storefront-preview";
+import { StorefrontPreview, mainSectionId } from "@/components/shopify/storefront-preview";
 import { CONTENT_SECTIONS, getSection, type BrandTokens, type ShopifyPage, type ShopifySectionInstance } from "@/modules/shopify";
 import { saveBrandAction, savePagesAction, exportThemeAction } from "@/app/(app)/projects/[id]/shopify/actions";
 import { deleteProjectAction } from "@/app/(app)/projects/actions";
@@ -332,10 +332,12 @@ function PagesTab({ projectId, pages, setPages }: { projectId: string; pages: Sh
     updatePageSections([...page.sections, inst]);
   };
   const removeSection = (key: string) => updatePageSections(page.sections.filter((s) => s.key !== key));
-  const move = (idx: number, dir: -1 | 1) => {
+  const move = (key: string, dir: -1 | 1) => {
     const next = [...page.sections];
+    const idx = next.findIndex((s) => s.key === key);
     const j = idx + dir;
-    if (j < 0 || j >= next.length) return;
+    if (idx < 0 || j < 0 || j >= next.length) return;
+    if (next[j].key === "__main") return; // keep the locked core first
     [next[idx], next[j]] = [next[j], next[idx]];
     updatePageSections(next);
   };
@@ -376,14 +378,43 @@ function PagesTab({ projectId, pages, setPages }: { projectId: string; pages: Sh
         </div>
 
         {/* Locked "main" section — the core of this storefront template (Shopify OS 2.0). */}
-        {TEMPLATE_MAIN[page.template] && (
-          <div className="flex items-center gap-2 rounded-[10px] border border-line bg-panel/50 px-3.5 py-3">
-            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.7" className="shrink-0 text-muted"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
-            <span className="text-[13px] font-medium text-ink">{TEMPLATE_MAIN[page.template].label}</span>
-            <span className="rounded-full bg-panel px-2 py-0.5 text-[10.5px] font-medium text-muted">Core · locked</span>
-            <span className="ml-auto text-[11.5px] text-muted">Always rendered on this template</span>
-          </div>
-        )}
+        {TEMPLATE_MAIN[page.template] && (() => {
+          const mainId = mainSectionId(page.template);
+          const mainDef = mainId ? getSection(mainId) : undefined;
+          const variants = mainDef?.variants ?? [];
+          const current = String(page.sections.find((s) => s.key === "__main")?.settings?.variant ?? mainDef?.defaultSettings.variant ?? variants[0]?.id ?? "");
+          const pickVariant = (v: string) => {
+            const has = page.sections.some((s) => s.key === "__main");
+            updatePageSections(
+              has
+                ? page.sections.map((s) => (s.key === "__main" ? { ...s, settings: { ...(s.settings ?? {}), variant: v } } : s))
+                : [{ key: "__main", sectionId: mainId!, settings: { variant: v } }, ...page.sections],
+            );
+          };
+          return (
+            <div className="rounded-[10px] border border-line bg-panel/50 px-3.5 py-3">
+              <div className="flex items-center gap-2">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.7" className="shrink-0 text-muted"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+                <span className="text-[13px] font-medium text-ink">{TEMPLATE_MAIN[page.template].label}</span>
+                <span className="rounded-full bg-panel px-2 py-0.5 text-[10.5px] font-medium text-muted">Core · locked</span>
+                <span className="ml-auto text-[11.5px] text-muted">Always rendered on this template</span>
+              </div>
+              {variants.length > 1 && (
+                <div className="mt-3 border-t border-line pt-3">
+                  <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted">Design</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {variants.map((v) => (
+                      <button key={v.id} onClick={() => pickVariant(v.id)}
+                        className={`rounded-md border px-3 py-1.5 text-[12.5px] font-medium transition-colors ${current === v.id ? "border-accent bg-accent-soft/50 text-ink" : "border-line bg-white text-body hover:border-accent/50"}`}>
+                        {v.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         {page.sections.length === 0 && !TEMPLATE_MAIN[page.template] && (
           <div className="rounded-[10px] border border-dashed border-line bg-panel/40 px-4 py-10 text-center text-[13px] text-muted">
@@ -394,8 +425,8 @@ function PagesTab({ projectId, pages, setPages }: { projectId: string; pages: Sh
           <p className="px-1 text-[12px] text-muted">Add content sections above to appear around the {TEMPLATE_MAIN[page.template].label.toLowerCase()}.</p>
         )}
 
-        {page.sections.map((inst, idx) => (
-          <SectionCard key={inst.key} inst={inst} idx={idx} count={page.sections.length}
+        {page.sections.filter((s) => s.key !== "__main").map((inst, idx, arr) => (
+          <SectionCard key={inst.key} inst={inst} idx={idx} count={arr.length}
             onMove={move} onRemove={removeSection} onPatch={patch} />
         ))}
       </div>
@@ -405,7 +436,7 @@ function PagesTab({ projectId, pages, setPages }: { projectId: string; pages: Sh
 
 function SectionCard({ inst, idx, count, onMove, onRemove, onPatch }: {
   inst: ShopifySectionInstance; idx: number; count: number;
-  onMove: (i: number, d: -1 | 1) => void; onRemove: (k: string) => void;
+  onMove: (k: string, d: -1 | 1) => void; onRemove: (k: string) => void;
   onPatch: (k: string, s: Record<string, string | number | boolean>, b?: ShopifySectionInstance["blocks"]) => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -423,8 +454,8 @@ function SectionCard({ inst, idx, count, onMove, onRemove, onPatch }: {
           <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" className={`shrink-0 text-muted transition-transform ${open ? "rotate-90" : ""}`}><path d="m9 6 6 6-6 6" /></svg>
           <span className="truncate text-[13px] font-medium text-ink">{def.name}</span>
         </button>
-        <button onClick={() => onMove(idx, -1)} disabled={idx === 0} className="rounded p-1 text-muted hover:text-ink disabled:opacity-30" aria-label="Move up"><Icon d={ICONS.up} className="h-3.5 w-3.5" /></button>
-        <button onClick={() => onMove(idx, 1)} disabled={idx === count - 1} className="rounded p-1 text-muted hover:text-ink disabled:opacity-30" aria-label="Move down"><Icon d={ICONS.down} className="h-3.5 w-3.5" /></button>
+        <button onClick={() => onMove(inst.key, -1)} disabled={idx === 0} className="rounded p-1 text-muted hover:text-ink disabled:opacity-30" aria-label="Move up"><Icon d={ICONS.up} className="h-3.5 w-3.5" /></button>
+        <button onClick={() => onMove(inst.key, 1)} disabled={idx === count - 1} className="rounded p-1 text-muted hover:text-ink disabled:opacity-30" aria-label="Move down"><Icon d={ICONS.down} className="h-3.5 w-3.5" /></button>
         <button onClick={() => onRemove(inst.key)} className="rounded p-1 text-muted hover:text-danger" aria-label="Remove"><Icon d={ICONS.trash} className="h-3.5 w-3.5" /></button>
       </div>
       <AnimatePresence initial={false}>

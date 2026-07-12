@@ -94,7 +94,19 @@ export function ShopifyVisualEditor({ projectId, storeName, brand, initialPages 
   const hide = (key: string) => setSections(activeSections.map((s) => (s.key === key ? { ...s, disabled: !s.disabled } : s)));
   const del = (key: string) => { setSections(activeSections.filter((s) => s.key !== key)); if (selectedKey === key) setSelectedKey(null); };
   const patch = (settings: Record<string, string | number | boolean>, blocks?: ShopifySectionInstance["blocks"]) => {
-    if (!selectedKey || selectedKey === "__main") return;
+    if (!selectedKey) return;
+    // The locked "main" section persists as a real __main instance (settings only,
+    // e.g. its design variant) so the generator honours it. Upsert at the front.
+    if (selectedKey === "__main") {
+      const mainId = mainSectionId(template);
+      if (!mainId) return;
+      if (activeSections.some((s) => s.key === "__main")) {
+        setSections(activeSections.map((s) => (s.key === "__main" ? { ...s, settings } : s)));
+      } else {
+        setSections([{ key: "__main", sectionId: mainId, settings }, ...activeSections]);
+      }
+      return;
+    }
     setSections(activeSections.map((s) => (s.key === selectedKey ? { ...s, settings, ...(blocks ? { blocks } : {}) } : s)));
   };
 
@@ -117,7 +129,7 @@ export function ShopifyVisualEditor({ projectId, storeName, brand, initialPages 
 
   // Selected instance for the panel (or the locked main).
   const selectedInst: ShopifySectionInstance | null = selectedKey === "__main"
-    ? (mainSectionId(template) ? { key: "__main", sectionId: mainSectionId(template)!, settings: {} } : null)
+    ? (mainSectionId(template) ? (activeSections.find((s) => s.key === "__main") ?? { key: "__main", sectionId: mainSectionId(template)!, settings: {} }) : null)
     : activeSections.find((s) => s.key === selectedKey) ?? null;
 
   const doExport = async () => {

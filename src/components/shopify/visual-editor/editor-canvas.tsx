@@ -88,7 +88,11 @@ export function EditorCanvas({ brand, storeName, template, sections, available, 
   onUp: (i: number) => void; onDown: (i: number) => void; onDup: (key: string) => void; onHide: (key: string) => void; onDel: (key: string) => void;
 }) {
   const mainId = mainSectionId(template);
-  const mainInst: ShopifySectionInstance | null = mainId ? { key: "__main", sectionId: mainId } : null;
+  // The __main instance may be persisted in sections (carries its design variant);
+  // render it as the locked main and keep it OUT of the sortable content list.
+  const storedMain = sections.find((s) => s.key === "__main") ?? null;
+  const mainInst: ShopifySectionInstance | null = mainId ? (storedMain ?? { key: "__main", sectionId: mainId }) : null;
+  const contentSections = sections.filter((s) => s.key !== "__main");
 
   return (
     <div className="ff-store" style={storeVars(brand)} onClick={() => onSelect(null)}>
@@ -102,15 +106,18 @@ export function EditorCanvas({ brand, storeName, template, sections, available, 
           </div>
         )}
         <InsertZone index={0} available={available} onInsert={onInsert} />
-        <SortableContext items={sections.map((s) => s.key)} strategy={verticalListSortingStrategy}>
-          {sections.map((inst, i) => (
+        <SortableContext items={contentSections.map((s) => s.key)} strategy={verticalListSortingStrategy}>
+          {contentSections.map((inst, i) => {
+            const realIdx = sections.findIndex((s) => s.key === inst.key);
+            return (
             <div key={inst.key}>
               <SortableSection inst={inst} brand={brand} selected={selectedKey === inst.key}
-                onSelect={() => onSelect(inst.key)} onUp={() => onUp(i)} onDown={() => onDown(i)}
+                onSelect={() => onSelect(inst.key)} onUp={() => onUp(realIdx)} onDown={() => onDown(realIdx)}
                 onDup={() => onDup(inst.key)} onHide={() => onHide(inst.key)} onDel={() => onDel(inst.key)} />
               <InsertZone index={i + 1} available={available} onInsert={onInsert} />
             </div>
-          ))}
+            );
+          })}
         </SortableContext>
         {sections.length === 0 && !mainInst && (
           <div className="ff-empty" style={{ padding: "80px 24px" }}>Add sections from the left panel — or click a <b>+</b> above.</div>
