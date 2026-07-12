@@ -3,7 +3,7 @@
 // New-project fork: choose a Wix Headless Site (template gallery → assembled,
 // deployable site) or a Design Project (the existing QuickStart flow).
 import { startTransition, useActionState, useState, type ReactNode } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { QuickStart } from "@/components/projects/quick-start";
 import { createProjectAction, type FormState } from "@/app/(app)/projects/actions";
@@ -34,40 +34,44 @@ function Icon({ name, className }: { name: string; className?: string }) {
 
 const TEMPLATE_ICON: Record<string, string> = { store: "store", bookings: "bookings", events: "events", content: "content" };
 
+const CHOICES = [
+  { id: "wix" as const, icon: "headless", tint: "rose", title: "Wix Headless Site", body: "Bind a template to live Wix data and publish — or export.", tags: ["Store", "Bookings", "Events"] },
+  { id: "shopify" as const, icon: "shopify", tint: "green", title: "Shopify Store", body: "Assemble a native Shopify theme and export it.", tags: ["Theme", "Sections", "Export"] },
+  { id: "design" as const, icon: "design", tint: "slate", title: "Design Project", body: "Plan a site from a brief or a reference.", tags: ["Brief", "Reference", "Studio"] },
+];
+
 export function NewProjectChooser({ clients }: { clients: { id: string; name: string }[] }) {
   const [mode, setMode] = useState<Mode>("choose");
 
-  if (mode === "design") return <QuickStart clients={clients} />;
-  if (mode === "wix") return <WixHeadlessCreate onBack={() => setMode("choose")} />;
-  if (mode === "shopify") return <ShopifyCreate onBack={() => setMode("choose")} />;
-
   return (
-    <div className="grid gap-6 sm:grid-cols-3">
-      <ChoiceCard
-        icon="headless"
-        tint="rose"
-        title="Wix Headless Site"
-        body="Pick a template, bind it to your Wix data, and publish a live site — or download the design file."
-        tags={["Store", "Bookings", "Events"]}
-        onClick={() => setMode("wix")}
-      />
-      <ChoiceCard
-        icon="shopify"
-        tint="green"
-        title="Shopify Store"
-        body="Build a native Shopify theme — brand, page sections, live preview, and a deterministic theme export."
-        tags={["Theme", "Sections", "Export"]}
-        onClick={() => setMode("shopify")}
-      />
-      <ChoiceCard
-        icon="design"
-        tint="slate"
-        title="Design Project"
-        body="Plan and design a website from a brief or reference site using the section library and studio."
-        tags={["Brief", "Reference", "Studio"]}
-        onClick={() => setMode("design")}
-      />
-    </div>
+    <AnimatePresence mode="wait" initial={false}>
+      {mode === "choose" ? (
+        <motion.div
+          key="choose"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.22, ease: EASE }}
+          className="grid gap-4 sm:grid-cols-3"
+        >
+          {CHOICES.map((c, i) => (
+            <ChoiceCard key={c.id} {...c} index={i} onClick={() => setMode(c.id)} />
+          ))}
+        </motion.div>
+      ) : (
+        <motion.div
+          key={mode}
+          initial={{ opacity: 0, x: 16 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: -16 }}
+          transition={{ duration: 0.26, ease: EASE }}
+        >
+          {mode === "design" && <QuickStart clients={clients} />}
+          {mode === "wix" && <WixHeadlessCreate onBack={() => setMode("choose")} />}
+          {mode === "shopify" && <ShopifyCreate onBack={() => setMode("choose")} />}
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
@@ -77,30 +81,34 @@ const TINT: Record<string, string> = {
   green: "bg-success-soft text-success",
 };
 
-function ChoiceCard({ icon, tint, title, body, tags, onClick }: {
-  icon: string; tint: keyof typeof TINT | string; title: string; body: string; tags: string[]; onClick: () => void;
+function ChoiceCard({ icon, tint, title, body, tags, index, onClick }: {
+  icon: string; tint: keyof typeof TINT | string; title: string; body: string; tags: string[]; index: number; onClick: () => void;
 }) {
   return (
     <motion.button
       type="button"
       onClick={onClick}
-      whileHover={{ y: -2 }}
-      whileTap={{ scale: 0.995 }}
-      transition={{ duration: 0.18, ease: EASE }}
-      className="group flex h-full flex-col rounded-[8px] border border-line bg-white p-5 text-left transition-colors hover:border-ink/20 hover:shadow-[0_2px_10px_rgba(17,24,39,0.05)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.28, ease: EASE, delay: index * 0.05 }}
+      whileHover={{ y: -3 }}
+      whileTap={{ scale: 0.99 }}
+      className="group flex h-full flex-col rounded-xl border border-line bg-white p-4 text-left transition-colors hover:border-accent/40 hover:shadow-[0_6px_20px_-6px_rgba(17,24,39,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
     >
-      <div className="flex items-center gap-3">
-        <span className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md ${TINT[tint] ?? TINT.slate}`}>
-          <Icon name={icon} className="h-[18px] w-[18px]" />
-        </span>
-        <span className="text-[15px] font-semibold text-ink">{title}</span>
-      </div>
-      <p className="mt-2.5 text-[13px] leading-relaxed text-body">{body}</p>
-      <div className="mt-3 flex flex-wrap gap-1.5">
+      <span className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${TINT[tint] ?? TINT.slate}`}>
+        <Icon name={icon} className="h-5 w-5" />
+      </span>
+      <span className="mt-3 text-[15px] font-semibold text-ink">{title}</span>
+      <p className="mt-1 text-[12.5px] leading-snug text-muted">{body}</p>
+      <div className="mt-2.5 flex flex-wrap gap-1.5">
         {tags.map((t) => (
-          <span key={t} className="rounded-md bg-panel px-2 py-0.5 text-[11px] font-medium text-body">{t}</span>
+          <span key={t} className="rounded-md bg-panel px-1.5 py-0.5 text-[10.5px] font-medium text-body">{t}</span>
         ))}
       </div>
+      <span className="mt-4 inline-flex items-center gap-1 text-[12.5px] font-semibold text-muted transition-colors group-hover:text-accent">
+        Continue
+        <Icon name="arrow" className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+      </span>
     </motion.button>
   );
 }
