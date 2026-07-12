@@ -16,24 +16,20 @@ const input: ShopifyProjectInput = {
     {
       template: "index",
       sections: [
-        { key: "hero", sectionId: "hero-banner", settings: { heading: "Everyday essentials" } },
+        { key: "custom", sectionId: "custom-section", settings: { content_width: "normal" }, blocks: [
+          { key: "h", type: "heading", settings: { text: "Everyday essentials" } },
+          { key: "t", type: "text", settings: { text: "<p>Made to last.</p>" } },
+          { key: "b", type: "button", settings: { label: "Shop" } },
+          { key: "f", type: "feature", settings: { title: "Free shipping" } },
+        ] },
         { key: "featured", sectionId: "featured-collection", settings: { heading: "Best sellers", products_to_show: 4 } },
-        { key: "iwt", sectionId: "image-with-text", settings: { heading: "Made to last" } },
-        { key: "usp", sectionId: "usp-bar", blocks: [{ key: "u1", type: "usp", settings: { title: "Free shipping" } }] },
         { key: "cl", sectionId: "collection-list", blocks: [{ key: "c1", type: "collection_item", settings: { title: "New" } }] },
         { key: "fp", sectionId: "featured-product", settings: { eyebrow: "Featured" } },
-        { key: "rt", sectionId: "rich-text", settings: { heading: "Our promise" } },
-        { key: "tm", sectionId: "testimonials", blocks: [{ key: "t1", type: "quote", settings: { author: "Jordan Blake" } }] },
-        { key: "nl", sectionId: "newsletter", settings: { heading: "Join" } },
-        { key: "faq", sectionId: "faq", blocks: [
-          { key: "q1", type: "question", settings: { question: "Do you ship worldwide?" } },
-          { key: "q2", type: "question", settings: { question: "What's your return policy?" } },
-        ] },
       ],
     },
     { template: "product", sections: [] },
     { template: "collection", sections: [] },
-    { template: "page", handle: "about", sections: [{ key: "iwt", sectionId: "image-with-text" }] },
+    { template: "page", handle: "about", sections: [{ key: "custom", sectionId: "custom-section", blocks: [{ key: "h", type: "heading", settings: { text: "About" } }] }] },
   ],
 };
 
@@ -48,7 +44,7 @@ assert.equal(themeCheck.valid, true, `theme invalid: ${JSON.stringify(themeCheck
 
 // Required structure present.
 const paths = files.map((f) => f.path);
-for (const p of ["layout/theme.liquid", "templates/index.json", "sections/hero-banner.liquid", "config/settings_schema.json", "config/settings_data.json"]) {
+for (const p of ["layout/theme.liquid", "templates/index.json", "sections/custom-section.liquid", "config/settings_schema.json", "config/settings_data.json"]) {
   assert.ok(paths.includes(p), `missing ${p}`);
 }
 
@@ -85,14 +81,10 @@ const hostile: ShopifyProjectInput = {
     template: "index",
     sections: [
       {
-        key: "hero", sectionId: "hero-banner",
-        settings: { overlay_opacity: 999, height: "gigantic", subheading: "no p tags here" },
-      },
-      {
-        key: "tm", sectionId: "testimonials",
-        settings: { unknown_key: "drop me" },
+        key: "cs", sectionId: "custom-section",
+        settings: { padding_top: 999, content_width: "gigantic", unknown_key: "drop me" },
         blocks: [
-          { key: "t1", type: "quote", settings: { quote: "unwrapped quote", author: "A" } },
+          { key: "t1", type: "text", settings: { text: "unwrapped quote" } },
           { key: "zz", type: "made-up-block", settings: {} },
         ],
       },
@@ -101,22 +93,21 @@ const hostile: ShopifyProjectInput = {
 };
 const hostileFiles = generateShopifyTheme(hostile);
 const idx = JSON.parse(hostileFiles.find((f) => f.path === "templates/index.json")!.contents);
-assert.equal(idx.sections.hero.settings.overlay_opacity, 80, "range clamped to max");
-assert.equal(idx.sections.hero.settings.height, "medium", "invalid select falls back to default");
-assert.equal(idx.sections.hero.settings.subheading, "<p>no p tags here</p>", "richtext value gets <p>-wrapped");
-assert.equal(idx.sections.tm.settings.unknown_key, undefined, "unknown setting keys dropped");
-assert.equal(idx.sections.tm.blocks.t1.settings.quote, "<p>unwrapped quote</p>", "block richtext wrapped");
-assert.equal(idx.sections.tm.blocks.zz, undefined, "unknown block types dropped");
-assert.ok(!idx.sections.tm.block_order.includes("zz"), "unknown block not in block_order");
+assert.equal(idx.sections.cs.settings.padding_top, 140, "range clamped to max");
+assert.equal(idx.sections.cs.settings.content_width, "normal", "invalid select falls back to default");
+assert.equal(idx.sections.cs.settings.unknown_key, undefined, "unknown setting keys dropped");
+assert.equal(idx.sections.cs.blocks.t1.settings.text, "<p>unwrapped quote</p>", "block richtext wrapped");
+assert.equal(idx.sections.cs.blocks.zz, undefined, "unknown block types dropped");
+assert.ok(!idx.sections.cs.block_order.includes("zz"), "unknown block not in block_order");
 const hostileCheck = validateShopifyTheme(hostileFiles);
 assert.equal(hostileCheck.valid, true, `sanitized theme should validate: ${JSON.stringify(hostileCheck.issues.filter((i) => i.level === "error"))}`);
 
 // 6. Validator rejects the known-fatal schema mistakes (the exact classes that
 //    made Shopify silently drop templates/index.json on ZIP upload).
 const badSection = validateShopifyTheme([
-  ...files.filter((f) => f.path !== "sections/hero-banner.liquid"),
+  ...files.filter((f) => f.path !== "sections/custom-section.liquid"),
   {
-    path: "sections/hero-banner.liquid",
+    path: "sections/custom-section.liquid",
     contents: `<div>x</div>\n{% schema %}\n${JSON.stringify({
       name: "Bad",
       settings: [

@@ -2,30 +2,23 @@
 // generator and AI page-planner must resolve every section against this.
 
 import type { ShopifySectionDefinition } from "../types";
-import { heroSection } from "./hero";
-import { imageWithTextSection, featuredCollectionSection, faqSection } from "./content";
-import {
-  richTextSection, uspBarSection, newsletterSection, testimonialsSection,
-  collectionListSection, featuredProductSection,
-} from "./content-extra";
+import { featuredCollectionSection } from "./content";
+import { collectionListSection, featuredProductSection } from "./content-extra";
 import { announcementBarSection, headerSection, footerSection } from "./structural";
 import { STOREFRONT_SECTIONS } from "./storefront";
-import {
-  imageBannerSection, slideshowSection, multicolumnSection, multirowSection,
-  logoListSection, countdownSection, contactFormSection, blogPostsSection, productRecommendationsSection,
-} from "./creative";
+import { productRecommendationsSection } from "./creative";
 import { customSection } from "./custom";
 
 /** Sections always included in a generated theme (referenced by theme.liquid). */
 export const STRUCTURAL_SECTIONS: ShopifySectionDefinition[] = [announcementBarSection, headerSection, footerSection];
 
-/** Sections a user can place on a page. */
+/** Sections a user can place on a page. The old presentational/creative sections
+ *  were retired in favour of the manual block composer (customSection); commerce
+ *  sections are kept because they bind to live Shopify data. New sections get
+ *  added here as they are built. */
 export const CONTENT_SECTIONS: ShopifySectionDefinition[] = [
   customSection,
-  heroSection, imageBannerSection, slideshowSection, imageWithTextSection, multirowSection,
   featuredCollectionSection, collectionListSection, featuredProductSection, productRecommendationsSection,
-  multicolumnSection, uspBarSection, richTextSection, testimonialsSection, logoListSection,
-  countdownSection, blogPostsSection, contactFormSection, newsletterSection, faqSection,
 ];
 
 /** "main" sections injected into required storefront templates (not user-addable). */

@@ -40,7 +40,15 @@ export function resolveTemplatePages(input: ShopifyProjectInput): ShopifyPage[] 
     if (sections.length === 0) {
       if (template === "index") {
         sections = [
-          { key: "hero", sectionId: "hero-banner", settings: { heading: "Welcome", height: "large" } },
+          {
+            key: "intro", sectionId: "custom-section",
+            settings: { content_width: "normal", padding_top: 72, padding_bottom: 40 },
+            blocks: [
+              { key: "b-eyebrow", type: "heading", settings: { eyebrow: "Welcome", text: "Your store, your way", size: 48, align: "center" } },
+              { key: "b-text", type: "text", settings: { text: "<p>Build every section exactly how you want it. Start here.</p>", align: "center" } },
+              { key: "b-btn", type: "button", settings: { label: "Shop now", align: "center" } },
+            ],
+          },
           { key: "featured", sectionId: "featured-collection", settings: { heading: "Featured products" } },
         ];
       }
