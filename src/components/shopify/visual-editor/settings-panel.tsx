@@ -44,29 +44,29 @@ export function SettingsPanel({ inst, schemes, locked, onPatch }: {
       </div>
 
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
+        {def.variants && def.variants.length > 1 && (locked || tab === "content") && (
+          <div className="rounded-lg border border-line bg-panel/40 p-2.5">
+            <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted">Design</div>
+            <div className="grid grid-cols-2 gap-1.5">
+              {def.variants.map((v) => (
+                <button
+                  key={v.id}
+                  onClick={() => setField("variant", v.id)}
+                  className={`rounded-md border px-2.5 py-2 text-left text-[12.5px] font-medium transition-colors ${currentVariant === v.id ? "border-accent bg-accent-soft/50 text-ink" : "border-line bg-white text-body hover:border-accent/50"}`}
+                >
+                  {v.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         {locked && (
           <div className="rounded-md border border-dashed border-line bg-panel/40 p-4 text-[12.5px] text-muted">
-            This is the template’s core section (it renders the {def.name.toLowerCase()} automatically from Shopify data). It can’t be removed or reordered. Add content sections around it from the left panel.
+            This is the template’s core section (it renders the {def.name.toLowerCase()} automatically from Shopify data). Pick a design above; content comes from your Shopify products.
           </div>
         )}
         {!locked && tab === "content" && (
           <>
-            {def.variants && def.variants.length > 1 && (
-              <div className="rounded-lg border border-line bg-panel/40 p-2.5">
-                <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted">Design</div>
-                <div className="grid grid-cols-2 gap-1.5">
-                  {def.variants.map((v) => (
-                    <button
-                      key={v.id}
-                      onClick={() => setField("variant", v.id)}
-                      className={`rounded-md border px-2.5 py-2 text-left text-[12.5px] font-medium transition-colors ${currentVariant === v.id ? "border-accent bg-accent-soft/50 text-ink" : "border-line bg-white text-body hover:border-accent/50"}`}
-                    >
-                      {v.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
             {contentFields.length === 0 && !def.schema.blocks && <p className="text-[12.5px] text-muted">This section has no editable content settings.</p>}
             {contentFields.map((f) => <SettingInput key={f.id} field={f} value={settings[f.id!]} onChange={(v) => setField(f.id!, v)} />)}
             {def.schema.blocks && <BlockEditor inst={inst} def={def} onChange={(blocks) => onPatch(settings, blocks)} />}

@@ -19,7 +19,7 @@ const s = (id: string, name: string, template: ShopifySectionDefinition["support
 
 export const mainProductSection = s(
   "main-product", "Product", "product",
-  `<section class="page-width section mp" data-animate>
+  `<section class="page-width section mp mp--v-{{ section.settings.variant | default: 'rail' }}" data-animate>
   <div class="mp__grid">
     <div class="mp__media" data-gallery>
       {% if product.images.size > 1 %}
@@ -100,9 +100,16 @@ export const mainProductSection = s(
   #shopify-section-{{ section.id }} .mp__stage img{width:100%;height:100%;object-fit:contain;padding:6%}
   #shopify-section-{{ section.id }} .mp__thumbs{order:2;display:flex;gap:10px;flex-wrap:wrap}
   @media(min-width:1024px){
-    #shopify-section-{{ section.id }} .mp__media{display:grid;grid-template-columns:82px 1fr}
-    #shopify-section-{{ section.id }} .mp__stage{grid-column:2;grid-row:1}
-    #shopify-section-{{ section.id }} .mp__thumbs{grid-column:1;grid-row:1;flex-direction:column;flex-wrap:nowrap}
+    #shopify-section-{{ section.id }} .mp--v-rail .mp__media{display:grid;grid-template-columns:82px 1fr}
+    #shopify-section-{{ section.id }} .mp--v-rail .mp__stage{grid-column:2;grid-row:1}
+    #shopify-section-{{ section.id }} .mp--v-rail .mp__thumbs{grid-column:1;grid-row:1;flex-direction:column;flex-wrap:nowrap}
+    /* Grid variant: editorial 2-col image collage (big image spans, thumbs row below). */
+    #shopify-section-{{ section.id }} .mp--v-grid .mp__media{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    #shopify-section-{{ section.id }} .mp--v-grid .mp__stage{grid-column:1 / -1;aspect-ratio:16/10}
+    #shopify-section-{{ section.id }} .mp--v-grid .mp__thumbs{grid-column:1 / -1;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+    #shopify-section-{{ section.id }} .mp--v-grid .mp__thumb{width:auto;height:auto;aspect-ratio:3/4}
+    /* Spotlight variant: one large image, centered thumbnails below. */
+    #shopify-section-{{ section.id }} .mp--v-spotlight .mp__thumbs{justify-content:center}
   }
   #shopify-section-{{ section.id }} .mp__thumb{padding:0;border:1px solid var(--color-border);border-radius:var(--radius);overflow:hidden;width:74px;height:74px;flex:0 0 auto;background:#f4f4f5;cursor:pointer;transition:border-color .15s}
   #shopify-section-{{ section.id }} .mp__thumb.is-active{border-color:var(--color-primary);border-width:2px}
@@ -147,10 +154,13 @@ export const mainProductSection = s(
   #shopify-section-{{ section.id }} .mp__share a{display:inline-flex;color:inherit}
 </style>`,
   [
+    { type: "select", id: "variant", label: "Design", default: "rail", options: [{ value: "rail", label: "Thumbnail rail" }, { value: "grid", label: "Editorial grid" }, { value: "spotlight", label: "Spotlight" }] },
     { type: "checkbox", id: "show_share", label: "Show share buttons", default: true },
     { type: "url", id: "size_chart_url", label: "Size chart link" },
   ],
 );
+mainProductSection.variants = [{ id: "rail", label: "Thumbnail rail" }, { id: "grid", label: "Editorial grid" }, { id: "spotlight", label: "Spotlight" }];
+mainProductSection.defaultSettings = { variant: "rail" };
 mainProductSection.schema.blocks = [
   {
     type: "feature", name: "Feature (checkmark)",

@@ -374,10 +374,11 @@ function ProductRecs({ settings }: { settings?: Settings }) {
   );
 }
 // Main (template) sections
-function MainProduct() {
+function MainProduct({ settings }: { settings?: Settings }) {
   const p = MOCK_PRODUCTS[0];
+  const variant = s(settings, "variant", "rail");
   return (
-    <section className="ff-section ff-pdp">
+    <section className={`ff-section ff-pdp ff-pdp--${variant}`}>
       <div className="ff-pdp-grid">
         <div className="ff-pdp-gallery">
           <div className="ff-pdp-thumbs">{[0, 1, 2].map((i) => <div key={i} className={`ff-pdp-thumb${i === 0 ? " is-active" : ""}`}><Placeholder hue={(p.hue + i * 30) % 360} ratio="1 / 1" /></div>)}</div>
@@ -609,7 +610,7 @@ export function renderSection(inst: ShopifySectionInstance) {
     case "contact-form": return <ContactForm settings={inst.settings} />;
     case "newsletter": return <Newsletter settings={inst.settings} />;
     case "faq": return <Faq instance={inst} />;
-    case "main-product": return <MainProduct />;
+    case "main-product": return <MainProduct settings={inst.settings} />;
     case "main-collection": case "main-list-collections": return <MainCollection />;
     case "main-cart": return <MainCart />;
     case "main-search": return <MainSearch />;
@@ -804,9 +805,14 @@ export const STORE_CSS = `
 .ff-pdp-stage{order:1;background:#f4f4f5;border-radius:calc(var(--radius) * 1.4);overflow:hidden;}
 .ff-pdp-thumbs{order:2;display:flex;gap:10px;flex-wrap:wrap;}
 @container (min-width:1024px){
-  .ff-pdp-gallery{display:grid;grid-template-columns:78px 1fr;}
-  .ff-pdp-stage{grid-column:2;grid-row:1;}
-  .ff-pdp-thumbs{grid-column:1;grid-row:1;flex-direction:column;flex-wrap:nowrap;}
+  .ff-pdp--rail .ff-pdp-gallery{display:grid;grid-template-columns:78px 1fr;}
+  .ff-pdp--rail .ff-pdp-stage{grid-column:2;grid-row:1;}
+  .ff-pdp--rail .ff-pdp-thumbs{grid-column:1;grid-row:1;flex-direction:column;flex-wrap:nowrap;}
+  .ff-pdp--grid .ff-pdp-gallery{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .ff-pdp--grid .ff-pdp-stage{grid-column:1 / -1;}
+  .ff-pdp--grid .ff-pdp-thumbs{grid-column:1 / -1;display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  .ff-pdp--grid .ff-pdp-thumb{width:auto;}
+  .ff-pdp--spotlight .ff-pdp-thumbs{justify-content:center;}
 }
 .ff-pdp-thumb{width:70px;flex:0 0 auto;border:1px solid rgba(0,0,0,.12);border-radius:var(--radius);overflow:hidden;}
 .ff-pdp-thumb.is-active{border-color:var(--c-primary);border-width:2px;}
