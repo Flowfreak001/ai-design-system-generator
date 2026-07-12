@@ -95,13 +95,15 @@ export const mainProductSection = s(
   #shopify-section-{{ section.id }} .mp__grid{display:grid;gap:clamp(28px,4vw,56px)}
   @media(min-width:900px){#shopify-section-{{ section.id }} .mp__grid{grid-template-columns:1.05fr .95fr;align-items:start}
     #shopify-section-{{ section.id }} .mp__info{position:sticky;top:24px}}
-  #shopify-section-{{ section.id }} .mp__media{display:grid;gap:14px}
-  @media(min-width:600px){#shopify-section-{{ section.id }} .mp__media{grid-template-columns:82px 1fr}}
-  #shopify-section-{{ section.id }} .mp__stage{grid-column:2;background:#f4f4f5;border-radius:calc(var(--radius) * 1.4);overflow:hidden;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center}
-  @media(max-width:599px){#shopify-section-{{ section.id }} .mp__stage{grid-column:1}}
+  #shopify-section-{{ section.id }} .mp__media{display:flex;flex-direction:column;gap:14px}
+  #shopify-section-{{ section.id }} .mp__stage{order:1;background:#f4f4f5;border-radius:calc(var(--radius) * 1.4);overflow:hidden;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center}
   #shopify-section-{{ section.id }} .mp__stage img{width:100%;height:100%;object-fit:contain;padding:6%}
-  #shopify-section-{{ section.id }} .mp__thumbs{display:flex;gap:10px;flex-wrap:wrap}
-  @media(min-width:600px){#shopify-section-{{ section.id }} .mp__thumbs{grid-row:1;grid-column:1;flex-direction:column;flex-wrap:nowrap}}
+  #shopify-section-{{ section.id }} .mp__thumbs{order:2;display:flex;gap:10px;flex-wrap:wrap}
+  @media(min-width:1024px){
+    #shopify-section-{{ section.id }} .mp__media{display:grid;grid-template-columns:82px 1fr}
+    #shopify-section-{{ section.id }} .mp__stage{grid-column:2;grid-row:1}
+    #shopify-section-{{ section.id }} .mp__thumbs{grid-column:1;grid-row:1;flex-direction:column;flex-wrap:nowrap}
+  }
   #shopify-section-{{ section.id }} .mp__thumb{padding:0;border:1px solid var(--color-border);border-radius:var(--radius);overflow:hidden;width:74px;height:74px;flex:0 0 auto;background:#f4f4f5;cursor:pointer;transition:border-color .15s}
   #shopify-section-{{ section.id }} .mp__thumb.is-active{border-color:var(--color-primary);border-width:2px}
   #shopify-section-{{ section.id }} .mp__thumb img{width:100%;height:100%;object-fit:contain;padding:8%}
