@@ -104,6 +104,25 @@ document.addEventListener('DOMContentLoaded',function(){
   } else {
     document.querySelectorAll('[data-animate]').forEach(function(el){ el.classList.add('is-visible'); });
   }
+  // Product gallery — thumbnail swaps the main image.
+  document.querySelectorAll('[data-gallery]').forEach(function(g){
+    var main=g.querySelector('[data-main-image]');
+    g.querySelectorAll('[data-thumb]').forEach(function(t){
+      t.addEventListener('click',function(){
+        if(main&&t.dataset.full){main.src=t.dataset.full;}
+        g.querySelectorAll('[data-thumb]').forEach(function(x){x.classList.remove('is-active');});
+        t.classList.add('is-active');
+      });
+    });
+  });
+  // Quantity steppers
+  document.querySelectorAll('[data-qty]').forEach(function(q){
+    var input=q.querySelector('[data-qty-input]');
+    if(!input)return;
+    var minus=q.querySelector('[data-qty-minus]');var plus=q.querySelector('[data-qty-plus]');
+    if(minus)minus.addEventListener('click',function(){input.value=Math.max(1,(parseInt(input.value,10)||1)-1);});
+    if(plus)plus.addEventListener('click',function(){input.value=(parseInt(input.value,10)||1)+1;});
+  });
   // Slideshow (basic dots + autoplay)
   document.querySelectorAll('[data-slideshow]').forEach(function(root){
     var slides=root.querySelectorAll('[data-slide]');var dots=root.querySelectorAll('[data-dot]');var i=0;

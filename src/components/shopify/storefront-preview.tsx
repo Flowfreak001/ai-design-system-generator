@@ -377,26 +377,58 @@ function ProductRecs({ settings }: { settings?: Settings }) {
 function MainProduct() {
   const p = MOCK_PRODUCTS[0];
   return (
-    <section className="ff-section ff-iwt" style={{ ["--iwt-dir" as string]: "row" }}>
-      <div className="ff-iwt-media"><Placeholder hue={p.hue} ratio="1 / 1" /></div>
-      <div className="ff-iwt-body">
-        <h1>{p.title}</h1>
-        <div style={{ fontSize: 22, fontWeight: 600, margin: "8px 0 18px" }}>{p.price}</div>
-        <div className="ff-po"><span>Size</span><select disabled><option>Medium</option></select></div>
-        <div className="ff-po"><span>Quantity</span><input type="number" defaultValue={1} readOnly /></div>
-        <span className="ff-btn ff-btn--primary" style={{ marginTop: 6 }}>Add to cart</span>
-        <RichText className="ff-prose" html="<p style='margin-top:22px'>A considered product with durable materials and a clean, timeless design.</p>" />
+    <section className="ff-section ff-pdp">
+      <div className="ff-pdp-grid">
+        <div className="ff-pdp-gallery">
+          <div className="ff-pdp-stage"><Placeholder hue={p.hue} ratio="1 / 1" /></div>
+          <div className="ff-pdp-thumbs">{[0, 1, 2].map((i) => <div key={i} className={`ff-pdp-thumb${i === 0 ? " is-active" : ""}`}><Placeholder hue={(p.hue + i * 30) % 360} ratio="1 / 1" /></div>)}</div>
+        </div>
+        <div className="ff-pdp-info">
+          <p className="ff-eyebrow">Brand</p>
+          <h1>{p.title}</h1>
+          <div className="ff-pdp-pricerow"><span className="ff-pdp-price">{p.price}</span><s className="ff-pdp-compare">$14.00</s><span className="ff-pdp-badge">Sale</span></div>
+          <RichText className="ff-pdp-lead" html="<p>A considered product with durable materials and a clean, timeless design.</p>" />
+          <hr className="ff-pdp-rule" />
+          <div className="ff-pdp-buy">
+            <div className="ff-pdp-qty"><button>–</button><input defaultValue={1} readOnly /><button>+</button></div>
+            <span className="ff-btn ff-btn--primary ff-pdp-add">Add to cart</span>
+          </div>
+          <ul className="ff-pdp-trust"><li>✓ Cruelty free</li><li>✓ Paraben free</li><li>✓ Vegan</li></ul>
+          <div className="ff-pdp-rows">
+            {["Description", "How to use"].map((t, i) => <div key={i} className="ff-pdp-row"><span>{t}</span><span>+</span></div>)}
+          </div>
+        </div>
       </div>
     </section>
   );
 }
+const FILTER_TYPES = ["Beverages (1)", "Breads & Buns (6)", "Dried Fruits (1)", "Eggs (1)", "Fruits & Vegetables (11)"];
 function MainCollection() {
   return (
-    <section className="ff-section">
-      <h1 style={{ marginBottom: 8 }}>All products</h1>
-      <p style={{ opacity: 0.7, marginBottom: 24 }}>Everyday essentials, made to last.</p>
-      <div className="ff-grid" style={{ ["--cols" as string]: "4" }}>
-        {MOCK_PRODUCTS.map((p, i) => <div key={i} className="ff-card"><Placeholder hue={p.hue} ratio="4 / 5" /><div className="ff-card-t">{p.title}</div><div className="ff-card-p">{p.price}</div></div>)}
+    <section className="ff-section ff-cx">
+      <div className="ff-cx-crumbs">Home / Collections / All products</div>
+      <h1 style={{ marginBottom: 20 }}>All products</h1>
+      <div className="ff-cx-layout">
+        <aside className="ff-cx-side">
+          <div className="ff-cx-group"><p className="ff-cx-label">Sort by</p><select className="ff-cx-select" disabled><option>Featured</option></select></div>
+          <div className="ff-cx-group"><p className="ff-cx-label">Price</p><div className="ff-cx-price"><input placeholder="$ 0" readOnly /><span>to</span><input placeholder="$ 96" readOnly /></div></div>
+          <div className="ff-cx-group"><p className="ff-cx-label">Product type</p><ul className="ff-cx-values">{FILTER_TYPES.map((f) => <li key={f} className="ff-cx-check"><input type="checkbox" readOnly /> <span>{f}</span></li>)}</ul></div>
+        </aside>
+        <div className="ff-cx-main">
+          <p className="ff-cx-count">{MOCK_PRODUCTS.length * 3} products</p>
+          <div className="ff-grid" style={{ ["--cols" as string]: "3" }}>
+            {MOCK_PRODUCTS.map((p, i) => (
+              <div key={i} className="ff-pcard">
+                <div className="ff-pcard-media"><Placeholder hue={p.hue} ratio="1 / 1" />{i === 1 && <span className="ff-pcard-badge">On sale</span>}</div>
+                <div className="ff-pcard-body">
+                  <div className="ff-pcard-price">{p.price}{i === 1 && <s> $6.00</s>}</div>
+                  <div className="ff-pcard-title">{p.title}</div>
+                  <span className="ff-btn ff-btn--ghost ff-pcard-buy">Buy now</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -744,6 +776,48 @@ export const STORE_CSS = `
 .ff-ccx-eyebrow{margin:0 0 6px;font-size:13px;opacity:.7;}
 .ff-ccx-title{margin:0 0 16px;font-family:var(--f-head);font-weight:600;font-size:clamp(22px,2.6cqw,32px);letter-spacing:-0.02em;}
 .ff-ccx-btn{display:inline-flex;align-items:center;min-height:42px;padding:0 24px;border-radius:999px;background:var(--c-primary);color:#fff;font-weight:600;font-size:13px;}
+.ff-pdp-grid{display:grid;gap:clamp(24px,4cqw,48px);}
+@container (min-width:760px){.ff-pdp-grid{grid-template-columns:1.05fr 1fr;align-items:start;}}
+.ff-pdp-stage{border:1px solid rgba(0,0,0,.1);border-radius:calc(var(--radius) * 1.4);overflow:hidden;}
+.ff-pdp-thumbs{display:flex;gap:10px;margin-top:12px;}
+.ff-pdp-thumb{width:70px;border:1px solid rgba(0,0,0,.12);border-radius:var(--radius);overflow:hidden;}
+.ff-pdp-thumb.is-active{border-color:var(--c-primary);}
+.ff-pdp-info h1{margin:4px 0 12px;}
+.ff-pdp-pricerow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.ff-pdp-price{font-size:24px;font-weight:600;}
+.ff-pdp-compare{opacity:.5;}
+.ff-pdp-badge{background:var(--c-secondary);color:#fff;font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;}
+.ff-pdp-lead{margin:14px 0;opacity:.85;}
+.ff-pdp-lead p{margin:0;}
+.ff-pdp-rule{border:0;border-top:1px solid rgba(0,0,0,.1);margin:16px 0;}
+.ff-pdp-buy{display:flex;gap:12px;flex-wrap:wrap;}
+.ff-pdp-qty{display:inline-flex;align-items:center;border:1px solid rgba(0,0,0,.15);border-radius:var(--radius);overflow:hidden;}
+.ff-pdp-qty button{width:40px;height:48px;border:0;background:none;font-size:17px;cursor:default;}
+.ff-pdp-qty input{width:44px;height:48px;border:0;text-align:center;}
+.ff-pdp-add{flex:1;min-width:160px;justify-content:center;}
+.ff-pdp-trust{list-style:none;padding:0;margin:18px 0 0;display:flex;flex-wrap:wrap;gap:14px;color:var(--c-secondary);font-size:13px;font-weight:500;}
+.ff-pdp-rows{margin-top:22px;border-top:1px solid rgba(0,0,0,.1);}
+.ff-pdp-row{display:flex;justify-content:space-between;padding:15px 0;border-bottom:1px solid rgba(0,0,0,.1);font-weight:600;}
+.ff-cx-crumbs{font-size:13px;opacity:.6;margin-bottom:10px;}
+.ff-cx-layout{display:grid;gap:clamp(20px,3cqw,40px);}
+@container (min-width:900px){.ff-cx-layout{grid-template-columns:230px 1fr;align-items:start;}}
+.ff-cx-group{padding:14px 0;border-top:1px solid rgba(0,0,0,.1);}
+.ff-cx-group:first-child{border-top:0;padding-top:0;}
+.ff-cx-label{font-weight:600;font-size:14px;margin:0 0 10px;}
+.ff-cx-select{width:100%;height:44px;border:1px solid rgba(0,0,0,.15);border-radius:var(--radius);padding:0 12px;}
+.ff-cx-price{display:flex;align-items:center;gap:8px;}
+.ff-cx-price input{width:100%;height:42px;border:1px solid rgba(0,0,0,.15);border-radius:var(--radius);padding:0 10px;}
+.ff-cx-values{list-style:none;margin:0;padding:0;display:grid;gap:9px;}
+.ff-cx-check{display:flex;align-items:center;gap:9px;font-size:14px;}
+.ff-cx-count{opacity:.6;font-size:14px;margin:0 0 16px;}
+.ff-pcard{display:flex;flex-direction:column;border:1px solid rgba(0,0,0,.1);border-radius:var(--radius);overflow:hidden;}
+.ff-pcard-media{position:relative;aspect-ratio:1/1;overflow:hidden;}
+.ff-pcard-badge{position:absolute;top:10px;right:10px;background:#e2483d;color:#fff;font-size:11px;font-weight:700;text-transform:uppercase;padding:4px 8px;border-radius:6px;}
+.ff-pcard-body{display:flex;flex-direction:column;gap:6px;padding:14px;}
+.ff-pcard-price{font-size:14px;opacity:.75;}
+.ff-pcard-price s{opacity:.6;}
+.ff-pcard-title{font-size:18px;font-weight:600;margin-bottom:6px;}
+.ff-pcard-buy{margin-top:auto;justify-content:center;}
 .ff-faq h2{font-size:clamp(22px,3.4cqw,32px);margin-bottom:20px;}
 .ff-faq-list{max-width:780px;}
 .ff-faq-row{border-bottom:1px solid rgba(0,0,0,.1);padding:14px 0;}
