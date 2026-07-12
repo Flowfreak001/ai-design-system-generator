@@ -10,15 +10,20 @@ import {
 } from "./content-extra";
 import { announcementBarSection, headerSection, footerSection } from "./structural";
 import { STOREFRONT_SECTIONS } from "./storefront";
+import {
+  imageBannerSection, slideshowSection, multicolumnSection, multirowSection,
+  logoListSection, countdownSection, contactFormSection, blogPostsSection, productRecommendationsSection,
+} from "./creative";
 
 /** Sections always included in a generated theme (referenced by theme.liquid). */
 export const STRUCTURAL_SECTIONS: ShopifySectionDefinition[] = [announcementBarSection, headerSection, footerSection];
 
 /** Sections a user can place on a page. */
 export const CONTENT_SECTIONS: ShopifySectionDefinition[] = [
-  heroSection, imageWithTextSection, featuredCollectionSection, collectionListSection,
-  featuredProductSection, richTextSection, uspBarSection, testimonialsSection,
-  newsletterSection, faqSection,
+  heroSection, imageBannerSection, slideshowSection, imageWithTextSection, multirowSection,
+  featuredCollectionSection, collectionListSection, featuredProductSection, productRecommendationsSection,
+  multicolumnSection, uspBarSection, richTextSection, testimonialsSection, logoListSection,
+  countdownSection, blogPostsSection, contactFormSection, newsletterSection, faqSection,
 ];
 
 /** "main" sections injected into required storefront templates (not user-addable). */

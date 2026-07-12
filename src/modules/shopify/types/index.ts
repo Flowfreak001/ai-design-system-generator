@@ -53,6 +53,8 @@ export interface ShopifySettingField {
     | "color"
     | "collection"
     | "product"
+    | "color_scheme"
+    | "video_url"
     | "header"
     | "paragraph";
   id?: string; // required for input types, omitted for "header"/"paragraph"
