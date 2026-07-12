@@ -174,6 +174,92 @@ function Faq({ instance }: { instance: ShopifySectionInstance }) {
   );
 }
 
+function RichTextSec({ settings }: { settings?: Settings }) {
+  const center = s(settings, "alignment", "center") === "center";
+  return (
+    <section className="ff-section" style={{ maxWidth: 720, textAlign: center ? "center" : "left" }}>
+      {s(settings, "eyebrow") && <span className="ff-eyebrow">{s(settings, "eyebrow")}</span>}
+      <h2 style={{ fontSize: "clamp(24px,3.2cqw,34px)" }}>{s(settings, "heading", "Our promise")}</h2>
+      <RichText className="ff-prose" html={s(settings, "body", "<p>Share your brand story or a message that matters.</p>")} />
+      {s(settings, "button_label") && <span className="ff-btn ff-btn--primary" style={{ marginTop: 14 }}>{s(settings, "button_label")}</span>}
+    </section>
+  );
+}
+function UspBar({ instance }: { instance: ShopifySectionInstance }) {
+  const blocks = instance.blocks ?? [];
+  return (
+    <section className="ff-section">
+      {s(instance.settings, "heading") && <h2 style={{ textAlign: "center", marginBottom: 24, fontSize: "clamp(20px,2.6cqw,28px)" }}>{s(instance.settings, "heading")}</h2>}
+      <div className="ff-usp">
+        {blocks.map((b) => (
+          <div key={b.key} className="ff-usp-i">
+            <div className="ff-usp-ic">{s(b.settings, "icon", "★")}</div>
+            <div className="ff-usp-t">{s(b.settings, "title", "Value")}</div>
+            <div className="ff-usp-x">{s(b.settings, "text")}</div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+function Newsletter({ settings }: { settings?: Settings }) {
+  return (
+    <section className="ff-section" style={{ maxWidth: 560, textAlign: "center" }}>
+      <h2 style={{ fontSize: "clamp(22px,3cqw,32px)" }}>{s(settings, "heading", "Join the list")}</h2>
+      {s(settings, "subtext") && <p style={{ opacity: 0.82, margin: "10px 0 18px" }}>{s(settings, "subtext")}</p>}
+      <div className="ff-nl-row"><input placeholder={s(settings, "placeholder", "Email address")} readOnly /><span className="ff-btn ff-btn--primary">{s(settings, "button_label", "Subscribe")}</span></div>
+    </section>
+  );
+}
+function Testimonials({ instance }: { instance: ShopifySectionInstance }) {
+  const blocks = instance.blocks ?? [];
+  return (
+    <section className="ff-section">
+      {s(instance.settings, "heading") && <h2 style={{ textAlign: "center", marginBottom: 26, fontSize: "clamp(22px,3cqw,32px)" }}>{s(instance.settings, "heading")}</h2>}
+      <div className="ff-tm">
+        {blocks.map((b) => (
+          <figure key={b.key} className="ff-tm-c">
+            <RichText className="ff-tm-q" html={s(b.settings, "quote", "A great experience from start to finish.")} />
+            <figcaption><b>{s(b.settings, "author", "Jordan Blake")}</b><span>{s(b.settings, "role", "Verified buyer")}</span></figcaption>
+          </figure>
+        ))}
+      </div>
+    </section>
+  );
+}
+function CollectionList({ instance }: { instance: ShopifySectionInstance }) {
+  const blocks = instance.blocks ?? [];
+  const cols = num(instance.settings, "columns", 3);
+  return (
+    <section className="ff-section">
+      {s(instance.settings, "heading") && <h2 style={{ marginBottom: 24, fontSize: "clamp(22px,3cqw,32px)" }}>{s(instance.settings, "heading")}</h2>}
+      <div className="ff-grid" style={{ ["--cols" as string]: String(cols) }}>
+        {blocks.map((b, i) => (
+          <div key={b.key} className="ff-card">
+            <Placeholder hue={(i * 47) % 360} ratio="1 / 1" />
+            <div className="ff-card-t">{s(b.settings, "title", "Collection")}</div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+function FeaturedProduct({ settings }: { settings?: Settings }) {
+  const p = MOCK_PRODUCTS[0];
+  return (
+    <section className="ff-section ff-iwt" style={{ ["--iwt-dir" as string]: "row" }}>
+      <div className="ff-iwt-media"><Placeholder hue={p.hue} ratio="1 / 1" /></div>
+      <div className="ff-iwt-body">
+        {s(settings, "eyebrow") && <span className="ff-eyebrow">{s(settings, "eyebrow", "Featured")}</span>}
+        <h2>{p.title}</h2>
+        <div className="ff-card-p" style={{ fontSize: 20, fontWeight: 600, margin: "6px 0 14px" }}>{p.price}</div>
+        <RichText className="ff-prose" html="<p>A short product description highlighting the key benefit and materials.</p>" />
+        <span className="ff-btn ff-btn--primary" style={{ marginTop: 8 }}>{s(settings, "button_label", "Add to cart")}</span>
+      </div>
+    </section>
+  );
+}
+
 function renderSection(inst: ShopifySectionInstance) {
   if (inst.disabled) return null;
   switch (inst.sectionId) {
@@ -181,6 +267,12 @@ function renderSection(inst: ShopifySectionInstance) {
     case "image-with-text": return <ImageWithText settings={inst.settings} />;
     case "featured-collection": return <FeaturedCollection settings={inst.settings} />;
     case "faq": return <Faq instance={inst} />;
+    case "rich-text": return <RichTextSec settings={inst.settings} />;
+    case "usp-bar": return <UspBar instance={inst} />;
+    case "newsletter": return <Newsletter settings={inst.settings} />;
+    case "testimonials": return <Testimonials instance={inst} />;
+    case "collection-list": return <CollectionList instance={inst} />;
+    case "featured-product": return <FeaturedProduct settings={inst.settings} />;
     default:
       return <section className="ff-section"><div className="ff-unknown">Unsupported section: {inst.sectionId}</div></section>;
   }
@@ -268,4 +360,17 @@ const STORE_CSS = `
 .ff-sub button{border:0;border-radius:var(--radius);background:var(--c-secondary);color:#fff;padding:0 14px;font-weight:600;font-size:13px;cursor:default;}
 .ff-footbar{max-width:1100px;margin:36px auto 0;border-top:1px solid rgba(255,255,255,.18);padding:18px 0;font-size:12.5px;opacity:.7;}
 .ff-empty,.ff-unknown{padding:60px 24px;text-align:center;color:var(--c-text);opacity:.55;font-size:14px;}
+.ff-usp{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;text-align:center;}
+@container (min-width:760px){.ff-usp{grid-template-columns:repeat(4,minmax(0,1fr));}}
+.ff-usp-ic{font-size:26px;margin-bottom:6px;}
+.ff-usp-t{font-weight:600;}
+.ff-usp-x{opacity:.75;font-size:14px;}
+.ff-nl-row{display:flex;gap:8px;flex-wrap:wrap;}
+.ff-nl-row input{flex:1;min-width:0;border:1px solid rgba(0,0,0,.15);border-radius:var(--radius);padding:11px 14px;font-size:15px;}
+.ff-tm{display:grid;grid-template-columns:1fr;gap:18px;}
+@container (min-width:760px){.ff-tm{grid-template-columns:repeat(3,minmax(0,1fr));}}
+.ff-tm-c{margin:0;padding:22px;border:1px solid rgba(0,0,0,.1);border-radius:var(--radius);background:rgba(0,0,0,.02);}
+.ff-tm-q p{margin:0 0 14px;font-size:15px;line-height:1.55;}
+.ff-tm-c figcaption b{display:block;}
+.ff-tm-c figcaption span{opacity:.7;font-size:13px;}
 `;

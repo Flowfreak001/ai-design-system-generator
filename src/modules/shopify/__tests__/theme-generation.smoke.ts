@@ -19,6 +19,12 @@ const input: ShopifyProjectInput = {
         { key: "hero", sectionId: "hero-banner", settings: { heading: "Everyday essentials" } },
         { key: "featured", sectionId: "featured-collection", settings: { heading: "Best sellers", products_to_show: 4 } },
         { key: "iwt", sectionId: "image-with-text", settings: { heading: "Made to last" } },
+        { key: "usp", sectionId: "usp-bar", blocks: [{ key: "u1", type: "usp", settings: { title: "Free shipping" } }] },
+        { key: "cl", sectionId: "collection-list", blocks: [{ key: "c1", type: "collection_item", settings: { title: "New" } }] },
+        { key: "fp", sectionId: "featured-product", settings: { eyebrow: "Featured" } },
+        { key: "rt", sectionId: "rich-text", settings: { heading: "Our promise" } },
+        { key: "tm", sectionId: "testimonials", blocks: [{ key: "t1", type: "quote", settings: { author: "Jordan Blake" } }] },
+        { key: "nl", sectionId: "newsletter", settings: { heading: "Join" } },
         { key: "faq", sectionId: "faq", blocks: [
           { key: "q1", type: "question", settings: { question: "Do you ship worldwide?" } },
           { key: "q2", type: "question", settings: { question: "What's your return policy?" } },

@@ -28,7 +28,8 @@ The **only** source of valid section ids. AI page-plans and JSON templates must
 resolve every section here; unknown ids are rejected before generation.
 
 - Structural (always emitted, referenced by `theme.liquid`): `announcement-bar`, `header`, `footer`
-- Content (Phase 1): `hero-banner`, `image-with-text`, `featured-collection`, `faq`
+- Content: `hero-banner`, `image-with-text`, `featured-collection`, `collection-list`,
+  `featured-product`, `rich-text`, `usp-bar`, `testimonials`, `newsletter`, `faq`
 
 Each section carries real Liquid + a valid `{% schema %}` (settings, blocks,
 presets), default settings, responsive scoped CSS, accessibility, theme-token
@@ -69,6 +70,5 @@ Asserts a valid, deterministic theme + zip and that unknown section ids fail.
 
 ## Not yet implemented (next phases)
 
-- Remaining sections (collection-list, featured-product, usp-bar, testimonials, newsletter, rich-text)
 - Product/collection template section editing beyond the starter set
 - Shopify OAuth + theme upload/publish (a `ShopifyDeploymentProvider` interface exists; no live impl)
