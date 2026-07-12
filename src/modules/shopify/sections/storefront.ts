@@ -22,9 +22,6 @@ export const mainProductSection = s(
   `<section class="page-width section mp" data-animate>
   <div class="mp__grid">
     <div class="mp__media" data-gallery>
-      <div class="mp__stage">
-        {% if product.featured_image %}<img data-main-image src="{{ product.featured_image | image_url: width: 1400 }}" alt="{{ product.featured_image.alt | escape }}" width="{{ product.featured_image.width }}" height="{{ product.featured_image.height }}">{% else %}<div class="placeholder-media" style="aspect-ratio:1/1"></div>{% endif %}
-      </div>
       {% if product.images.size > 1 %}
         <div class="mp__thumbs">
           {% for image in product.images limit: 6 %}
@@ -32,6 +29,9 @@ export const mainProductSection = s(
           {% endfor %}
         </div>
       {% endif %}
+      <div class="mp__stage">
+        {% if product.featured_image %}<img data-main-image src="{{ product.featured_image | image_url: width: 1400 }}" alt="{{ product.featured_image.alt | escape }}" width="{{ product.featured_image.width }}" height="{{ product.featured_image.height }}">{% else %}<div class="placeholder-media" style="aspect-ratio:1/1"></div>{% endif %}
+      </div>
     </div>
     <div class="mp__info">
       {% if product.vendor != blank %}<p class="mp__vendor">{{ product.vendor }}</p>{% endif %}
@@ -41,8 +41,10 @@ export const mainProductSection = s(
         {% if product.compare_at_price > product.price %}<s class="mp__compare">{{ product.compare_at_price | money }}</s>{% endif %}
         {% unless product.available %}<span class="mp__badge mp__badge--out">{{ 'products.product.sold_out' | t }}</span>{% else %}{% if product.compare_at_price > product.price %}<span class="mp__badge mp__badge--sale">Sale</span>{% endif %}{% endunless %}
       </div>
+      <p class="mp__tax">Taxes included. <a href="{{ routes.root_url }}policies/shipping-policy">Shipping</a> calculated at checkout.</p>
       {% if product.description != blank %}<div class="mp__lead rte">{{ product.description | strip_html | truncatewords: 40 }}</div>{% endif %}
       <hr class="mp__rule">
+      <p class="mp__stock mp__stock--{% if product.available %}in{% else %}out{% endif %}"><span class="mp__dot"></span>{% if product.available %}In stock{% else %}Out of stock{% endif %}</p>
       {% form 'product', product %}
         {% unless product.has_only_default_variant %}
           <label class="mp__opt"><span>Options</span>
@@ -52,21 +54,21 @@ export const mainProductSection = s(
           </label>
         {% else %}<input type="hidden" name="id" value="{{ product.selected_or_first_available_variant.id }}">{% endunless %}
         <span class="mp__qlabel">{{ 'products.product.quantity' | t }}</span>
-        <div class="mp__buy">
-          <div class="mp__qty" data-qty>
-            <button type="button" data-qty-minus aria-label="Decrease">–</button>
-            <input type="number" name="quantity" value="1" min="1" data-qty-input aria-label="Quantity">
-            <button type="button" data-qty-plus aria-label="Increase">+</button>
-          </div>
-          <button type="submit" name="add" class="btn btn--primary mp__add" {% unless product.available %}disabled{% endunless %}>{% if product.available %}{{ 'products.product.add_to_cart' | t }}{% else %}{{ 'products.product.sold_out' | t }}{% endif %}</button>
+        <div class="mp__qty" data-qty>
+          <button type="button" data-qty-minus aria-label="Decrease">–</button>
+          <input type="number" name="quantity" value="1" min="1" data-qty-input aria-label="Quantity">
+          <button type="button" data-qty-plus aria-label="Increase">+</button>
         </div>
-        {% if product.available %}{{ form | payment_button }}{% endif %}
+        {% if section.settings.size_chart_url != blank %}<a class="mp__sizechart" href="{{ section.settings.size_chart_url }}"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="8" width="18" height="8" rx="1"/><path d="M7 8v3M11 8v4M15 8v3"/></svg>Size chart</a>{% endif %}
+        <div class="mp__actions">
+          <button type="submit" name="add" class="btn btn--primary mp__add" {% unless product.available %}disabled{% endunless %}>{% if product.available %}{{ 'products.product.add_to_cart' | t }}{% else %}{{ 'products.product.sold_out' | t }}{% endif %}</button>
+          {% if product.available %}{{ form | payment_button }}{% endif %}
+        </div>
       {% endform %}
-      {% if section.settings.show_badges %}
-        <ul class="mp__trust">
-          <li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20 6 9 17l-5-5"/></svg>Cruelty free</li>
-          <li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20 6 9 17l-5-5"/></svg>Paraben free</li>
-          <li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M20 6 9 17l-5-5"/></svg>Vegan</li>
+      {% assign feature_blocks = section.blocks | where: 'type', 'feature' %}
+      {% if feature_blocks.size > 0 %}
+        <ul class="mp__features">
+          {% for block in feature_blocks %}<li {{ block.shopify_attributes }}><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M20 6 9 17l-5-5"/></svg>{{ block.settings.text | escape }}</li>{% endfor %}
         </ul>
       {% endif %}
       <div class="mp__rows" data-accordion>
@@ -79,57 +81,87 @@ export const mainProductSection = s(
           {% endif %}
         {% endfor %}
       </div>
+      {% if section.settings.show_share %}
+        <div class="mp__share">Share:
+          <a href="https://www.facebook.com/sharer/sharer.php?u={{ shop.url }}{{ product.url }}" aria-label="Share on Facebook" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M14 9h3V6h-3c-1.7 0-3 1.3-3 3v2H9v3h2v6h3v-6h2.5l.5-3H14V9c0-.6.4-1 1-1z"/></svg></a>
+          <a href="https://twitter.com/intent/tweet?url={{ shop.url }}{{ product.url }}" aria-label="Share on X" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M18 3h3l-7 8 8 10h-6l-5-6-5 6H-.5l8-9L0 3h6l4 5 5-5h3z" transform="translate(1)"/></svg></a>
+          <a href="https://pinterest.com/pin/create/button/?url={{ shop.url }}{{ product.url }}" aria-label="Share on Pinterest" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12 2a10 10 0 0 0-4 19.2c-.1-.8-.2-2 0-2.9l1.2-5s-.3-.6-.3-1.5c0-1.4.8-2.4 1.8-2.4.9 0 1.3.6 1.3 1.4 0 .9-.5 2.1-.8 3.3-.2.9.5 1.7 1.4 1.7 1.7 0 2.9-2.2 2.9-4.7 0-1.9-1.3-3.4-3.7-3.4a4.3 4.3 0 0 0-4.5 4.3c0 .8.3 1.7.6 2.1l-.3 1c0 .2-.2.3-.4.2-1.3-.6-2-2.4-2-3.9 0-3.2 2.3-6.1 6.7-6.1 3.5 0 6.2 2.5 6.2 5.8 0 3.5-2.2 6.3-5.2 6.3-1 0-2-.5-2.3-1.2l-.6 2.4c-.2.9-.8 2-1.2 2.6A10 10 0 1 0 12 2z"/></svg></a>
+        </div>
+      {% endif %}
     </div>
   </div>
 </section>
 <style>
   #shopify-section-{{ section.id }} .mp__grid{display:grid;gap:clamp(28px,4vw,56px)}
-  @media(min-width:800px){#shopify-section-{{ section.id }} .mp__grid{grid-template-columns:1.05fr 1fr;align-items:start}}
-  #shopify-section-{{ section.id }} .mp__stage{background:var(--color-background);border:1px solid var(--color-border);border-radius:calc(var(--radius) * 1.4);overflow:hidden;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center}
-  #shopify-section-{{ section.id }} .mp__stage img{width:100%;height:100%;object-fit:cover}
-  #shopify-section-{{ section.id }} .mp__thumbs{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
-  #shopify-section-{{ section.id }} .mp__thumb{padding:0;border:1px solid var(--color-border);border-radius:var(--radius);overflow:hidden;width:74px;height:74px;background:none;cursor:pointer;transition:border-color .15s}
-  #shopify-section-{{ section.id }} .mp__thumb.is-active{border-color:var(--color-primary)}
-  #shopify-section-{{ section.id }} .mp__thumb img{width:100%;height:100%;object-fit:cover}
-  #shopify-section-{{ section.id }} .mp__vendor{text-transform:uppercase;letter-spacing:.14em;font-size:12px;font-weight:600;color:var(--color-secondary);margin:0 0 8px}
-  #shopify-section-{{ section.id }} .mp__title{font-size:clamp(28px,3.4vw,42px);margin:0 0 14px}
+  @media(min-width:900px){#shopify-section-{{ section.id }} .mp__grid{grid-template-columns:1.05fr .95fr;align-items:start}
+    #shopify-section-{{ section.id }} .mp__info{position:sticky;top:24px}}
+  #shopify-section-{{ section.id }} .mp__media{display:grid;gap:14px}
+  @media(min-width:600px){#shopify-section-{{ section.id }} .mp__media{grid-template-columns:82px 1fr}}
+  #shopify-section-{{ section.id }} .mp__stage{grid-column:2;background:#f4f4f5;border-radius:calc(var(--radius) * 1.4);overflow:hidden;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center}
+  @media(max-width:599px){#shopify-section-{{ section.id }} .mp__stage{grid-column:1}}
+  #shopify-section-{{ section.id }} .mp__stage img{width:100%;height:100%;object-fit:contain;padding:6%}
+  #shopify-section-{{ section.id }} .mp__thumbs{display:flex;gap:10px;flex-wrap:wrap}
+  @media(min-width:600px){#shopify-section-{{ section.id }} .mp__thumbs{grid-row:1;grid-column:1;flex-direction:column;flex-wrap:nowrap}}
+  #shopify-section-{{ section.id }} .mp__thumb{padding:0;border:1px solid var(--color-border);border-radius:var(--radius);overflow:hidden;width:74px;height:74px;flex:0 0 auto;background:#f4f4f5;cursor:pointer;transition:border-color .15s}
+  #shopify-section-{{ section.id }} .mp__thumb.is-active{border-color:var(--color-primary);border-width:2px}
+  #shopify-section-{{ section.id }} .mp__thumb img{width:100%;height:100%;object-fit:contain;padding:8%}
+  #shopify-section-{{ section.id }} .mp__vendor{text-transform:lowercase;letter-spacing:.02em;font-size:13px;font-weight:500;color:var(--color-secondary);margin:0 0 8px}
+  #shopify-section-{{ section.id }} .mp__title{font-size:clamp(28px,3.4vw,44px);margin:0 0 14px}
   #shopify-section-{{ section.id }} .mp__pricerow{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-  #shopify-section-{{ section.id }} .mp__price{font-size:24px;font-weight:600}
+  #shopify-section-{{ section.id }} .mp__price{font-size:22px;font-weight:600}
   #shopify-section-{{ section.id }} .mp__compare{opacity:.5;font-size:18px}
   #shopify-section-{{ section.id }} .mp__badge{font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px}
   #shopify-section-{{ section.id }} .mp__badge--sale{background:var(--color-secondary);color:#fff}
   #shopify-section-{{ section.id }} .mp__badge--out{background:rgba(0,0,0,.08)}
+  #shopify-section-{{ section.id }} .mp__tax{font-size:13px;opacity:.65;margin:6px 0 0}
+  #shopify-section-{{ section.id }} .mp__tax a{text-decoration:underline}
   #shopify-section-{{ section.id }} .mp__lead{margin:16px 0;line-height:1.7;opacity:.9}
   #shopify-section-{{ section.id }} .mp__rule{border:0;border-top:1px solid var(--color-border);margin:18px 0}
+  #shopify-section-{{ section.id }} .mp__stock{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;margin:0 0 18px}
+  #shopify-section-{{ section.id }} .mp__stock .mp__dot{width:10px;height:10px;border-radius:2px}
+  #shopify-section-{{ section.id }} .mp__stock--in{color:#1a7f37}#shopify-section-{{ section.id }} .mp__stock--in .mp__dot{background:#1a7f37}
+  #shopify-section-{{ section.id }} .mp__stock--out{color:#8a6d1a}#shopify-section-{{ section.id }} .mp__stock--out .mp__dot{background:#8a6d1a}
   #shopify-section-{{ section.id }} .mp__opt{display:block;margin-bottom:14px;font-weight:600}
   #shopify-section-{{ section.id }} .mp__opt select{display:block;margin-top:6px;min-height:48px;border:1px solid var(--color-border);border-radius:var(--radius);padding:0 12px;font-size:15px;width:100%;max-width:280px}
-  #shopify-section-{{ section.id }} .mp__qlabel{display:block;font-weight:600;font-size:14px;margin-bottom:6px}
-  #shopify-section-{{ section.id }} .mp__buy{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px}
-  #shopify-section-{{ section.id }} .mp__qty{display:inline-flex;align-items:center;border:1px solid var(--color-border);border-radius:var(--radius);overflow:hidden}
-  #shopify-section-{{ section.id }} .mp__qty button{width:44px;min-height:50px;border:0;background:none;font-size:18px;cursor:pointer;color:inherit}
-  #shopify-section-{{ section.id }} .mp__qty input{width:48px;min-height:50px;border:0;text-align:center;font-size:15px;-moz-appearance:textfield}
+  #shopify-section-{{ section.id }} .mp__qlabel{display:block;font-weight:600;font-size:15px;margin-bottom:8px}
+  #shopify-section-{{ section.id }} .mp__qty{display:inline-flex;align-items:center;background:var(--color-background);border-radius:var(--radius);overflow:hidden;margin-bottom:14px}
+  #shopify-section-{{ section.id }} .mp__qty button{width:48px;min-height:52px;border:0;background:rgba(0,0,0,.04);font-size:18px;cursor:pointer;color:inherit}
+  #shopify-section-{{ section.id }} .mp__qty input{width:56px;min-height:52px;border:0;background:rgba(0,0,0,.04);text-align:center;font-size:16px;-moz-appearance:textfield}
   #shopify-section-{{ section.id }} .mp__qty input::-webkit-outer-spin-button,#shopify-section-{{ section.id }} .mp__qty input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
-  #shopify-section-{{ section.id }} .mp__add{flex:1;min-width:180px}
-  #shopify-section-{{ section.id }} .mp__trust{list-style:none;padding:0;margin:20px 0 0;display:flex;flex-wrap:wrap;gap:16px}
-  #shopify-section-{{ section.id }} .mp__trust li{display:flex;align-items:center;gap:7px;font-size:13.5px;font-weight:500;color:var(--color-secondary)}
+  #shopify-section-{{ section.id }} .mp__sizechart{display:inline-flex;align-items:center;gap:8px;font-size:14px;font-weight:500;margin:0 0 18px;text-decoration:none}
+  #shopify-section-{{ section.id }} .mp__actions{display:grid;grid-template-columns:1fr;gap:12px}
+  @media(min-width:520px){#shopify-section-{{ section.id }} .mp__actions{grid-template-columns:1fr 1fr}}
+  #shopify-section-{{ section.id }} .mp__actions .shopify-payment-button{margin:0}
+  #shopify-section-{{ section.id }} .mp__features{list-style:none;padding:0;margin:22px 0 0;display:grid;gap:12px}
+  #shopify-section-{{ section.id }} .mp__features li{display:flex;align-items:center;gap:10px;font-size:15px}
+  #shopify-section-{{ section.id }} .mp__features svg{flex:0 0 auto;color:var(--color-primary)}
   #shopify-section-{{ section.id }} .mp__rows{margin-top:24px;border-top:1px solid var(--color-border)}
   #shopify-section-{{ section.id }} .mp__row{border-bottom:1px solid var(--color-border)}
   #shopify-section-{{ section.id }} .mp__row-t{width:100%;display:flex;justify-content:space-between;align-items:center;gap:16px;padding:16px 0;background:none;border:0;cursor:pointer;font-size:16px;font-weight:600;color:inherit;text-align:left}
   #shopify-section-{{ section.id }} .mp__row-ic{font-size:22px;line-height:1;transition:transform .2s}
   #shopify-section-{{ section.id }} .mp__row-t[aria-expanded="true"] .mp__row-ic{transform:rotate(45deg)}
   #shopify-section-{{ section.id }} .mp__row-c{padding:0 0 18px;opacity:.86;line-height:1.7}
+  #shopify-section-{{ section.id }} .mp__share{display:flex;align-items:center;gap:14px;margin-top:24px;font-weight:600;font-size:14px}
+  #shopify-section-{{ section.id }} .mp__share a{display:inline-flex;color:inherit}
 </style>`,
   [
-    { type: "checkbox", id: "show_badges", label: "Show trust badges", default: true },
+    { type: "checkbox", id: "show_share", label: "Show share buttons", default: true },
+    { type: "url", id: "size_chart_url", label: "Size chart link" },
   ],
 );
-mainProductSection.schema.blocks = [{
-  type: "collapsible_row", name: "Collapsible row",
-  settings: [
-    { type: "text", id: "heading", label: "Heading", default: "Description" },
-    { type: "richtext", id: "body", label: "Content", default: "<p>Add product details, materials, care, or shipping information here.</p>" },
-  ],
-}];
+mainProductSection.schema.blocks = [
+  {
+    type: "feature", name: "Feature (checkmark)",
+    settings: [{ type: "text", id: "text", label: "Feature text", default: "Add a key selling point" }],
+  },
+  {
+    type: "collapsible_row", name: "Collapsible row",
+    settings: [
+      { type: "text", id: "heading", label: "Heading", default: "Description" },
+      { type: "richtext", id: "body", label: "Content", default: "<p>Add product details, materials, care, or shipping information here.</p>" },
+    ],
+  },
+];
 
 export const mainCollectionSection = s(
   "main-collection", "Collection", "collection",

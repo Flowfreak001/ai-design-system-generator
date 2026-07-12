@@ -380,23 +380,25 @@ function MainProduct() {
     <section className="ff-section ff-pdp">
       <div className="ff-pdp-grid">
         <div className="ff-pdp-gallery">
-          <div className="ff-pdp-stage"><Placeholder hue={p.hue} ratio="1 / 1" /></div>
           <div className="ff-pdp-thumbs">{[0, 1, 2].map((i) => <div key={i} className={`ff-pdp-thumb${i === 0 ? " is-active" : ""}`}><Placeholder hue={(p.hue + i * 30) % 360} ratio="1 / 1" /></div>)}</div>
+          <div className="ff-pdp-stage"><Placeholder hue={p.hue} ratio="1 / 1" /></div>
         </div>
         <div className="ff-pdp-info">
-          <p className="ff-eyebrow">Brand</p>
+          <p className="ff-pdp-vendor">brand-name</p>
           <h1>{p.title}</h1>
           <div className="ff-pdp-pricerow"><span className="ff-pdp-price">{p.price}</span><s className="ff-pdp-compare">$14.00</s><span className="ff-pdp-badge">Sale</span></div>
+          <p className="ff-pdp-tax">Taxes included. Shipping calculated at checkout.</p>
           <RichText className="ff-pdp-lead" html="<p>A considered product with durable materials and a clean, timeless design.</p>" />
           <hr className="ff-pdp-rule" />
-          <div className="ff-pdp-buy">
-            <div className="ff-pdp-qty"><button>–</button><input defaultValue={1} readOnly /><button>+</button></div>
-            <span className="ff-btn ff-btn--primary ff-pdp-add">Add to cart</span>
-          </div>
-          <ul className="ff-pdp-trust"><li>✓ Cruelty free</li><li>✓ Paraben free</li><li>✓ Vegan</li></ul>
+          <p className="ff-pdp-stock"><span className="ff-pdp-dot" />In stock</p>
+          <div className="ff-pdp-qlabel">Quantity</div>
+          <div className="ff-pdp-qty"><button>–</button><input defaultValue={1} readOnly /><button>+</button></div>
+          <div className="ff-pdp-actions"><span className="ff-btn ff-btn--primary ff-pdp-add">Add to cart</span><span className="ff-pdp-buynow">Buy it now</span></div>
+          <ul className="ff-pdp-features">{["Enter your feature text", "Enter your feature text", "Enter your feature text"].map((t, i) => <li key={i}><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M20 6 9 17l-5-5" /></svg>{t}</li>)}</ul>
           <div className="ff-pdp-rows">
-            {["Description", "How to use"].map((t, i) => <div key={i} className="ff-pdp-row"><span>{t}</span><span>+</span></div>)}
+            {["Description", "Collapsible Tab"].map((t, i) => <div key={i} className="ff-pdp-row"><span>{t}</span><span>{i === 0 ? "–" : "+"}</span></div>)}
           </div>
+          <div className="ff-pdp-share">Share:<span>f</span><span>𝕏</span><span>p</span></div>
         </div>
       </div>
     </section>
@@ -786,27 +788,42 @@ export const STORE_CSS = `
 .ff-ccx-title{margin:0 0 16px;font-family:var(--f-head);font-weight:600;font-size:clamp(22px,2.6cqw,32px);letter-spacing:-0.02em;}
 .ff-ccx-btn{display:inline-flex;align-items:center;min-height:42px;padding:0 24px;border-radius:999px;background:var(--c-primary);color:#fff;font-weight:600;font-size:13px;}
 .ff-pdp-grid{display:grid;gap:clamp(24px,4cqw,48px);}
-@container (min-width:760px){.ff-pdp-grid{grid-template-columns:1.05fr 1fr;align-items:start;}}
-.ff-pdp-stage{border:1px solid rgba(0,0,0,.1);border-radius:calc(var(--radius) * 1.4);overflow:hidden;}
-.ff-pdp-thumbs{display:flex;gap:10px;margin-top:12px;}
-.ff-pdp-thumb{width:70px;border:1px solid rgba(0,0,0,.12);border-radius:var(--radius);overflow:hidden;}
-.ff-pdp-thumb.is-active{border-color:var(--c-primary);}
+@container (min-width:820px){.ff-pdp-grid{grid-template-columns:1.05fr .95fr;align-items:start;}}
+.ff-pdp-gallery{display:grid;gap:12px;}
+@container (min-width:520px){.ff-pdp-gallery{grid-template-columns:78px 1fr;}}
+.ff-pdp-stage{grid-column:2;background:#f4f4f5;border-radius:calc(var(--radius) * 1.4);overflow:hidden;}
+@container (max-width:519px){.ff-pdp-stage{grid-column:1;}}
+.ff-pdp-thumbs{display:flex;gap:10px;flex-wrap:wrap;}
+@container (min-width:520px){.ff-pdp-thumbs{grid-row:1;grid-column:1;flex-direction:column;flex-wrap:nowrap;}}
+.ff-pdp-thumb{width:70px;flex:0 0 auto;border:1px solid rgba(0,0,0,.12);border-radius:var(--radius);overflow:hidden;}
+.ff-pdp-thumb.is-active{border-color:var(--c-primary);border-width:2px;}
+.ff-pdp-vendor{font-size:13px;color:var(--c-secondary);margin:0 0 8px;}
 .ff-pdp-info h1{margin:4px 0 12px;}
 .ff-pdp-pricerow{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
-.ff-pdp-price{font-size:24px;font-weight:600;}
+.ff-pdp-price{font-size:22px;font-weight:600;}
 .ff-pdp-compare{opacity:.5;}
 .ff-pdp-badge{background:var(--c-secondary);color:#fff;font-size:12px;font-weight:600;padding:4px 10px;border-radius:999px;}
+.ff-pdp-tax{font-size:13px;opacity:.6;margin:6px 0 0;}
 .ff-pdp-lead{margin:14px 0;opacity:.85;}
 .ff-pdp-lead p{margin:0;}
 .ff-pdp-rule{border:0;border-top:1px solid rgba(0,0,0,.1);margin:16px 0;}
-.ff-pdp-buy{display:flex;gap:12px;flex-wrap:wrap;}
-.ff-pdp-qty{display:inline-flex;align-items:center;border:1px solid rgba(0,0,0,.15);border-radius:var(--radius);overflow:hidden;}
-.ff-pdp-qty button{width:40px;height:48px;border:0;background:none;font-size:17px;cursor:default;}
-.ff-pdp-qty input{width:44px;height:48px;border:0;text-align:center;}
-.ff-pdp-add{flex:1;min-width:160px;justify-content:center;}
-.ff-pdp-trust{list-style:none;padding:0;margin:18px 0 0;display:flex;flex-wrap:wrap;gap:14px;color:var(--c-secondary);font-size:13px;font-weight:500;}
+.ff-pdp-stock{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:#1a7f37;margin:0 0 16px;}
+.ff-pdp-dot{width:10px;height:10px;border-radius:2px;background:#1a7f37;}
+.ff-pdp-qlabel{font-weight:600;font-size:15px;margin-bottom:8px;}
+.ff-pdp-qty{display:inline-flex;align-items:center;border-radius:var(--radius);overflow:hidden;margin-bottom:14px;}
+.ff-pdp-qty button{width:46px;height:50px;border:0;background:rgba(0,0,0,.05);font-size:17px;cursor:default;}
+.ff-pdp-qty input{width:52px;height:50px;border:0;background:rgba(0,0,0,.05);text-align:center;}
+.ff-pdp-actions{display:grid;grid-template-columns:1fr;gap:12px;}
+@container (min-width:480px){.ff-pdp-actions{grid-template-columns:1fr 1fr;}}
+.ff-pdp-add{justify-content:center;}
+.ff-pdp-buynow{display:inline-flex;align-items:center;justify-content:center;padding:13px 26px;border-radius:var(--radius);background:#2f9fd0;color:#fff;font-weight:600;font-size:14px;}
+.ff-pdp-features{list-style:none;padding:0;margin:22px 0 0;display:grid;gap:12px;}
+.ff-pdp-features li{display:flex;align-items:center;gap:10px;font-size:15px;}
+.ff-pdp-features svg{flex:0 0 auto;color:var(--c-primary);}
 .ff-pdp-rows{margin-top:22px;border-top:1px solid rgba(0,0,0,.1);}
 .ff-pdp-row{display:flex;justify-content:space-between;padding:15px 0;border-bottom:1px solid rgba(0,0,0,.1);font-weight:600;}
+.ff-pdp-share{display:flex;align-items:center;gap:14px;margin-top:22px;font-weight:600;font-size:14px;}
+.ff-pdp-share span{display:inline-flex;width:22px;height:22px;align-items:center;justify-content:center;}
 .ff-cx-crumbs{font-size:13px;opacity:.6;margin-bottom:10px;}
 .ff-cx-layout{display:grid;gap:clamp(20px,3cqw,40px);}
 .ff-cx{position:relative;}
