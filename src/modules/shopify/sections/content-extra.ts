@@ -145,7 +145,7 @@ export const testimonialsSection: ShopifySectionDefinition = {
   <div class="tm__grid">
     {% for block in section.blocks %}
       <figure class="tm__card" {{ block.shopify_attributes }}>
-        <blockquote>{{ block.settings.quote | escape }}</blockquote>
+        <blockquote>{{ block.settings.quote }}</blockquote>
         <figcaption><span class="tm__author">{{ block.settings.author | escape }}</span>{% if block.settings.role != blank %}<span class="tm__role">{{ block.settings.role | escape }}</span>{% endif %}</figcaption>
       </figure>
     {% endfor %}
@@ -168,7 +168,7 @@ export const testimonialsSection: ShopifySectionDefinition = {
       {
         type: "quote", name: "Testimonial",
         settings: [
-          { type: "richtext", id: "quote", label: "Quote", default: "This is the best purchase I've made all year." },
+          { type: "richtext", id: "quote", label: "Quote", default: "<p>This is the best purchase I've made all year.</p>" },
           { type: "text", id: "author", label: "Author", default: "Jordan Blake" },
           { type: "text", id: "role", label: "Role", default: "Verified buyer" },
         ],

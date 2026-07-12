@@ -65,6 +65,22 @@ export function validateShopifyTheme(files: GeneratedThemeFile[]): ThemeValidati
     try {
       const schema = JSON.parse(m[1].trim());
       if (!schema.name) issues.push({ level: "error", path: f.path, message: "Section schema is missing 'name'" });
+      // Shopify's ZIP-upload validation is strict: an invalid setting default makes
+      // the whole section invalid, and any JSON template referencing it is then
+      // SILENTLY DROPPED on import (observed: templates/index.json). Catch the
+      // known-fatal cases here so they can never ship.
+      const allSettings: Array<{ type?: string; id?: string; default?: unknown; step?: number }> = [
+        ...(schema.settings ?? []),
+        ...(schema.blocks ?? []).flatMap((b: { settings?: unknown[] }) => b.settings ?? []),
+      ];
+      for (const st of allSettings) {
+        if (st.type === "richtext" && typeof st.default === "string" && !/^<p[\s>]/.test(st.default.trim())) {
+          issues.push({ level: "error", path: f.path, message: `richtext setting '${st.id}' default must be wrapped in <p> tags (Shopify rejects the section, then drops any template referencing it)` });
+        }
+        if (st.type === "range" && typeof st.step === "number" && Math.round(st.step * 10) !== st.step * 10) {
+          issues.push({ level: "error", path: f.path, message: `range setting '${st.id}' step must be divisible by 0.1` });
+        }
+      }
     } catch {
       issues.push({ level: "error", path: f.path, message: "Section {% schema %} is not valid JSON" });
     }
