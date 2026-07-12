@@ -494,9 +494,56 @@ function CustomSection({ instance }: { instance: ShopifySectionInstance }) {
   );
 }
 
+function SplitHero({ settings }: { settings?: Settings }) {
+  const side = s(settings, "image_side", "right");
+  const rating = num(settings, "rating", 5);
+  const showRating = (settings?.show_rating ?? true) !== false;
+  return (
+    <section className="ff-section ff-shx">
+      <div className="ff-shx-grid" style={{ ["--shx-dir" as string]: side === "left" ? "row-reverse" : "row" }}>
+        <div className="ff-shx-text">
+          {s(settings, "eyebrow") && <span className="ff-eyebrow">{s(settings, "eyebrow")}</span>}
+          {showRating && (
+            <div className="ff-shx-rating">
+              <span className="ff-shx-stars"><span className="ff-shx-stars-bg">★★★★★</span><span className="ff-shx-stars-fg" style={{ width: `${(rating / 5) * 100}%` }}>★★★★★</span></span>
+              {s(settings, "rating_text") && <span className="ff-shx-rt">{s(settings, "rating_text")}</span>}
+            </div>
+          )}
+          <h1 className="ff-shx-h">{s(settings, "heading", "Fresh. Organic. Delivered.")}</h1>
+          <RichText className="ff-shx-sub" html={s(settings, "subheading", "<p>Everyday essentials, delivered.</p>")} />
+          {s(settings, "button_label", "Shop now") && <div className="ff-btns"><span className="ff-btn ff-btn--primary">{s(settings, "button_label", "Shop now")}</span></div>}
+        </div>
+        <div className="ff-shx-media"><Placeholder hue={135} ratio="1 / 1" /></div>
+      </div>
+    </section>
+  );
+}
+function CategoryCards({ instance }: { instance: ShopifySectionInstance }) {
+  const cols = s(instance.settings, "columns", "3");
+  return (
+    <section className="ff-section">
+      {s(instance.settings, "heading") && <h2 style={{ textAlign: "center", marginBottom: 34 }}>{s(instance.settings, "heading")}</h2>}
+      <div className="ff-ccx-grid" style={{ ["--cols" as string]: cols }}>
+        {(instance.blocks ?? []).map((b, i) => (
+          <div key={b.key} className="ff-ccx-card" style={{ background: s(b.settings, "bg") || ["#ece7dd", "#dbe8de", "#dbe4ec"][i % 3] }}>
+            <div className="ff-ccx-media"><div className="ff-ccx-ph" /></div>
+            <div className="ff-ccx-body">
+              {s(b.settings, "eyebrow") && <p className="ff-ccx-eyebrow">{s(b.settings, "eyebrow")}</p>}
+              <p className="ff-ccx-title">{s(b.settings, "title", "Category")}</p>
+              {s(b.settings, "button_label", "Show more") && <span className="ff-ccx-btn">{s(b.settings, "button_label", "Show more")}</span>}
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export function renderSection(inst: ShopifySectionInstance) {
   if (inst.disabled) return null;
   switch (inst.sectionId) {
+    case "split-hero": return <SplitHero settings={inst.settings} />;
+    case "category-cards": return <CategoryCards instance={inst} />;
     case "custom-section": return <CustomSection instance={inst} />;
     case "hero-banner": return <Hero settings={inst.settings} />;
     case "image-banner": return <ImageBanner settings={inst.settings} />;
@@ -678,6 +725,25 @@ export const STORE_CSS = `
 .ff-iwt-body h2{font-size:clamp(22px,3.4cqw,32px);margin-bottom:14px;}
 .ff-iwt-media{width:100%;}
 .ff-prose p,.ff-hero-sub p{margin:0 0 10px;}
+.ff-shx-grid{display:flex;flex-direction:column;gap:clamp(24px,4cqw,56px);align-items:center;}
+@container (min-width:760px){.ff-shx-grid{flex-direction:var(--shx-dir,row);}.ff-shx-text,.ff-shx-media{flex:1;}}
+.ff-shx-h{font-size:clamp(34px,6.6cqw,64px);line-height:1.02;letter-spacing:-0.035em;margin:0;}
+.ff-shx-rating{display:flex;align-items:center;gap:10px;margin-bottom:16px;}
+.ff-shx-stars{position:relative;display:inline-block;font-size:17px;letter-spacing:2px;line-height:1;}
+.ff-shx-stars-bg{color:rgba(0,0,0,.16);}
+.ff-shx-stars-fg{position:absolute;inset:0;overflow:hidden;color:#f5a623;white-space:nowrap;}
+.ff-shx-rt{font-size:13px;font-weight:600;opacity:.85;}
+.ff-shx-sub{margin-top:16px;opacity:.85;max-width:44ch;}
+.ff-shx-sub p{margin:0;}
+.ff-ccx-grid{display:grid;grid-template-columns:1fr;gap:clamp(14px,2cqw,24px);}
+@container (min-width:640px){.ff-ccx-grid{grid-template-columns:repeat(var(--cols,3),minmax(0,1fr));}}
+.ff-ccx-card{display:flex;flex-direction:column;border-radius:calc(var(--radius) * 1.6);padding:clamp(18px,2.2cqw,30px);min-height:clamp(300px,34cqw,460px);color:#1a1a1a;}
+.ff-ccx-media{flex:1;display:flex;align-items:center;justify-content:center;padding:6px 0 18px;}
+.ff-ccx-ph{width:64%;aspect-ratio:3/4;border-radius:var(--radius);background:rgba(0,0,0,.06);}
+.ff-ccx-body{text-align:center;}
+.ff-ccx-eyebrow{margin:0 0 6px;font-size:13px;opacity:.7;}
+.ff-ccx-title{margin:0 0 16px;font-family:var(--f-head);font-weight:600;font-size:clamp(22px,2.6cqw,32px);letter-spacing:-0.02em;}
+.ff-ccx-btn{display:inline-flex;align-items:center;min-height:42px;padding:0 24px;border-radius:999px;background:var(--c-primary);color:#fff;font-weight:600;font-size:13px;}
 .ff-faq h2{font-size:clamp(22px,3.4cqw,32px);margin-bottom:20px;}
 .ff-faq-list{max-width:780px;}
 .ff-faq-row{border-bottom:1px solid rgba(0,0,0,.1);padding:14px 0;}

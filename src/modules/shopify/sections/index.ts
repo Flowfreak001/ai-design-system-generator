@@ -8,6 +8,7 @@ import { announcementBarSection, headerSection, footerSection } from "./structur
 import { STOREFRONT_SECTIONS } from "./storefront";
 import { productRecommendationsSection } from "./creative";
 import { customSection } from "./custom";
+import { splitHeroSection, categoryCardsSection } from "./prebuilt";
 
 /** Sections always included in a generated theme (referenced by theme.liquid). */
 export const STRUCTURAL_SECTIONS: ShopifySectionDefinition[] = [announcementBarSection, headerSection, footerSection];
@@ -17,6 +18,7 @@ export const STRUCTURAL_SECTIONS: ShopifySectionDefinition[] = [announcementBarS
  *  sections are kept because they bind to live Shopify data. New sections get
  *  added here as they are built. */
 export const CONTENT_SECTIONS: ShopifySectionDefinition[] = [
+  splitHeroSection, categoryCardsSection,
   customSection,
   featuredCollectionSection, collectionListSection, featuredProductSection, productRecommendationsSection,
 ];
