@@ -55,7 +55,7 @@ export function NewProjectChooser({ clients }: { clients: { id: string; name: st
         >
           <div className="pr-10">
             <h2 className="text-[23px] font-semibold tracking-[-0.02em] text-ink">Start something new</h2>
-            <p className="mt-1 text-[15.5px] text-body">Pick how you want to build — publish a Wix site, export a Shopify theme, or plan a design project.</p>
+            <p className="mt-1 text-[15.5px] text-body">Pick how you want to build.</p>
           </div>
           <div className="mt-7 grid gap-5 sm:grid-cols-3">
             {CHOICES.map((c, i) => (
@@ -219,7 +219,7 @@ function ShopifyCreate({ onBack }: { onBack: () => void }) {
         <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-success-soft text-success"><Icon name="shopify" /></span>
         <div>
           <p className="text-[23px] font-semibold tracking-[-0.02em] text-ink">New Shopify store</p>
-          <p className="mt-1 text-[15.5px] text-body">A native Online Store 2.0 theme, built from brand + page sections and exported as a Shopify-ready ZIP.</p>
+          <p className="mt-1 text-[15.5px] text-body">A native Shopify theme, exported as a ready-to-upload ZIP.</p>
         </div>
       </div>
 
