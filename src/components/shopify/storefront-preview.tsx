@@ -448,9 +448,56 @@ function MainPage() {
   );
 }
 
+function CustomSection({ instance }: { instance: ShopifySectionInstance }) {
+  const width = s(instance.settings, "content_width", "normal");
+  const maxW = width === "narrow" ? 680 : width === "wide" ? 1200 : 960;
+  const bg = s(instance.settings, "background");
+  const alignItems = (a: string) => (a === "center" ? "center" : a === "right" ? "flex-end" : "flex-start");
+  const textAlign = (a: string) => (a === "center" ? "center" : a === "right" ? "right" : "left") as "left" | "center" | "right";
+  return (
+    <section className="ff-section" style={{ maxWidth: maxW, background: bg || undefined }}>
+      <div style={{ display: "flex", flexDirection: "column" }}>
+        {(instance.blocks ?? []).map((b) => {
+          const a = s(b.settings, "align", "left");
+          const sp = { marginTop: num(b.settings, "space_top", 0), marginBottom: num(b.settings, "space_bottom", 16) };
+          const wrap = { ...sp, textAlign: textAlign(a), display: "flex", flexDirection: "column" as const, alignItems: alignItems(a) };
+          switch (b.type) {
+            case "heading": return (
+              <div key={b.key} style={wrap}>
+                {s(b.settings, "eyebrow") && <span className="ff-eyebrow">{s(b.settings, "eyebrow")}</span>}
+                <h2 style={{ fontSize: num(b.settings, "size", 36), lineHeight: 1.06, letterSpacing: "-0.02em", margin: 0 }}>{s(b.settings, "text", "A heading")}</h2>
+              </div>
+            );
+            case "text": return <div key={b.key} style={{ ...sp, textAlign: textAlign(a), maxWidth: "70ch", marginInline: a === "center" ? "auto" : undefined, opacity: 0.92, lineHeight: 1.65 }}><RichText html={s(b.settings, "text", "<p>Body text.</p>")} /></div>;
+            case "image": return (
+              <div key={b.key} style={wrap}>
+                <div style={{ maxWidth: `${num(b.settings, "max_width", 100)}%`, borderRadius: num(b.settings, "radius", 12), overflow: "hidden", width: "100%" }}>
+                  <Placeholder hue={210} ratio={s(b.settings, "ratio", "16/9").replace("/", " / ")} />
+                </div>
+              </div>
+            );
+            case "button": return <div key={b.key} style={wrap}><span className={`ff-btn ff-btn--${s(b.settings, "style", "primary") === "secondary" ? "ghost" : "primary"}`}>{s(b.settings, "label", "Shop now")}</span></div>;
+            case "feature": return (
+              <div key={b.key} style={{ ...wrap, maxWidth: "60ch", marginInline: a === "center" ? "auto" : undefined }}>
+                {s(b.settings, "icon") && <div style={{ fontSize: 30, marginBottom: 10 }}>{s(b.settings, "icon", "★")}</div>}
+                {s(b.settings, "title") && <p style={{ fontWeight: 600, fontSize: 18, margin: "0 0 6px" }}>{s(b.settings, "title")}</p>}
+                <RichText className="ff-prose" html={s(b.settings, "text", "")} />
+              </div>
+            );
+            case "divider": return <hr key={b.key} style={{ ...sp, width: `${num(b.settings, "width", 100)}%`, border: 0, borderTop: `${num(b.settings, "thickness", 1)}px solid rgba(0,0,0,.12)`, marginInline: a === "center" ? "auto" : a === "right" ? "0 0 0 auto" : 0 }} />;
+            case "spacer": return <div key={b.key} style={{ height: num(b.settings, "height", 32) }} />;
+            default: return null;
+          }
+        })}
+      </div>
+    </section>
+  );
+}
+
 export function renderSection(inst: ShopifySectionInstance) {
   if (inst.disabled) return null;
   switch (inst.sectionId) {
+    case "custom-section": return <CustomSection instance={inst} />;
     case "hero-banner": return <Hero settings={inst.settings} />;
     case "image-banner": return <ImageBanner settings={inst.settings} />;
     case "slideshow": return <Slideshow instance={inst} />;

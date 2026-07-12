@@ -14,12 +14,14 @@ import {
   imageBannerSection, slideshowSection, multicolumnSection, multirowSection,
   logoListSection, countdownSection, contactFormSection, blogPostsSection, productRecommendationsSection,
 } from "./creative";
+import { customSection } from "./custom";
 
 /** Sections always included in a generated theme (referenced by theme.liquid). */
 export const STRUCTURAL_SECTIONS: ShopifySectionDefinition[] = [announcementBarSection, headerSection, footerSection];
 
 /** Sections a user can place on a page. */
 export const CONTENT_SECTIONS: ShopifySectionDefinition[] = [
+  customSection,
   heroSection, imageBannerSection, slideshowSection, imageWithTextSection, multirowSection,
   featuredCollectionSection, collectionListSection, featuredProductSection, productRecommendationsSection,
   multicolumnSection, uspBarSection, richTextSection, testimonialsSection, logoListSection,
