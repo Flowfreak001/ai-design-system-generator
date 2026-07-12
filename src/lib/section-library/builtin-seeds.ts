@@ -17,7 +17,8 @@ type BuiltinSection = {
 
 const SECTIONS = BUILTIN_SECTIONS as unknown as BuiltinSection[];
 
-const SEED_VERSION = "v110";
+// v111: re-anchors built-in timestamps to the past so real add/edit always sorts first.
+const SEED_VERSION = "v111";
 // Single global namespace — NOT per agency. agencyId is null on every seeded row.
 const PREFIX = "seed-global-";
 
@@ -71,10 +72,17 @@ async function doSeed(): Promise<void> {
   const toDelete = seedRows.filter((r) => isPristine(r) && !r.id.startsWith(curPrefix)).map((r) => r.id);
   if (toDelete.length) await prisma.librarySection.deleteMany({ where: { id: { in: toDelete } } });
 
-  for (const b of SECTIONS) {
+  // Anchor seeded timestamps in the PAST (append order preserved: later index =
+  // newer, so the most recently added built-in sorts first) so a mass re-seed can
+  // never outrank real user adds/edits. Any user action stamps updatedAt = now(),
+  // which is always newer → "latest add/edit/update shows on top" holds.
+  const SEED_EPOCH = Date.parse("2020-01-01T00:00:00Z");
+  for (let i = 0; i < SECTIONS.length; i++) {
+    const b = SECTIONS[i];
     if (customizedBases.has(b.id)) continue;
     const id = `${curPrefix}${b.id}`;
     if (await prisma.librarySection.findUnique({ where: { id } })) continue;
+    const at = new Date(SEED_EPOCH + i * 60_000);
     await prisma.librarySection.create({
       data: {
         id, agencyId: null,
@@ -89,6 +97,7 @@ async function doSeed(): Promise<void> {
         editableFields: b.editableFields ?? [], tags: b.tags ?? [],
         originality: b.originality || "Original design — placeholder media only.",
         version: 1, createdBy: null,
+        createdAt: at, updatedAt: at,
       },
     });
   }
