@@ -138,8 +138,17 @@ export const mainCollectionSection = s(
   <h1 class="cx__title">{{ collection.title | escape }}</h1>
   {% if collection.description != blank %}<div class="cx__desc rte">{{ collection.description }}</div>{% endif %}
   {% paginate collection.products by section.settings.per_page %}
+    <div class="cx__toolbar">
+      <button type="button" class="cx__filter-btn" data-filter-open aria-label="Open filters">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M3 5h18M6 12h12M10 19h4"/></svg>
+        Filters
+      </button>
+      <p class="cx__count">{{ collection.products_count }} products</p>
+    </div>
     <div class="cx__layout">
-      <aside class="cx__side">
+      <div class="cx__overlay" data-filter-overlay></div>
+      <aside class="cx__side" data-filter-drawer>
+        <div class="cx__side-head"><span>Filters</span><button type="button" class="cx__side-close" data-filter-close aria-label="Close filters"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
         <form method="get" class="cx__filters">
           {% if section.settings.show_sort %}
             <div class="cx__group">
@@ -201,7 +210,24 @@ export const mainCollectionSection = s(
   #shopify-section-{{ section.id }} .cx__title{font-size:clamp(34px,5vw,56px);margin:0 0 6px}
   #shopify-section-{{ section.id }} .cx__desc{max-width:640px;opacity:.85;margin-bottom:28px}
   #shopify-section-{{ section.id }} .cx__layout{display:grid;gap:clamp(24px,4vw,48px)}
-  @media(min-width:990px){#shopify-section-{{ section.id }} .cx__layout{grid-template-columns:250px 1fr;align-items:start}}
+  #shopify-section-{{ section.id }} .cx__toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px}
+  #shopify-section-{{ section.id }} .cx__filter-btn{display:inline-flex;align-items:center;gap:8px;min-height:46px;padding:0 20px;border:1px solid var(--color-border);border-radius:999px;background:var(--color-background);font-weight:600;font-size:14px;cursor:pointer;color:inherit}
+  #shopify-section-{{ section.id }} .cx__side-head{display:none;align-items:center;justify-content:space-between;margin-bottom:8px;padding-bottom:14px;border-bottom:1px solid var(--color-border)}
+  #shopify-section-{{ section.id }} .cx__side-head span{font-size:18px;font-weight:600}
+  #shopify-section-{{ section.id }} .cx__side-close{background:none;border:0;cursor:pointer;color:inherit;padding:6px;display:inline-flex}
+  #shopify-section-{{ section.id }} .cx__overlay{display:none}
+  @media(min-width:990px){
+    #shopify-section-{{ section.id }} .cx__layout{grid-template-columns:250px 1fr;align-items:start}
+    #shopify-section-{{ section.id }} .cx__toolbar{display:none}
+  }
+  @media(max-width:989px){
+    #shopify-section-{{ section.id }} .cx__main .cx__count{display:none}
+    #shopify-section-{{ section.id }} .cx__overlay{display:block;position:fixed;inset:0;z-index:60;background:rgba(0,0,0,.42);opacity:0;pointer-events:none;transition:opacity .3s ease}
+    #shopify-section-{{ section.id }} .cx__overlay.is-open{opacity:1;pointer-events:auto}
+    #shopify-section-{{ section.id }} .cx__side{position:fixed;top:0;left:0;bottom:0;z-index:61;width:min(340px,86vw);background:var(--color-background);padding:20px;overflow-y:auto;transform:translateX(-100%);transition:transform .32s cubic-bezier(.22,1,.36,1);box-shadow:0 0 40px rgba(0,0,0,.15)}
+    #shopify-section-{{ section.id }} .cx__side.is-open{transform:none}
+    #shopify-section-{{ section.id }} .cx__side-head{display:flex}
+  }
   #shopify-section-{{ section.id }} .cx__group{padding:16px 0;border-top:1px solid var(--color-border)}
   #shopify-section-{{ section.id }} .cx__group:first-child{border-top:0;padding-top:0}
   #shopify-section-{{ section.id }} .cx__label{font-weight:600;font-size:14px;margin:0 0 10px;display:block}

@@ -5,7 +5,7 @@
 // data (products/collections). It is never exported — the export path is Liquid.
 // Renders full-width inside app chrome (Context A: normal CSS responsive is fine).
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { resolveSchemes, type BrandTokens, type ShopifyPage, type ShopifySectionInstance } from "@/modules/shopify";
 
 type Settings = Record<string, string | number | boolean>;
@@ -404,12 +404,21 @@ function MainProduct() {
 }
 const FILTER_TYPES = ["Beverages (1)", "Breads & Buns (6)", "Dried Fruits (1)", "Eggs (1)", "Fruits & Vegetables (11)"];
 function MainCollection() {
+  const [open, setOpen] = useState(false);
   return (
     <section className="ff-section ff-cx">
       <div className="ff-cx-crumbs">Home / Collections / All products</div>
       <h1 style={{ marginBottom: 20 }}>All products</h1>
+      <div className="ff-cx-toolbar">
+        <button type="button" className="ff-cx-filter-btn" onClick={() => setOpen(true)}>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"><path d="M3 5h18M6 12h12M10 19h4" /></svg> Filters
+        </button>
+        <p className="ff-cx-count" style={{ margin: 0 }}>{MOCK_PRODUCTS.length * 3} products</p>
+      </div>
+      <div className={`ff-cx-overlay${open ? " is-open" : ""}`} onClick={() => setOpen(false)} />
       <div className="ff-cx-layout">
-        <aside className="ff-cx-side">
+        <aside className={`ff-cx-side${open ? " is-open" : ""}`}>
+          <div className="ff-cx-side-head"><span>Filters</span><button type="button" onClick={() => setOpen(false)} aria-label="Close"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"><path d="M6 6l12 12M18 6 6 18" /></svg></button></div>
           <div className="ff-cx-group"><p className="ff-cx-label">Sort by</p><select className="ff-cx-select" disabled><option>Featured</option></select></div>
           <div className="ff-cx-group"><p className="ff-cx-label">Price</p><div className="ff-cx-price"><input placeholder="$ 0" readOnly /><span>to</span><input placeholder="$ 96" readOnly /></div></div>
           <div className="ff-cx-group"><p className="ff-cx-label">Product type</p><ul className="ff-cx-values">{FILTER_TYPES.map((f) => <li key={f} className="ff-cx-check"><input type="checkbox" readOnly /> <span>{f}</span></li>)}</ul></div>
@@ -800,7 +809,22 @@ export const STORE_CSS = `
 .ff-pdp-row{display:flex;justify-content:space-between;padding:15px 0;border-bottom:1px solid rgba(0,0,0,.1);font-weight:600;}
 .ff-cx-crumbs{font-size:13px;opacity:.6;margin-bottom:10px;}
 .ff-cx-layout{display:grid;gap:clamp(20px,3cqw,40px);}
-@container (min-width:900px){.ff-cx-layout{grid-template-columns:230px 1fr;align-items:start;}}
+.ff-cx{position:relative;}
+.ff-cx-toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:18px;}
+.ff-cx-filter-btn{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 18px;border:1px solid rgba(0,0,0,.15);border-radius:999px;background:none;font-weight:600;font-size:14px;cursor:pointer;color:inherit;}
+.ff-cx-side-head{display:none;align-items:center;justify-content:space-between;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid rgba(0,0,0,.1);}
+.ff-cx-side-head span{font-size:17px;font-weight:600;}
+.ff-cx-side-head button{background:none;border:0;cursor:pointer;color:inherit;padding:4px;display:inline-flex;}
+.ff-cx-overlay{display:none;}
+@container (min-width:900px){.ff-cx-layout{grid-template-columns:230px 1fr;align-items:start;}.ff-cx-toolbar{display:none;}}
+@container (max-width:899px){
+  .ff-cx-main .ff-cx-count{display:none;}
+  .ff-cx-overlay{display:block;position:absolute;inset:0;z-index:5;background:rgba(0,0,0,.42);opacity:0;pointer-events:none;transition:opacity .3s ease;}
+  .ff-cx-overlay.is-open{opacity:1;pointer-events:auto;}
+  .ff-cx-side{position:absolute;top:0;left:0;bottom:0;z-index:6;width:min(320px,84%);background:var(--c-bg);padding:18px;overflow-y:auto;transform:translateX(-105%);transition:transform .32s cubic-bezier(.22,1,.36,1);box-shadow:0 0 40px rgba(0,0,0,.18);border-radius:0 var(--radius) var(--radius) 0;}
+  .ff-cx-side.is-open{transform:none;}
+  .ff-cx-side-head{display:flex;}
+}
 .ff-cx-group{padding:14px 0;border-top:1px solid rgba(0,0,0,.1);}
 .ff-cx-group:first-child{border-top:0;padding-top:0;}
 .ff-cx-label{font-weight:600;font-size:14px;margin:0 0 10px;}

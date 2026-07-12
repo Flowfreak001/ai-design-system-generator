@@ -104,6 +104,16 @@ document.addEventListener('DOMContentLoaded',function(){
   } else {
     document.querySelectorAll('[data-animate]').forEach(function(el){ el.classList.add('is-visible'); });
   }
+  // Collection filter drawer (tablet/mobile).
+  document.querySelectorAll('[data-filter-open]').forEach(function(btn){
+    var wrap=btn.closest('.cx');if(!wrap)return;
+    var drawer=wrap.querySelector('[data-filter-drawer]');var overlay=wrap.querySelector('[data-filter-overlay]');
+    function set(open){ if(drawer)drawer.classList.toggle('is-open',open); if(overlay)overlay.classList.toggle('is-open',open); document.body.style.overflow=open?'hidden':''; }
+    btn.addEventListener('click',function(){set(true);});
+    wrap.querySelectorAll('[data-filter-close]').forEach(function(c){c.addEventListener('click',function(){set(false);});});
+    if(overlay)overlay.addEventListener('click',function(){set(false);});
+    document.addEventListener('keydown',function(e){if(e.key==='Escape')set(false);});
+  });
   // Product gallery — thumbnail swaps the main image.
   document.querySelectorAll('[data-gallery]').forEach(function(g){
     var main=g.querySelector('[data-main-image]');
