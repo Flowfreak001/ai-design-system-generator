@@ -225,7 +225,6 @@ export const countdownSection: ShopifySectionDefinition = {
 <style>
   #shopify-section-{{ section.id }} .cd__timer{font-size:clamp(24px,4vw,40px);font-weight:700;font-variant-numeric:tabular-nums;margin:16px 0 18px;letter-spacing:.02em}
 </style>
-<script>(function(){var el=document.currentScript.previousElementSibling;}());</script>
 <script>
 (function(){var root=document.getElementById('shopify-section-{{ section.id }}');if(!root)return;var t=root.querySelector('[data-countdown]');if(!t)return;var target=new Date(t.getAttribute('data-countdown')).getTime();function pad(n){return String(n).padStart(2,'0');}function tick(){var d=Math.max(0,target-Date.now());var s=Math.floor(d/1000);t.querySelector('[data-d]').textContent=pad(Math.floor(s/86400));t.querySelector('[data-h]').textContent=pad(Math.floor(s%86400/3600));t.querySelector('[data-m]').textContent=pad(Math.floor(s%3600/60));t.querySelector('[data-s]').textContent=pad(s%60);}tick();setInterval(tick,1000);}());
 </script>`,
@@ -305,12 +304,22 @@ export const productRecommendationsSection: ShopifySectionDefinition = {
   id: "product-recommendations", name: "Product recommendations", category: "products",
   description: "Related products (Shopify recommendations) on the product page.",
   supportedTemplates: ["product"],
-  liquid: `<div class="pr ${ROOT}"><div class="page-width">
-  {% if recommendations.performed and recommendations.products_count > 0 %}
-    {% if section.settings.heading != blank %}<h2 style="margin-bottom:calc(var(--space) * 3)">{{ section.settings.heading | escape }}</h2>{% endif %}
-    <div class="grid grid--4">{% for product in recommendations.products limit: section.settings.count %}{% render 'product-card', product: product %}{% endfor %}</div>
+  liquid: `<div class="pr ${ROOT}" data-recs data-url="{{ routes.product_recommendations_url }}?section_id={{ section.id }}&product_id={{ product.id }}&limit={{ section.settings.count }}"><div class="page-width">
+  {%- comment -%} Shopify only populates the recommendations object when the section is fetched
+     via the Product Recommendations API, so on first paint it is empty and the small script below
+     re-fetches this same section and swaps in the rendered grid. {%- endcomment -%}
+  {% if recommendations.performed %}
+    {% if recommendations.products_count > 0 %}
+      {% if section.settings.heading != blank %}<h2 style="margin-bottom:calc(var(--space) * 3)">{{ section.settings.heading | escape }}</h2>{% endif %}
+      <div class="grid grid--4">{% for product in recommendations.products limit: section.settings.count %}{% render 'product-card', product: product %}{% endfor %}</div>
+    {% endif %}
   {% endif %}
-</div></div>`,
+</div></div>
+{% unless recommendations.performed %}
+<script>
+(function(){var root=document.getElementById('shopify-section-{{ section.id }}');if(!root)return;var el=root.querySelector('[data-recs]');if(!el||!el.dataset.url)return;fetch(el.dataset.url).then(function(r){return r.text();}).then(function(html){var doc=new DOMParser().parseFromString(html,'text/html');var incoming=doc.querySelector('[data-recs]');if(incoming){el.innerHTML=incoming.innerHTML;}}).catch(function(){});}());
+</script>
+{% endunless %}`,
   schema: {
     name: "Product recommendations", tag: "section",
     settings: [{ type: "text", id: "heading", label: "Heading", default: "You may also like" }, { type: "range", id: "count", label: "Products", min: 2, max: 8, step: 1, default: 4 }, ...WRAP],
