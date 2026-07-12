@@ -38,14 +38,47 @@ function rowToDef(r: LibrarySectionModel): DynamicSectionDef {
   };
 }
 
+// Strip the seed prefix (`seed-<scope>-v<NN>-`) to a stable base key so a global
+// built-in and an agency's adopted copy of it dedupe to one card. User sections
+// (non-seed ids) key to their own unique id.
+const SEED_BASE_RE = /^seed-[^-]+-v\d+-/;
+const baseKey = (id: string) => id.replace(SEED_BASE_RE, "");
+
+/** The authed catalog for an agency: the GLOBAL set plus the agency's own
+ *  sections. When both a global built-in and an agency-owned (adopted/edited)
+ *  copy exist for the same base, the agency's copy wins. */
 export async function listCatalogSections(agencyId: string | null): Promise<DynamicSectionDef[]> {
-  // Exclude internal bookkeeping rows (e.g. the seeder's version sentinel).
-  const rows = await prisma.librarySection.findMany({ where: { agencyId, NOT: { sourceType: "system" } }, orderBy: { updatedAt: "desc" } });
+  const where = agencyId
+    ? { OR: [{ agencyId: null }, { agencyId }], NOT: { sourceType: "system" } }
+    : { agencyId: null, NOT: { sourceType: "system" } };
+  const rows = await prisma.librarySection.findMany({ where, orderBy: { updatedAt: "desc" } });
+
+  const byBase = new Map<string, (typeof rows)[number]>();
+  for (const r of rows) {
+    const key = baseKey(r.id);
+    const cur = byBase.get(key);
+    if (!cur) byBase.set(key, r);
+    else if (cur.agencyId === null && r.agencyId !== null) byBase.set(key, r); // prefer agency-owned
+  }
+  return [...byBase.values()]
+    .sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime())
+    .map(rowToDef);
+}
+
+/** The PUBLIC catalog (logged-out /components): global, public, ready sections. */
+export async function listPublicCatalogSections(): Promise<DynamicSectionDef[]> {
+  const rows = await prisma.librarySection.findMany({
+    where: { agencyId: null, visibility: "public", status: "ready", NOT: { sourceType: "system" } },
+    orderBy: { updatedAt: "desc" },
+  });
   return rows.map(rowToDef);
 }
 
 export async function getCatalogSection(id: string, agencyId: string | null): Promise<DynamicSectionDef | null> {
-  const row = await prisma.librarySection.findFirst({ where: { id, agencyId } });
+  // Visible to the agency if it's global (agencyId null) or owned by the agency.
+  const row = await prisma.librarySection.findFirst({
+    where: agencyId ? { id, OR: [{ agencyId: null }, { agencyId }] } : { id, agencyId: null },
+  });
   return row ? rowToDef(row) : null;
 }
 
@@ -55,7 +88,11 @@ export async function upsertCatalogSection(
   createdBy: string | null,
   def: DynamicSectionDef,
 ): Promise<DynamicSectionDef> {
-  const existing = await prisma.librarySection.findFirst({ where: { id: def.id, agencyId } });
+  // Find by id alone (ids are globally unique). On update we PRESERVE the row's
+  // existing scope (global stays global, agency stays agency); `agencyId` is the
+  // desired scope for a NEW row only.
+  const existing = await prisma.librarySection.findUnique({ where: { id: def.id } });
+  const scope = existing ? existing.agencyId : agencyId;
   const codeChanged = Boolean(existing) && existing!.tsxCode !== def.componentCode;
 
   let history = (def.history ?? []) as CodeHistory;
@@ -65,7 +102,7 @@ export async function upsertCatalogSection(
   const version = existing ? (codeChanged ? existing.version + 1 : existing.version) : 1;
 
   const data = {
-    agencyId,
+    agencyId: scope,
     name: def.name,
     slug: def.slug || slugify(def.name),
     category: def.category,
@@ -102,6 +139,7 @@ export async function upsertCatalogSection(
   return rowToDef(row);
 }
 
-export async function deleteCatalogSection(id: string, agencyId: string | null): Promise<void> {
-  await prisma.librarySection.deleteMany({ where: { id, agencyId } });
+export async function deleteCatalogSection(id: string, _agencyId: string | null): Promise<void> {
+  // ids are globally unique; permission is checked in the calling action.
+  await prisma.librarySection.deleteMany({ where: { id } });
 }

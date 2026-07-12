@@ -287,8 +287,11 @@ export async function saveAdminSectionAction(
     };
   }
 
-  const saved = await upsertCatalogSection(user.agencyId, user.id, def);
+  // Admin-authored sections are GLOBAL (shown on /components + every library).
+  const scope = isAdmin(user) ? null : user.agencyId;
+  const saved = await upsertCatalogSection(scope, user.id, def);
   revalidatePath(`/projects/${projectId}/references`);
+  revalidatePath("/components");
   return { id: saved.id };
 }
 

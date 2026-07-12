@@ -26,8 +26,13 @@ export async function saveLibrarySectionAction(def: DynamicSectionDef): Promise<
     def = { ...def, sourceType: admin ? "admin" : "user", visibility: admin ? "public" : "private", createdByUserId: user.id };
   }
 
-  const saved = await upsertCatalogSection(user.agencyId, user.id, def);
+  // Admin-authored sections are GLOBAL (agencyId null) so they appear on the
+  // public /components catalog as well as every library. Non-admin sections stay
+  // scoped to the agency. (Editing an existing row preserves its own scope.)
+  const scope = isAdmin(user) ? null : user.agencyId;
+  const saved = await upsertCatalogSection(scope, user.id, def);
   revalidatePath("/library");
+  revalidatePath("/components");
   return { id: saved.id };
 }
 
