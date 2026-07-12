@@ -59,7 +59,9 @@ export const featuredCollectionSection: ShopifySectionDefinition = {
       {% if section.settings.heading != blank %}<h2>{{ section.settings.heading | escape }}</h2>{% endif %}
     </div>
     {% assign coll = collections[section.settings.collection] %}
-    {% unless coll.products_count > 0 %}{% assign coll = collections.all %}{% endunless %}
+    {% comment %} Guard: an unset/invalid collection resolves to a String, so compare with blank
+       (unordered) BEFORE any > 0 comparison, then fall back to the automatic all-products collection. {% endcomment %}
+    {% if coll == blank %}{% assign coll = collections.all %}{% endif %}
     {% if section.settings.show_view_all %}
       <a class="fc__all" href="{{ coll.url | default: routes.all_products_collection_url }}">{{ section.settings.view_all_label | default: 'View all' }}</a>
     {% endif %}
