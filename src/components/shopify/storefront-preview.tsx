@@ -539,10 +539,11 @@ function CustomSection({ instance }: { instance: ShopifySectionInstance }) {
 
 function SplitHero({ settings }: { settings?: Settings }) {
   const side = s(settings, "image_side", "right");
+  const variant = s(settings, "variant", "split");
   const rating = num(settings, "rating", 5);
   const showRating = (settings?.show_rating ?? true) !== false;
   return (
-    <section className="ff-section ff-shx">
+    <section className={`ff-section ff-shx ff-shx--${variant}`}>
       <div className="ff-shx-grid" style={{ ["--shx-dir" as string]: side === "left" ? "row-reverse" : "row" }}>
         <div className="ff-shx-text">
           {s(settings, "eyebrow") && <span className="ff-eyebrow">{s(settings, "eyebrow")}</span>}
@@ -563,12 +564,13 @@ function SplitHero({ settings }: { settings?: Settings }) {
 }
 function CategoryCards({ instance }: { instance: ShopifySectionInstance }) {
   const cols = s(instance.settings, "columns", "3");
+  const variant = s(instance.settings, "variant", "cards");
   return (
-    <section className="ff-section">
+    <section className={`ff-section ff-ccx--${variant}`}>
       {s(instance.settings, "heading") && <h2 style={{ textAlign: "center", marginBottom: 34 }}>{s(instance.settings, "heading")}</h2>}
       <div className="ff-ccx-grid" style={{ ["--cols" as string]: cols }}>
         {(instance.blocks ?? []).map((b, i) => (
-          <div key={b.key} className="ff-ccx-card" style={{ background: s(b.settings, "bg") || ["#ece7dd", "#dbe8de", "#dbe4ec"][i % 3] }}>
+          <div key={b.key} className="ff-ccx-card" style={{ background: variant === "overlay" ? "#c9c2b4" : s(b.settings, "bg") || ["#ece7dd", "#dbe8de", "#dbe4ec"][i % 3] }}>
             <div className="ff-ccx-media"><div className="ff-ccx-ph" /></div>
             <div className="ff-ccx-body">
               {s(b.settings, "eyebrow") && <p className="ff-ccx-eyebrow">{s(b.settings, "eyebrow")}</p>}
@@ -787,6 +789,15 @@ export const STORE_CSS = `
 .ff-ccx-eyebrow{margin:0 0 6px;font-size:13px;opacity:.7;}
 .ff-ccx-title{margin:0 0 16px;font-family:var(--f-head);font-weight:600;font-size:clamp(22px,2.6cqw,32px);letter-spacing:-0.02em;}
 .ff-ccx-btn{display:inline-flex;align-items:center;min-height:42px;padding:0 24px;border-radius:999px;background:var(--c-primary);color:#fff;font-weight:600;font-size:13px;}
+.ff-shx--centered .ff-shx-grid{flex-direction:column!important;text-align:center;max-width:600px;margin:0 auto;}
+.ff-shx--centered .ff-shx-rating,.ff-shx--centered .ff-btns{justify-content:center;}
+.ff-shx--minimal .ff-shx-media{display:none;}
+.ff-shx--minimal .ff-shx-grid{flex-direction:column!important;max-width:560px;}
+.ff-ccx--overlay .ff-ccx-card{position:relative;overflow:hidden;justify-content:flex-end;color:#fff;padding:0;}
+.ff-ccx--overlay .ff-ccx-media{position:absolute;inset:0;padding:0;}
+.ff-ccx--overlay .ff-ccx-ph{width:100%;height:100%;aspect-ratio:auto;border-radius:0;}
+.ff-ccx--overlay .ff-ccx-body{position:relative;z-index:1;text-align:left;padding:20px;background:linear-gradient(to top,rgba(0,0,0,.72),rgba(0,0,0,0));}
+.ff-ccx--overlay .ff-ccx-title{color:#fff;}
 .ff-pdp-grid{display:grid;gap:clamp(24px,4cqw,48px);}
 @container (min-width:820px){.ff-pdp-grid{grid-template-columns:1.05fr .95fr;align-items:start;}}
 .ff-pdp-gallery{display:flex;flex-direction:column;gap:12px;}

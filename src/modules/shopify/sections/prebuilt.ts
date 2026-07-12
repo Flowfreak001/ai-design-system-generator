@@ -19,7 +19,7 @@ export const splitHeroSection: ShopifySectionDefinition = {
   category: "hero",
   description: "Editorial hero: eyebrow, star rating, large headline, button and a product image beside it.",
   supportedTemplates: ["index", "page", "collection"],
-  liquid: `<div class="shx color-{{ section.settings.color_scheme }} section" data-animate style="--section-pt:{{ section.settings.padding_top }}px;--section-pb:{{ section.settings.padding_bottom }}px">
+  liquid: `<div class="shx shx--v-{{ section.settings.variant | default: 'split' }} color-{{ section.settings.color_scheme }} section" data-animate style="--section-pt:{{ section.settings.padding_top }}px;--section-pb:{{ section.settings.padding_bottom }}px">
   <div class="shx__grid page-width shx--media-{{ section.settings.image_side }}">
     <div class="shx__text">
       {% if section.settings.eyebrow != blank %}<p class="shx__eyebrow">{{ section.settings.eyebrow | escape }}</p>{% endif %}
@@ -51,10 +51,17 @@ export const splitHeroSection: ShopifySectionDefinition = {
   #shopify-section-{{ section.id }} .shx__sub{margin:18px 0 0;font-size:clamp(16px,1.6vw,19px);opacity:.85;max-width:44ch;line-height:1.6}
   #shopify-section-{{ section.id }} .shx__actions{margin-top:28px}
   #shopify-section-{{ section.id }} .shx__media img,#shopify-section-{{ section.id }} .shx__media .placeholder-media{width:100%;height:auto;border-radius:calc(var(--radius) * 1.5);object-fit:cover}
+  #shopify-section-{{ section.id }} .shx--v-centered .shx__grid{grid-template-columns:1fr!important;max-width:760px;margin-inline:auto;text-align:center}
+  #shopify-section-{{ section.id }} .shx--v-centered .shx__rating,#shopify-section-{{ section.id }} .shx--v-centered .shx__actions{justify-content:center}
+  #shopify-section-{{ section.id }} .shx--v-centered .shx__sub{margin-inline:auto}
+  #shopify-section-{{ section.id }} .shx--v-centered .shx__media{order:2;max-width:560px;margin-inline:auto}
+  #shopify-section-{{ section.id }} .shx--v-minimal .shx__grid{grid-template-columns:1fr!important;max-width:640px}
+  #shopify-section-{{ section.id }} .shx--v-minimal .shx__media{display:none}
 </style>`,
   schema: {
     name: "Split hero", tag: "section", class: "section-split-hero",
     settings: [
+      { type: "select", id: "variant", label: "Design", default: "split", options: [{ value: "split", label: "Split (image beside)" }, { value: "centered", label: "Centered (image below)" }, { value: "minimal", label: "Minimal (text only)" }] },
       { type: "text", id: "eyebrow", label: "Eyebrow", default: "Fresh & seasonal" },
       { type: "checkbox", id: "show_rating", label: "Show rating", default: true },
       { type: "range", id: "rating", label: "Rating (stars)", min: 0, max: 5, step: 0.5, default: 5 },
@@ -69,7 +76,8 @@ export const splitHeroSection: ShopifySectionDefinition = {
     ],
     presets: [{ name: "Split hero" }],
   },
-  defaultSettings: { heading: "Fresh. Organic. Delivered.", eyebrow: "Fresh & seasonal", show_rating: true, rating: 5, image_side: "right", color_scheme: "scheme-1", button_label: "Shop now" },
+  variants: [{ id: "split", label: "Split" }, { id: "centered", label: "Centered" }, { id: "minimal", label: "Minimal" }],
+  defaultSettings: { variant: "split", heading: "Fresh. Organic. Delivered.", eyebrow: "Fresh & seasonal", show_rating: true, rating: 5, image_side: "right", color_scheme: "scheme-1", button_label: "Shop now" },
 };
 
 /* ── Category cards ─────────────────────────────────────────────────────────── */
@@ -79,7 +87,7 @@ export const categoryCardsSection: ShopifySectionDefinition = {
   category: "collections",
   description: "Row of tall editorial cards — colored background, image, eyebrow, big title and a pill button (blocks).",
   supportedTemplates: ["index", "page", "collection"],
-  liquid: `<div class="ccx color-{{ section.settings.color_scheme }} section" data-animate style="--section-pt:{{ section.settings.padding_top }}px;--section-pb:{{ section.settings.padding_bottom }}px">
+  liquid: `<div class="ccx ccx--v-{{ section.settings.variant | default: 'cards' }} color-{{ section.settings.color_scheme }} section" data-animate style="--section-pt:{{ section.settings.padding_top }}px;--section-pb:{{ section.settings.padding_bottom }}px">
   <div class="page-width">
     {% if section.settings.heading != blank %}<h2 class="ccx__h">{{ section.settings.heading | escape }}</h2>{% endif %}
     <div class="ccx__grid" style="--cols:{{ section.settings.columns }}">
@@ -110,10 +118,18 @@ export const categoryCardsSection: ShopifySectionDefinition = {
   #shopify-section-{{ section.id }} .ccx__title{margin:0 0 18px;font-family:var(--font-heading);font-weight:600;font-size:clamp(24px,2.6vw,34px);letter-spacing:-0.02em}
   #shopify-section-{{ section.id }} .ccx__btn{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:0 26px;border-radius:999px;background:var(--color-primary);color:var(--color-on-primary);font-weight:600;font-size:14px;transition:transform .18s ease}
   #shopify-section-{{ section.id }} .ccx__card:hover .ccx__btn{transform:translateY(-2px)}
+  #shopify-section-{{ section.id }} .ccx--v-overlay .ccx__card{position:relative;overflow:hidden;justify-content:flex-end;color:#fff;padding:0}
+  #shopify-section-{{ section.id }} .ccx--v-overlay .ccx__media{position:absolute;inset:0;padding:0}
+  #shopify-section-{{ section.id }} .ccx--v-overlay .ccx__media img{max-width:100%;max-height:none;width:100%;height:100%;object-fit:cover;mix-blend-mode:normal}
+  #shopify-section-{{ section.id }} .ccx--v-overlay .ccx__ph{width:100%;aspect-ratio:auto;height:100%;border-radius:0}
+  #shopify-section-{{ section.id }} .ccx--v-overlay .ccx__body{position:relative;z-index:1;text-align:left;padding:clamp(20px,2.4vw,32px);background:linear-gradient(to top,rgba(0,0,0,.72),rgba(0,0,0,0))}
+  #shopify-section-{{ section.id }} .ccx--v-overlay .ccx__title{color:#fff}
+  #shopify-section-{{ section.id }} .ccx--v-overlay .ccx__eyebrow{opacity:.85}
 </style>`,
   schema: {
     name: "Category cards", tag: "section", class: "section-category-cards", max_blocks: 4,
     settings: [
+      { type: "select", id: "variant", label: "Design", default: "cards", options: [{ value: "cards", label: "Cards (product on color)" }, { value: "overlay", label: "Image overlay" }] },
       { type: "text", id: "heading", label: "Heading" },
       { type: "select", id: "columns", label: "Columns", default: "3", options: [{ value: "2", label: "2" }, { value: "3", label: "3" }, { value: "4", label: "4" }] },
       ...WRAP,
@@ -138,7 +154,8 @@ export const categoryCardsSection: ShopifySectionDefinition = {
       ],
     }],
   },
-  defaultSettings: { columns: "3", color_scheme: "scheme-1" },
+  variants: [{ id: "cards", label: "Cards" }, { id: "overlay", label: "Overlay" }],
+  defaultSettings: { variant: "cards", columns: "3", color_scheme: "scheme-1" },
 };
 
 export const PREBUILT_SECTIONS: ShopifySectionDefinition[] = [splitHeroSection, categoryCardsSection];

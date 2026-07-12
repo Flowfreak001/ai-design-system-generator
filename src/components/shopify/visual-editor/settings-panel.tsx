@@ -26,7 +26,8 @@ export function SettingsPanel({ inst, schemes, locked, onPatch }: {
   const settings = (inst.settings ?? {}) as Settings;
   const setField = (id: string, value: string | number | boolean) => onPatch({ ...settings, [id]: value });
 
-  const contentFields = def.schema.settings.filter((f) => f.id && !["image_picker", "product", "collection", "color_scheme", "video_url"].includes(f.type));
+  const contentFields = def.schema.settings.filter((f) => f.id && f.id !== "variant" && !["image_picker", "product", "collection", "color_scheme", "video_url"].includes(f.type));
+  const currentVariant = String(settings.variant ?? def.defaultSettings.variant ?? def.variants?.[0]?.id ?? "");
   const hasScheme = def.schema.settings.some((f) => f.type === "color_scheme");
   const hasPadding = def.schema.settings.some((f) => f.id === "padding_top" || f.id === "padding_bottom");
 
@@ -50,6 +51,22 @@ export function SettingsPanel({ inst, schemes, locked, onPatch }: {
         )}
         {!locked && tab === "content" && (
           <>
+            {def.variants && def.variants.length > 1 && (
+              <div className="rounded-lg border border-line bg-panel/40 p-2.5">
+                <div className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted">Design</div>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {def.variants.map((v) => (
+                    <button
+                      key={v.id}
+                      onClick={() => setField("variant", v.id)}
+                      className={`rounded-md border px-2.5 py-2 text-left text-[12.5px] font-medium transition-colors ${currentVariant === v.id ? "border-accent bg-accent-soft/50 text-ink" : "border-line bg-white text-body hover:border-accent/50"}`}
+                    >
+                      {v.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             {contentFields.length === 0 && !def.schema.blocks && <p className="text-[12.5px] text-muted">This section has no editable content settings.</p>}
             {contentFields.map((f) => <SettingInput key={f.id} field={f} value={settings[f.id!]} onChange={(v) => setField(f.id!, v)} />)}
             {def.schema.blocks && <BlockEditor inst={inst} def={def} onChange={(blocks) => onPatch(settings, blocks)} />}

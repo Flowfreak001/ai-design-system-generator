@@ -108,6 +108,10 @@ export interface ShopifySectionDefinition {
   schema: ShopifySectionSchema;
   defaultSettings: Record<string, string | number | boolean>;
   supportedTemplates: ShopifyTemplateType[];
+  /** Selectable design variants. Each maps to a value of the section's `variant`
+   *  select setting; the section's Liquid + CSS branch on it. The editor shows a
+   *  prominent "Design" picker when this is present. */
+  variants?: { id: string; label: string }[];
 }
 
 /** A placed section on a page, with its edited settings + blocks. */
