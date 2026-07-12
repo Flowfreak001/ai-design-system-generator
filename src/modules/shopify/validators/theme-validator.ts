@@ -6,6 +6,7 @@ import { getSection } from "../sections";
 
 const REQUIRED_FILES = [
   "layout/theme.liquid",
+  "layout/password.liquid",
   "config/settings_schema.json",
   "config/settings_data.json",
   "sections/header.liquid",
@@ -14,6 +15,11 @@ const REQUIRED_FILES = [
   "sections/header-group.json",
   "sections/footer-group.json",
   "locales/en.default.json",
+  "templates/password.liquid",
+  "templates/gift_card.liquid",
+  "templates/customers/login.liquid",
+  "templates/customers/account.liquid",
+  "templates/customers/register.liquid",
 ];
 
 // A complete, installable store needs these templates.
@@ -41,6 +47,11 @@ export function validateShopifyTheme(files: GeneratedThemeFile[]): ThemeValidati
   for (const req of REQUIRED_TEMPLATES) {
     if (!byPath.has(req)) issues.push({ level: "error", path: req, message: `Missing required template: ${req}` });
   }
+
+  // theme.liquid MUST contain Shopify's mandatory objects or the upload is rejected.
+  const themeLiquid = byPath.get("layout/theme.liquid")?.contents ?? "";
+  if (!themeLiquid.includes("content_for_header")) issues.push({ level: "error", path: "layout/theme.liquid", message: "layout/theme.liquid must contain {{ content_for_header }}" });
+  if (!themeLiquid.includes("content_for_layout")) issues.push({ level: "error", path: "layout/theme.liquid", message: "layout/theme.liquid must contain {{ content_for_layout }}" });
 
   // Unique filenames.
   const seen = new Set<string>();

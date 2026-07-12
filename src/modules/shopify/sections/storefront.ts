@@ -30,14 +30,18 @@ export const mainProductSection = s(
       <h1>{{ product.title | escape }}</h1>
       <p class="mp__price">{{ product.price | money }}{% if product.compare_at_price > product.price %} <s>{{ product.compare_at_price | money }}</s>{% endif %}</p>
       {% form 'product', product %}
-        <input type="hidden" name="id" value="{{ product.selected_or_first_available_variant.id }}">
-        {% unless product.has_only_default_variant %}
-          {% for option in product.options_with_values %}
-            <label class="mp__opt"><span>{{ option.name | escape }}</span>
-              <select name="options[{{ option.name | escape }}]">{% for value in option.values %}<option value="{{ value | escape }}"{% if option.selected_value == value %} selected{% endif %}>{{ value }}</option>{% endfor %}</select>
-            </label>
-          {% endfor %}
-        {% endunless %}
+        {%- comment -%} A single variant <select name="id"> works without JS — each option is a real variant. {%- endcomment -%}
+        {% if product.has_only_default_variant %}
+          <input type="hidden" name="id" value="{{ product.selected_or_first_available_variant.id }}">
+        {% else %}
+          <label class="mp__opt"><span>Options</span>
+            <select name="id">
+              {% for variant in product.variants %}
+                <option value="{{ variant.id }}"{% if variant == product.selected_or_first_available_variant %} selected{% endif %}{% unless variant.available %} disabled{% endunless %}>{{ variant.title }}{% unless variant.available %} — {{ 'products.product.sold_out' | t }}{% endunless %}</option>
+              {% endfor %}
+            </select>
+          </label>
+        {% endif %}
         <label class="mp__opt"><span>{{ 'products.product.quantity' | t }}</span><input type="number" name="quantity" value="1" min="1"></label>
         <button type="submit" name="add" class="btn btn--primary" {% unless product.available %}disabled{% endunless %}>{% if product.available %}{{ 'products.product.add_to_cart' | t }}{% else %}{{ 'products.product.sold_out' | t }}{% endif %}</button>
       {% endform %}
