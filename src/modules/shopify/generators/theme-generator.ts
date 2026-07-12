@@ -67,6 +67,58 @@ export function generateLiquidSection(def: (typeof ALL_SECTIONS)[number]): Gener
   return { path: `sections/${def.id}.liquid`, contents: `${def.liquid}\n{% schema %}\n${schema}\n{% endschema %}\n` };
 }
 
+type SettingValue = string | number | boolean;
+type SettingField = { type: string; id?: string; default?: SettingValue; options?: { value: string }[]; min?: number; max?: number; step?: number };
+
+/** Coerce ONE user-entered setting value to a Shopify-safe form. Shopify's
+ *  ZIP-upload validation silently DROPS a whole JSON template over a single
+ *  invalid value (unwrapped richtext, out-of-range number, unknown select
+ *  option), so everything user-editable is sanitized at generation time. */
+function sanitizeSettingValue(field: SettingField, value: SettingValue): SettingValue {
+  switch (field.type) {
+    case "richtext": {
+      const s = String(value).trim();
+      if (s === "") return "";
+      return s.startsWith("<") ? s : `<p>${s}</p>`;
+    }
+    case "range": {
+      let n = typeof value === "number" ? value : Number(value);
+      if (!Number.isFinite(n)) n = typeof field.default === "number" ? field.default : field.min ?? 0;
+      const min = field.min ?? 0;
+      const max = field.max ?? 100;
+      const step = field.step && field.step > 0 ? field.step : 1;
+      n = Math.min(max, Math.max(min, n));
+      // snap onto the step grid (float-safe)
+      n = min + Math.round((n - min) / step) * step;
+      n = Math.min(max, Number(n.toFixed(4)));
+      return n;
+    }
+    case "select": {
+      const allowed = (field.options ?? []).map((o) => o.value);
+      if (allowed.length === 0) return value;
+      if (allowed.includes(String(value))) return String(value);
+      return typeof field.default === "string" && allowed.includes(field.default) ? field.default : allowed[0];
+    }
+    case "checkbox":
+      return typeof value === "boolean" ? value : String(value) === "true";
+    default:
+      return value;
+  }
+}
+
+/** Sanitize a settings record against a schema-field list: unknown keys are
+ *  dropped (Shopify rejects them), every kept value is coerced to a safe form. */
+function sanitizeSettings(fields: SettingField[], settings: Record<string, SettingValue>): Record<string, SettingValue> {
+  const byId = new Map(fields.filter((f) => f.id).map((f) => [f.id as string, f]));
+  const out: Record<string, SettingValue> = {};
+  for (const [key, value] of Object.entries(settings)) {
+    const field = byId.get(key);
+    if (!field) continue; // not in schema -> would invalidate the template
+    out[key] = sanitizeSettingValue(field, value);
+  }
+  return out;
+}
+
 /** Build a JSON template (Online Store 2.0) for a page from its instances. */
 export function generateJsonTemplate(page: ShopifyPage): GeneratedThemeFile {
   const sections: Record<string, unknown> = {};
@@ -75,18 +127,26 @@ export function generateJsonTemplate(page: ShopifyPage): GeneratedThemeFile {
     const def = getSection(inst.sectionId);
     if (!def) return; // unknown ids are dropped (validation reports them)
     const key = inst.key || `${inst.sectionId}_${i}`;
-    const settings = { ...def.defaultSettings, ...(inst.settings ?? {}) };
+    const settings = sanitizeSettings(
+      def.schema.settings as SettingField[],
+      { ...def.defaultSettings, ...(inst.settings ?? {}) },
+    );
     const entry: Record<string, unknown> = { type: def.id, settings };
     if (inst.blocks && inst.blocks.length) {
+      const blockDefs = new Map((def.schema.blocks ?? []).map((b) => [b.type, b.settings as SettingField[]]));
       const blocks: Record<string, unknown> = {};
       const blockOrder: string[] = [];
       inst.blocks.forEach((b, bi) => {
+        const blockFields = blockDefs.get(b.type);
+        if (!blockFields) return; // unknown block type -> template would be dropped on import
         const bk = b.key || `${b.type}_${bi}`;
-        blocks[bk] = { type: b.type, settings: b.settings ?? {} };
+        blocks[bk] = { type: b.type, settings: sanitizeSettings(blockFields, b.settings ?? {}) };
         blockOrder.push(bk);
       });
-      entry.blocks = blocks;
-      entry.block_order = blockOrder;
+      if (blockOrder.length) {
+        entry.blocks = blocks;
+        entry.block_order = blockOrder;
+      }
     }
     if (inst.disabled) entry.disabled = true;
     sections[key] = entry;

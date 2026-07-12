@@ -69,34 +69,86 @@ export function validateShopifyTheme(files: GeneratedThemeFile[]): ThemeValidati
       // the whole section invalid, and any JSON template referencing it is then
       // SILENTLY DROPPED on import (observed: templates/index.json). Catch the
       // known-fatal cases here so they can never ship.
-      const allSettings: Array<{ type?: string; id?: string; default?: unknown; step?: number }> = [
+      type Field = { type?: string; id?: string; default?: unknown; step?: number; min?: number; max?: number; options?: { value: string }[] };
+      const allSettings: Field[] = [
         ...(schema.settings ?? []),
         ...(schema.blocks ?? []).flatMap((b: { settings?: unknown[] }) => b.settings ?? []),
       ];
+      // ids must be unique within the section's settings, and within each block.
+      for (const group of [schema.settings ?? [], ...(schema.blocks ?? []).map((b: { settings?: Field[] }) => b.settings ?? [])]) {
+        const seen = new Set<string>();
+        for (const st of group as Field[]) {
+          if (!st.id) continue;
+          if (seen.has(st.id)) issues.push({ level: "error", path: f.path, message: `duplicate setting id '${st.id}' in section schema` });
+          seen.add(st.id);
+        }
+      }
       for (const st of allSettings) {
-        if (st.type === "richtext" && typeof st.default === "string" && !/^<p[\s>]/.test(st.default.trim())) {
+        if (st.type === "richtext" && typeof st.default === "string" && st.default !== "" && !/^<p[\s>]/.test(st.default.trim())) {
           issues.push({ level: "error", path: f.path, message: `richtext setting '${st.id}' default must be wrapped in <p> tags (Shopify rejects the section, then drops any template referencing it)` });
         }
-        if (st.type === "range" && typeof st.step === "number" && Math.round(st.step * 10) !== st.step * 10) {
-          issues.push({ level: "error", path: f.path, message: `range setting '${st.id}' step must be divisible by 0.1` });
+        if (st.type === "range") {
+          const { min = 0, max = 100, step = 1, default: def } = st;
+          if (Math.round(step * 10) !== step * 10) {
+            issues.push({ level: "error", path: f.path, message: `range setting '${st.id}' step must be divisible by 0.1` });
+          }
+          if (Math.abs(Math.round((max - min) / step) * step - (max - min)) > 1e-9) {
+            issues.push({ level: "error", path: f.path, message: `range setting '${st.id}': (max - min) must be a multiple of step` });
+          }
+          if (typeof def === "number" && (def < min || def > max)) {
+            issues.push({ level: "error", path: f.path, message: `range setting '${st.id}' default ${def} is outside [${min}, ${max}]` });
+          }
         }
+        if (st.type === "select" && typeof st.default === "string" && st.options?.length) {
+          if (!st.options.some((o) => o.value === st.default)) {
+            issues.push({ level: "error", path: f.path, message: `select setting '${st.id}' default '${st.default}' is not one of its options` });
+          }
+        }
+      }
+      if (typeof schema.max_blocks === "number" && schema.max_blocks > 50) {
+        issues.push({ level: "error", path: f.path, message: "max_blocks cannot exceed 50" });
       }
     } catch {
       issues.push({ level: "error", path: f.path, message: "Section {% schema %} is not valid JSON" });
     }
   }
 
-  // Every JSON template parses and references existing section files.
+  // Map sectionId -> parsed schema (for block-type checks in templates below).
+  const schemaBySectionId = new Map<string, { blocks?: { type: string }[] }>();
   for (const f of files) {
-    if (!f.path.startsWith("templates/") || !f.path.endsWith(".json")) continue;
-    let tpl: { sections?: Record<string, { type?: string }>; order?: string[] };
-    try { tpl = JSON.parse(f.contents); } catch { issues.push({ level: "error", path: f.path, message: "Template is not valid JSON" }); continue; }
+    if (!f.path.startsWith("sections/") || !f.path.endsWith(".liquid")) continue;
+    const m = f.contents.match(/\{%-?\s*schema\s*-?%\}([\s\S]*?)\{%-?\s*endschema\s*-?%\}/);
+    if (!m) continue;
+    try { schemaBySectionId.set(f.path.slice("sections/".length, -".liquid".length), JSON.parse(m[1].trim())); } catch { /* reported above */ }
+  }
+
+  // Every JSON template AND section group parses and references existing section
+  // files; template blocks must use block types the section's schema declares
+  // (an unknown type gets the whole template silently dropped on ZIP upload).
+  for (const f of files) {
+    const isTemplate = f.path.startsWith("templates/") && f.path.endsWith(".json");
+    const isGroup = f.path.startsWith("sections/") && f.path.endsWith(".json");
+    if (!isTemplate && !isGroup) continue;
+    let tpl: { sections?: Record<string, { type?: string; blocks?: Record<string, { type?: string }>; block_order?: string[] }>; order?: string[] };
+    try { tpl = JSON.parse(f.contents); } catch { issues.push({ level: "error", path: f.path, message: "Template/group is not valid JSON" }); continue; }
     const order = tpl.order ?? [];
     for (const key of order) {
       const sec = tpl.sections?.[key];
       if (!sec) { issues.push({ level: "error", path: f.path, message: `order references missing section key: ${key}` }); continue; }
       if (sec.type && !byPath.has(`sections/${sec.type}.liquid`)) {
-        issues.push({ level: "error", path: f.path, message: `template references missing section file: sections/${sec.type}.liquid` });
+        issues.push({ level: "error", path: f.path, message: `references missing section file: sections/${sec.type}.liquid` });
+      }
+      // Block types must exist in the section's schema.
+      if (sec.type && sec.blocks) {
+        const allowed = new Set((schemaBySectionId.get(sec.type)?.blocks ?? []).map((b) => b.type));
+        for (const [bk, block] of Object.entries(sec.blocks)) {
+          if (block.type && !allowed.has(block.type)) {
+            issues.push({ level: "error", path: f.path, message: `section '${key}' block '${bk}' uses unknown block type '${block.type}' for ${sec.type}` });
+          }
+        }
+        for (const bk of sec.block_order ?? []) {
+          if (!sec.blocks[bk]) issues.push({ level: "error", path: f.path, message: `section '${key}' block_order references missing block '${bk}'` });
+        }
       }
     }
     for (const key of Object.keys(tpl.sections ?? {})) {

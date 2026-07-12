@@ -77,5 +77,62 @@ assert.ok(zipA.length > 500, "zip suspiciously small");
 const bad = validateProjectInput({ ...input, pages: [{ template: "index", sections: [{ key: "x", sectionId: "made-up-section" }] }] });
 assert.equal(bad.valid, false, "unknown section id should fail validation");
 
+// 5. User-content sanitization: hostile values are coerced to Shopify-safe
+//    forms so the importer can never silently drop a template again.
+const hostile: ShopifyProjectInput = {
+  ...input,
+  pages: [{
+    template: "index",
+    sections: [
+      {
+        key: "hero", sectionId: "hero-banner",
+        settings: { overlay_opacity: 999, height: "gigantic", subheading: "no p tags here" },
+      },
+      {
+        key: "tm", sectionId: "testimonials",
+        settings: { unknown_key: "drop me" },
+        blocks: [
+          { key: "t1", type: "quote", settings: { quote: "unwrapped quote", author: "A" } },
+          { key: "zz", type: "made-up-block", settings: {} },
+        ],
+      },
+    ],
+  }],
+};
+const hostileFiles = generateShopifyTheme(hostile);
+const idx = JSON.parse(hostileFiles.find((f) => f.path === "templates/index.json")!.contents);
+assert.equal(idx.sections.hero.settings.overlay_opacity, 80, "range clamped to max");
+assert.equal(idx.sections.hero.settings.height, "medium", "invalid select falls back to default");
+assert.equal(idx.sections.hero.settings.subheading, "<p>no p tags here</p>", "richtext value gets <p>-wrapped");
+assert.equal(idx.sections.tm.settings.unknown_key, undefined, "unknown setting keys dropped");
+assert.equal(idx.sections.tm.blocks.t1.settings.quote, "<p>unwrapped quote</p>", "block richtext wrapped");
+assert.equal(idx.sections.tm.blocks.zz, undefined, "unknown block types dropped");
+assert.ok(!idx.sections.tm.block_order.includes("zz"), "unknown block not in block_order");
+const hostileCheck = validateShopifyTheme(hostileFiles);
+assert.equal(hostileCheck.valid, true, `sanitized theme should validate: ${JSON.stringify(hostileCheck.issues.filter((i) => i.level === "error"))}`);
+
+// 6. Validator rejects the known-fatal schema mistakes (the exact classes that
+//    made Shopify silently drop templates/index.json on ZIP upload).
+const badSection = validateShopifyTheme([
+  ...files.filter((f) => f.path !== "sections/hero-banner.liquid"),
+  {
+    path: "sections/hero-banner.liquid",
+    contents: `<div>x</div>\n{% schema %}\n${JSON.stringify({
+      name: "Bad",
+      settings: [
+        { type: "richtext", id: "body", label: "Body", default: "not wrapped" },
+        { type: "range", id: "scale", label: "Scale", min: 0, max: 1, step: 0.05, default: 2 },
+        { type: "select", id: "align", label: "Align", default: "middle", options: [{ value: "left", label: "L" }] },
+      ],
+    })}\n{% endschema %}\n`,
+  },
+]);
+assert.equal(badSection.valid, false, "fatal schema mistakes must fail validation");
+const msgs = badSection.issues.filter((i) => i.level === "error").map((i) => i.message).join(" | ");
+assert.ok(msgs.includes("<p>"), "flags unwrapped richtext default");
+assert.ok(msgs.includes("divisible by 0.1"), "flags invalid range step");
+assert.ok(msgs.includes("outside"), "flags out-of-bounds range default");
+assert.ok(msgs.includes("not one of its options"), "flags invalid select default");
+
 console.log(`OK — ${files.length} theme files, zip ${zipA.length} bytes, deterministic.`);
 console.log("Files:\n" + paths.map((p) => "  " + p).join("\n"));
