@@ -27,9 +27,35 @@ fixed zip timestamps, no DB ids / timestamps in the theme).
 The **only** source of valid section ids. AI page-plans and JSON templates must
 resolve every section here; unknown ids are rejected before generation.
 
-- Structural (always emitted, referenced by `theme.liquid`): `announcement-bar`, `header`, `footer`
-- Content: `hero-banner`, `image-with-text`, `featured-collection`, `collection-list`,
-  `featured-product`, `rich-text`, `usp-bar`, `testimonials`, `newsletter`, `faq`
+- Structural (emitted + referenced by the header/footer **section groups**): `announcement-bar`, `header`, `footer`
+- Content (addable): `hero-banner`, `image-banner`, `slideshow`, `image-with-text`, `multirow`,
+  `featured-collection`, `collection-list`, `featured-product`, `product-recommendations`,
+  `multicolumn`, `usp-bar`, `rich-text`, `testimonials`, `logo-list`, `countdown`, `blog-posts`,
+  `contact-form`, `newsletter`, `faq`
+- Storefront "main" sections (auto-injected into required templates, not addable): `main-product`,
+  `main-collection`, `main-list-collections`, `main-cart`, `main-search`, `main-blog`,
+  `main-article`, `main-page`, `main-404`
+
+## Dawn-grade foundation
+
+- **Colour schemes** (`color_scheme_group` in settings, `color_schemes` in `settings_data`); each
+  section picks a scheme via a `color_scheme` setting → `.color-{id}` CSS class.
+- Typography scale, buttons/cards styles, layout, and a reveal-on-scroll toggle
+  (`assets/theme.js` IntersectionObserver). Header/footer live in **section groups**.
+- Snippets: `image` (srcset), `button`, `meta-tags` (SEO + JSON-LD), `product-card`, `price`.
+
+## Complete store on export
+
+`generateShopifyTheme` ALWAYS emits the required template set — `index`, `product`, `collection`,
+`list-collections`, `cart`, `search`, `blog`, `article`, `page`, `404` — with each template's main
+section injected, so the export is a real installable store. User page customizations merge on top.
+`resolveTemplatePages(input)` exposes the merged set.
+
+## Live preview
+
+`src/components/shopify/storefront-preview.tsx` renders every template (home/product/collection/
+cart/search/blog) from mock data with the active colour scheme, type scale, and reveal animations
+applied — editor-only, never exported.
 
 Each section carries real Liquid + a valid `{% schema %}` (settings, blocks,
 presets), default settings, responsive scoped CSS, accessibility, theme-token

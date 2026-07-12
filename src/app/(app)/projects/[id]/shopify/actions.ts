@@ -55,6 +55,11 @@ const brandSchema = z.object({
   bodyFont: z.string().trim().min(1).max(120),
   borderRadius: z.string().trim().max(8),
   spacingScale: z.string().trim().max(6),
+  headingScale: z.coerce.number().min(1).max(1.4).optional(),
+  bodyScale: z.coerce.number().min(0.9).max(1.2).optional(),
+  buttonStyle: z.enum(["solid", "outline"]).optional(),
+  cardStyle: z.enum(["elevated", "flat", "bordered"]).optional(),
+  animate: z.enum(["true", "false"]).optional(),
 });
 
 export type BrandActionState = { ok?: boolean; error?: string };
@@ -68,8 +73,10 @@ export async function saveBrandAction(
   const parsed = brandSchema.safeParse(Object.fromEntries(formData));
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? "Invalid input" };
   const d = parsed.data;
+  const existing = await getOrCreateShopifyProject(projectId, "");
   const brand: BrandTokens = {
     ...DEFAULT_BRAND_TOKENS,
+    ...existing.brand, // preserve colorSchemes etc.
     primaryColor: d.primaryColor,
     secondaryColor: d.secondaryColor,
     backgroundColor: d.backgroundColor,
@@ -78,6 +85,11 @@ export async function saveBrandAction(
     bodyFont: d.bodyFont,
     borderRadius: d.borderRadius,
     spacingScale: d.spacingScale,
+    headingScale: d.headingScale ?? DEFAULT_BRAND_TOKENS.headingScale,
+    bodyScale: d.bodyScale ?? DEFAULT_BRAND_TOKENS.bodyScale,
+    buttonStyle: d.buttonStyle ?? DEFAULT_BRAND_TOKENS.buttonStyle,
+    cardStyle: d.cardStyle ?? DEFAULT_BRAND_TOKENS.cardStyle,
+    animate: d.animate ? d.animate === "true" : DEFAULT_BRAND_TOKENS.animate,
   };
   await updateShopifyBrand(projectId, d.storeName, d.themeName || d.storeName, d.industry, brand);
   revalidatePath(`/projects/${projectId}/shopify`);

@@ -149,7 +149,14 @@ function BrandTab({ projectId, storeName, themeName, industry, brand, onSaved }:
     const res = await saveBrandAction(projectId, {}, fd);
     setPending(false);
     setState(res);
-    if (res.ok) onSaved(form.storeName, { primaryColor: form.primaryColor, secondaryColor: form.secondaryColor, backgroundColor: form.backgroundColor, textColor: form.textColor, headingFont: form.headingFont, bodyFont: form.bodyFont, borderRadius: form.borderRadius, spacingScale: form.spacingScale });
+    if (res.ok) onSaved(form.storeName, {
+      ...brand,
+      primaryColor: form.primaryColor, secondaryColor: form.secondaryColor, backgroundColor: form.backgroundColor, textColor: form.textColor,
+      headingFont: form.headingFont, bodyFont: form.bodyFont, borderRadius: form.borderRadius, spacingScale: form.spacingScale,
+      headingScale: Number(form.headingScale ?? 1.1), bodyScale: Number(form.bodyScale ?? 1),
+      buttonStyle: (form.buttonStyle as BrandTokens["buttonStyle"]) ?? "solid", cardStyle: (form.cardStyle as BrandTokens["cardStyle"]) ?? "bordered",
+      animate: form.animate !== false && String(form.animate) !== "false",
+    });
   };
 
   return (
@@ -171,6 +178,18 @@ function BrandTab({ projectId, storeName, themeName, industry, brand, onSaved }:
         <Field label="Corner radius"><input value={form.borderRadius} onChange={(e) => set("borderRadius", e.target.value)} placeholder="10px" className={inputCls} /></Field>
         <Field label="Spacing scale"><input value={form.spacingScale} onChange={(e) => set("spacingScale", e.target.value)} placeholder="1" className={inputCls} /></Field>
       </div>
+
+      <div className="border-t border-line pt-5">
+        <div className="mb-3 text-[12px] font-semibold uppercase tracking-wide text-muted">Style</div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label={`Heading scale: ${Number(form.headingScale ?? 1.1).toFixed(2)}`}><input type="range" min={1} max={1.4} step={0.05} value={Number(form.headingScale ?? 1.1)} onChange={(e) => set("headingScale", e.target.value)} className="w-full" /></Field>
+          <Field label={`Body scale: ${Number(form.bodyScale ?? 1).toFixed(2)}`}><input type="range" min={0.9} max={1.2} step={0.05} value={Number(form.bodyScale ?? 1)} onChange={(e) => set("bodyScale", e.target.value)} className="w-full" /></Field>
+          <Field label="Button style"><select value={String(form.buttonStyle ?? "solid")} onChange={(e) => set("buttonStyle", e.target.value)} className={inputCls}><option value="solid">Solid</option><option value="outline">Outline</option></select></Field>
+          <Field label="Card style"><select value={String(form.cardStyle ?? "bordered")} onChange={(e) => set("cardStyle", e.target.value)} className={inputCls}><option value="bordered">Bordered</option><option value="elevated">Elevated</option><option value="flat">Flat</option></select></Field>
+        </div>
+        <label className="mt-3 flex items-center gap-2 text-[13px] text-body"><input type="checkbox" checked={form.animate !== false && String(form.animate) !== "false"} onChange={(e) => set("animate", e.target.checked ? "true" : "false")} />Reveal sections on scroll</label>
+      </div>
+
       {state.error && <p className="rounded-md bg-danger-soft px-3 py-2 text-[12.5px] text-danger">{state.error}</p>}
       {state.ok && <p className="rounded-md bg-success-soft px-3 py-2 text-[12.5px] text-success">Brand saved.</p>}
       <div className="flex items-center gap-3">
