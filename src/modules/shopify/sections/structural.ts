@@ -42,9 +42,12 @@ export const headerSection: ShopifySectionDefinition = {
       {% endif %}
     </a>
     <nav class="site-header__nav" aria-label="Primary">
-      {% for link in linklists[section.settings.menu].links %}
-        <a href="{{ link.url }}">{{ link.title | escape }}</a>
-      {% endfor %}
+      {% assign menu = linklists[section.settings.menu] %}
+      {% if menu.links.size > 0 %}
+        {% for link in menu.links %}<a href="{{ link.url }}">{{ link.title | escape }}</a>{% endfor %}
+      {% else %}
+        <a href="{{ routes.all_products_collection_url }}">Shop</a>
+      {% endif %}
     </nav>
     <a class="site-header__cart" href="{{ routes.cart_url }}">Cart ({{ cart.item_count }})</a>
   </div>

@@ -58,13 +58,15 @@ export const featuredCollectionSection: ShopifySectionDefinition = {
       {% if section.settings.eyebrow != blank %}<p class="fc__eyebrow">{{ section.settings.eyebrow | escape }}</p>{% endif %}
       {% if section.settings.heading != blank %}<h2>{{ section.settings.heading | escape }}</h2>{% endif %}
     </div>
-    {% if section.settings.show_view_all and section.settings.collection != blank %}
-      <a class="fc__all" href="{{ collections[section.settings.collection].url }}">{{ section.settings.view_all_label | default: 'View all' }}</a>
+    {% assign coll = collections[section.settings.collection] %}
+    {% unless coll.products_count > 0 %}{% assign coll = collections.all %}{% endunless %}
+    {% if section.settings.show_view_all %}
+      <a class="fc__all" href="{{ coll.url | default: routes.all_products_collection_url }}">{{ section.settings.view_all_label | default: 'View all' }}</a>
     {% endif %}
   </div>
   <div class="grid grid--{{ section.settings.columns }}">
-    {% assign coll = collections[section.settings.collection] %}
-    {% if coll != blank and coll.products_count > 0 %}
+    {% comment %} Falls back to the automatic all-products collection so a new store shows products immediately. {% endcomment %}
+    {% if coll.products_count > 0 %}
       {% for product in coll.products limit: section.settings.products_to_show %}
         {% render 'product-card', product: product %}
       {% endfor %}
