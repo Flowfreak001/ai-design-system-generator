@@ -151,8 +151,8 @@ export function themeSettingsSchema(): unknown[] {
       settings: [
         { type: "text", id: "heading_font_stack", label: "Heading font stack", default: DEFAULT_BRAND_TOKENS.headingFont },
         { type: "text", id: "body_font_stack", label: "Body font stack", default: DEFAULT_BRAND_TOKENS.bodyFont },
-        { type: "range", id: "heading_scale", min: 1, max: 1.4, step: 0.05, label: "Heading scale", default: 1.1 },
-        { type: "range", id: "body_scale", min: 0.9, max: 1.2, step: 0.05, label: "Body scale", default: 1 },
+        { type: "range", id: "heading_scale", min: 1, max: 1.4, step: 0.1, label: "Heading scale", default: 1.1 },
+        { type: "range", id: "body_scale", min: 0.9, max: 1.2, step: 0.1, label: "Body scale", default: 1 },
       ],
     },
     {

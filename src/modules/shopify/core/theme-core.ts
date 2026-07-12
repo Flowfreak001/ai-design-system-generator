@@ -31,7 +31,7 @@ const THEME_LIQUID = `<!doctype html>
       {{ content_for_layout }}
     </main>
     {% sections 'footer-group' %}
-    {{ 'theme.js' | asset_url | script_tag }}
+    <script src="{{ 'theme.js' | asset_url }}" defer="defer"></script>
   </body>
 </html>`;
 
