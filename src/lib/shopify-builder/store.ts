@@ -5,10 +5,29 @@
 import { prisma } from "@/lib/db/client";
 import {
   DEFAULT_BRAND_TOKENS,
+  getSection,
   type BrandTokens,
   type ShopifyPage,
   type ShopifyProjectInput,
 } from "@/modules/shopify";
+
+/** Drop section instances that reference a section id no longer in the registry
+ *  (e.g. a retired section), and drop blocks whose type the section no longer
+ *  declares. Keeps saved projects exportable after the library changes. */
+function prunePages(pages: ShopifyPage[]): ShopifyPage[] {
+  return pages.map((page) => ({
+    ...page,
+    sections: page.sections.filter((inst) => {
+      const def = getSection(inst.sectionId);
+      if (!def) return false;
+      if (inst.blocks && def.schema.blocks) {
+        const allowed = new Set(def.schema.blocks.map((b) => b.type));
+        inst.blocks = inst.blocks.filter((b) => allowed.has(b.type));
+      }
+      return true;
+    }),
+  }));
+}
 
 /** Starter homepage + core templates so a new store is immediately previewable. */
 export function defaultPages(): ShopifyPage[] {
@@ -54,7 +73,7 @@ function toState(row: {
     themeName: row.themeName,
     industry: row.industry,
     brand: { ...DEFAULT_BRAND_TOKENS, ...(row.brand as Partial<BrandTokens>) },
-    pages: (row.pages as ShopifyPage[]) ?? [],
+    pages: prunePages((row.pages as ShopifyPage[]) ?? []),
   };
 }
 
