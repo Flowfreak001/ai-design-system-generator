@@ -42,7 +42,7 @@ export function NewProjectButton({
           >
             <button aria-label="Close" className="fixed inset-0 bg-ink/40 backdrop-blur-[2px]" onClick={() => setOpen(false)} />
             <motion.div
-              className="relative z-10 my-auto w-full max-w-3xl rounded-[8px] border border-line bg-white p-6 shadow-2xl sm:p-8"
+              className="relative z-10 my-auto w-full max-w-5xl rounded-[8px] border border-line bg-white p-6 shadow-2xl sm:p-8"
               initial={{ opacity: 0, y: 12, scale: 0.98 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 8, scale: 0.98 }}
@@ -50,8 +50,8 @@ export function NewProjectButton({
             >
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <h2 className="text-[21px] font-semibold tracking-[-0.02em] text-ink">Start something new</h2>
-                  <p className="mt-1 text-[13.5px] text-body">Build a live Wix Headless site from a template, or plan a design project.</p>
+                  <h2 className="text-[23px] font-semibold tracking-[-0.02em] text-ink">Start something new</h2>
+                  <p className="mt-1 text-[15.5px] text-body">Build a live Wix Headless site from a template, or plan a design project.</p>
                 </div>
                 <button
                   type="button"

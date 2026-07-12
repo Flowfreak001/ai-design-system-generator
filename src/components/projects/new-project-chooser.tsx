@@ -52,7 +52,7 @@ export function NewProjectChooser({ clients }: { clients: { id: string; name: st
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.22, ease: EASE }}
-          className="grid gap-4 sm:grid-cols-3"
+          className="grid gap-5 sm:grid-cols-3"
         >
           {CHOICES.map((c, i) => (
             <ChoiceCard key={c.id} {...c} index={i} onClick={() => setMode(c.id)} />
@@ -93,21 +93,21 @@ function ChoiceCard({ icon, tint, title, body, tags, index, onClick }: {
       transition={{ duration: 0.28, ease: EASE, delay: index * 0.05 }}
       whileHover={{ y: -3 }}
       whileTap={{ scale: 0.99 }}
-      className="group flex h-full flex-col rounded-xl border border-line bg-white p-4 text-left transition-colors hover:border-accent/40 hover:shadow-[0_6px_20px_-6px_rgba(17,24,39,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+      className="group flex h-full min-h-[248px] flex-col rounded-xl border border-line bg-white p-6 text-left transition-colors hover:border-accent/40 hover:shadow-[0_6px_20px_-6px_rgba(17,24,39,0.12)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
     >
-      <span className={`inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${TINT[tint] ?? TINT.slate}`}>
-        <Icon name={icon} className="h-5 w-5" />
+      <span className={`inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-lg ${TINT[tint] ?? TINT.slate}`}>
+        <Icon name={icon} className="h-6 w-6" />
       </span>
-      <span className="mt-3 text-[15px] font-semibold text-ink">{title}</span>
-      <p className="mt-1 text-[12.5px] leading-snug text-muted">{body}</p>
-      <div className="mt-2.5 flex flex-wrap gap-1.5">
+      <span className="mt-4 text-[17px] font-semibold text-ink">{title}</span>
+      <p className="mt-1.5 text-[14.5px] leading-snug text-muted">{body}</p>
+      <div className="mt-3 flex flex-wrap gap-1.5">
         {tags.map((t) => (
-          <span key={t} className="rounded-md bg-panel px-1.5 py-0.5 text-[10.5px] font-medium text-body">{t}</span>
+          <span key={t} className="rounded-md bg-panel px-2 py-1 text-[12.5px] font-medium text-body">{t}</span>
         ))}
       </div>
-      <span className="mt-4 inline-flex items-center gap-1 text-[12.5px] font-semibold text-muted transition-colors group-hover:text-accent">
+      <span className="mt-auto pt-5 inline-flex items-center gap-1 text-[14.5px] font-semibold text-muted transition-colors group-hover:text-accent">
         Continue
-        <Icon name="arrow" className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+        <Icon name="arrow" className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
       </span>
     </motion.button>
   );
