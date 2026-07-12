@@ -99,17 +99,17 @@ export const mainProductSection = s(
   #shopify-section-{{ section.id }} .mp__stage{order:1;background:#f4f4f5;border-radius:calc(var(--radius) * 1.4);overflow:hidden;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center}
   #shopify-section-{{ section.id }} .mp__stage img{width:100%;height:100%;object-fit:contain;padding:6%}
   #shopify-section-{{ section.id }} .mp__thumbs{order:2;display:flex;gap:10px;flex-wrap:wrap}
-  @media(min-width:1024px){
+  /* Variant differences that apply at EVERY width (so the choice is always visible). */
+  #shopify-section-{{ section.id }} .mp--v-grid .mp__thumbs{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  #shopify-section-{{ section.id }} .mp--v-grid .mp__thumb{width:auto;height:auto;aspect-ratio:1/1}
+  #shopify-section-{{ section.id }} .mp--v-spotlight .mp__thumbs{justify-content:center}
+  #shopify-section-{{ section.id }} .mp--v-spotlight .mp__stage{border-radius:0}
+  @media(min-width:800px){
     #shopify-section-{{ section.id }} .mp--v-rail .mp__media{display:grid;grid-template-columns:82px 1fr}
     #shopify-section-{{ section.id }} .mp--v-rail .mp__stage{grid-column:2;grid-row:1}
     #shopify-section-{{ section.id }} .mp--v-rail .mp__thumbs{grid-column:1;grid-row:1;flex-direction:column;flex-wrap:nowrap}
-    /* Grid variant: editorial 2-col image collage (big image spans, thumbs row below). */
-    #shopify-section-{{ section.id }} .mp--v-grid .mp__media{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    #shopify-section-{{ section.id }} .mp--v-grid .mp__stage{grid-column:1 / -1;aspect-ratio:16/10}
-    #shopify-section-{{ section.id }} .mp--v-grid .mp__thumbs{grid-column:1 / -1;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-    #shopify-section-{{ section.id }} .mp--v-grid .mp__thumb{width:auto;height:auto;aspect-ratio:3/4}
-    /* Spotlight variant: one large image, centered thumbnails below. */
-    #shopify-section-{{ section.id }} .mp--v-spotlight .mp__thumbs{justify-content:center}
+    /* Grid variant: editorial big image spanning + 3-up thumb collage below. */
+    #shopify-section-{{ section.id }} .mp--v-grid .mp__stage{aspect-ratio:16/10}
   }
   #shopify-section-{{ section.id }} .mp__thumb{padding:0;border:1px solid var(--color-border);border-radius:var(--radius);overflow:hidden;width:74px;height:74px;flex:0 0 auto;background:#f4f4f5;cursor:pointer;transition:border-color .15s}
   #shopify-section-{{ section.id }} .mp__thumb.is-active{border-color:var(--color-primary);border-width:2px}
