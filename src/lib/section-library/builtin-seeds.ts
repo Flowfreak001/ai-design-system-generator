@@ -20,10 +20,12 @@ const SEED_VERSION = "v110";
 
 /** Seed the built-in sections into an agency's catalog once (idempotent).
  *
- * Never overrides user work. A built-in the user has edited becomes "adopted"
- * (its row gets a non-null createdBy, see upsertCatalogSection) — the seeder
- * then leaves it alone AND does not re-add a pristine default for that base.
- * Brand-new user sections (non-seed ids) are likewise never touched. */
+ * STRICT no-override guarantee: the seeder NEVER deletes or overwrites anything
+ * the user edited or created. It deletes only rows it can positively prove are
+ * untouched auto-seeds (see `isPristine` below — createdBy null AND version 1 AND
+ * no `categories` config key AND unchanged updatedAt). Any customized row is kept
+ * and its base is skipped, so there is no revert and no duplicate. Brand-new user
+ * sections (non-`seed-` ids) are never even considered. */
 export async function seedBuiltinsForAgency(agencyId: string): Promise<void> {
   const first = SECTIONS[0];
   if (!first) return;
@@ -35,26 +37,54 @@ export async function seedBuiltinsForAgency(agencyId: string): Promise<void> {
   const marker = `${curPrefix}__seed_marker__`;
   if (await prisma.librarySection.findUnique({ where: { id: marker } })) return;
 
-  // Bases the user has customized: an edited built-in (adopted → createdBy set)
-  // for THIS agency. These must survive re-seeding untouched, and we must not
-  // recreate their default. Derive the base id back out of the seed id.
-  const adoptedRows = await prisma.librarySection.findMany({
-    where: { agencyId, id: { startsWith: prefix }, NOT: { createdBy: null } },
-    select: { id: true },
+  const baseOf = (id: string) => id.slice(prefix.length).replace(/^v\d+-/, "");
+
+  // STRICT no-override rule. We inspect EVERY seed-namespaced row for this agency
+  // and classify each as "pristine" (an untouched auto-seed we may replace) or
+  // "customized" (the user edited or adopted it — must never be deleted).
+  //
+  // A row is pristine ONLY if ALL hold:
+  //   - createdBy is null            (never adopted; forward edits set the owner)
+  //   - version === 1               (a code edit bumps version)
+  //   - config has NO "categories" key  (upsertCatalogSection ALWAYS writes a
+  //       `categories` key on any save — name-only edits included — whereas the
+  //       seeder writes only `{ description }`; so its presence deterministically
+  //       marks an edited row, even a LEGACY edit made before adoption existed)
+  //   - updatedAt ~= createdAt       (belt-and-suspenders: any edit moves updatedAt)
+  // Anything failing ANY guard is treated as customized: never deleted, never
+  // overwritten with a fresh default.
+  const seedRows = await prisma.librarySection.findMany({
+    where: { agencyId, id: { startsWith: prefix } },
+    select: { id: true, createdBy: true, version: true, config: true, createdAt: true, updatedAt: true },
   });
-  const adoptedBases = new Set(
-    adoptedRows.map((r) => r.id.slice(prefix.length).replace(/^v\d+-/, "")),
+  const isPristine = (r: { createdBy: string | null; version: number; config: unknown; createdAt: Date; updatedAt: Date }) => {
+    const cfg = (r.config ?? {}) as Record<string, unknown>;
+    const untouchedConfig = !Object.prototype.hasOwnProperty.call(cfg, "categories");
+    return (
+      r.createdBy === null &&
+      r.version === 1 &&
+      untouchedConfig &&
+      r.updatedAt.getTime() - r.createdAt.getTime() < 2000
+    );
+  };
+
+  // Bases the user has customized (edited or adopted) — keep theirs, never re-add
+  // a default. Exclude the hidden version sentinel from this set.
+  const customizedBases = new Set(
+    seedRows.filter((r) => !isPristine(r) && !r.id.endsWith("__seed_marker__")).map((r) => baseOf(r.id)),
   );
 
-  // Remove ONLY previous-version auto-seed rows the user hasn't touched
-  // (createdBy null). Adopted/edited rows (createdBy set) and user-authored
-  // sections (non-seed ids) are never deleted. Old sentinels are cleaned here too.
-  await prisma.librarySection.deleteMany({
-    where: { agencyId, createdBy: null, id: { startsWith: prefix }, NOT: { id: { startsWith: curPrefix } } },
-  });
+  // Delete ONLY pristine previous-version rows (and stale sentinels). Never a
+  // customized row. Explicit id list — no broad createdBy-null sweep.
+  const toDelete = seedRows
+    .filter((r) => isPristine(r) && !r.id.startsWith(curPrefix))
+    .map((r) => r.id);
+  if (toDelete.length) {
+    await prisma.librarySection.deleteMany({ where: { id: { in: toDelete } } });
+  }
 
   for (const b of SECTIONS) {
-    if (adoptedBases.has(b.id)) continue; // user owns a customized copy — keep theirs
+    if (customizedBases.has(b.id)) continue; // user owns a customized copy — keep theirs
     const id = `${curPrefix}${b.id}`;
     if (await prisma.librarySection.findUnique({ where: { id } })) continue;
     await prisma.librarySection.create({
