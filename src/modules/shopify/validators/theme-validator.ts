@@ -11,7 +11,20 @@ const REQUIRED_FILES = [
   "sections/header.liquid",
   "sections/footer.liquid",
   "sections/announcement-bar.liquid",
+  "sections/header-group.json",
+  "sections/footer-group.json",
   "locales/en.default.json",
+];
+
+// A complete, installable store needs these templates.
+const REQUIRED_TEMPLATES = [
+  "templates/index.json",
+  "templates/product.json",
+  "templates/collection.json",
+  "templates/cart.json",
+  "templates/search.json",
+  "templates/page.json",
+  "templates/404.json",
 ];
 
 /** Structural checks on the generated files (self-consistency). */
@@ -22,6 +35,11 @@ export function validateShopifyTheme(files: GeneratedThemeFile[]): ThemeValidati
   // Required files present.
   for (const req of REQUIRED_FILES) {
     if (!byPath.has(req)) issues.push({ level: "error", path: req, message: `Missing required file: ${req}` });
+  }
+
+  // Required storefront templates present (a complete, installable store).
+  for (const req of REQUIRED_TEMPLATES) {
+    if (!byPath.has(req)) issues.push({ level: "error", path: req, message: `Missing required template: ${req}` });
   }
 
   // Unique filenames.

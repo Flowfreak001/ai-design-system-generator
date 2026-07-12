@@ -2,8 +2,47 @@
 // directory (GeneratedThemeFile[]). Same input ALWAYS yields the same output
 // (stable key order, no timestamps, no DB ids in output).
 
-import type { GeneratedThemeFile, ShopifyPage, ShopifyProjectInput, ShopifySectionInstance } from "../types";
+import type { GeneratedThemeFile, ShopifyPage, ShopifyProjectInput, ShopifySectionInstance, ShopifyTemplateType } from "../types";
 import { ALL_SECTIONS, STRUCTURAL_SECTIONS, getSection } from "../sections";
+
+/** The template set every exported theme MUST include for a complete store, and
+ *  the "main" section injected into each. index/page carry only user content. */
+const TEMPLATE_MAIN: Partial<Record<ShopifyTemplateType, string>> = {
+  product: "main-product",
+  collection: "main-collection",
+  "list-collections": "main-list-collections",
+  cart: "main-cart",
+  search: "main-search",
+  blog: "main-blog",
+  article: "main-article",
+  page: "main-page",
+};
+const REQUIRED_TEMPLATES: ShopifyTemplateType[] = [
+  "index", "product", "collection", "list-collections", "cart", "search", "blog", "article", "page",
+];
+
+/** Merge the user's pages with the required template set, injecting each
+ *  template's main section so the export is a complete, installable store. */
+export function resolveTemplatePages(input: ShopifyProjectInput): ShopifyPage[] {
+  const byKey = new Map<string, ShopifyPage>();
+  for (const p of input.pages) byKey.set(`${p.template}|${p.handle ?? ""}`, p);
+
+  const pages: ShopifyPage[] = [];
+  for (const template of REQUIRED_TEMPLATES) {
+    const existing = byKey.get(`${template}|`);
+    const sections: ShopifySectionInstance[] = existing ? [...existing.sections] : [];
+    const mainId = TEMPLATE_MAIN[template];
+    if (mainId && !sections.some((sec) => sec.sectionId === mainId)) {
+      sections.unshift({ key: "main", sectionId: mainId });
+    }
+    pages.push({ template, sections });
+  }
+  // Extra custom page templates (page.<handle>) the user added.
+  for (const p of input.pages) {
+    if (p.handle) pages.push(p);
+  }
+  return pages;
+}
 import { themeCoreFiles } from "../core/theme-core";
 import { brandToSettingsData, themeSettingsSchema } from "../core/design-tokens";
 
@@ -64,19 +103,23 @@ export function generateShopifyTheme(input: ShopifyProjectInput): GeneratedTheme
   // 1. Core skeleton (layout, assets, snippets, locales, 404).
   files.push(...themeCoreFiles());
 
-  // 2. Structural sections (always present, referenced by theme.liquid).
+  // 2. Structural sections (always present, referenced by the header/footer groups).
   for (const def of STRUCTURAL_SECTIONS) files.push(generateLiquidSection(def));
 
-  // 3. Content section files — only the ones actually used across pages.
+  // 3. Resolve the full template set (required storefront templates + user pages,
+  //    with each template's main section injected) so the export is a complete store.
+  const pages = resolveTemplatePages(input);
+
+  // 4. Content + main section files — only the ones actually used across templates.
   const usedIds = new Set<string>();
-  for (const page of input.pages) for (const inst of page.sections) usedIds.add(inst.sectionId);
+  for (const page of pages) for (const inst of page.sections) usedIds.add(inst.sectionId);
   for (const id of usedIds) {
     const def = getSection(id);
     if (def && !STRUCTURAL_SECTIONS.includes(def)) files.push(generateLiquidSection(def));
   }
 
-  // 4. JSON templates per page.
-  for (const page of input.pages) files.push(generateJsonTemplate(page));
+  // 5. JSON templates per page.
+  for (const page of pages) files.push(generateJsonTemplate(page));
 
   // 5. Theme settings from brand tokens.
   files.push(...generateThemeSettings(input));

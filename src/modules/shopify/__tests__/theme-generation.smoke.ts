@@ -52,6 +52,20 @@ for (const p of ["layout/theme.liquid", "templates/index.json", "sections/hero-b
   assert.ok(paths.includes(p), `missing ${p}`);
 }
 
+// Full storefront: required templates + their main sections present (even though
+// the input only customized the homepage).
+for (const p of [
+  "templates/product.json", "templates/collection.json", "templates/cart.json", "templates/search.json",
+  "templates/blog.json", "templates/article.json", "templates/list-collections.json", "templates/page.json",
+  "sections/main-product.liquid", "sections/main-collection.liquid", "sections/main-cart.liquid",
+  "sections/header-group.json", "sections/footer-group.json",
+]) {
+  assert.ok(paths.includes(p), `missing storefront file ${p}`);
+}
+// settings_data carries colour schemes.
+const settingsData = JSON.parse(files.find((f) => f.path === "config/settings_data.json")!.contents);
+assert.ok(settingsData.current.color_schemes && settingsData.current.color_schemes["scheme-1"], "color schemes missing");
+
 // 3. Determinism: same input -> identical zip bytes.
 const zipA = createThemeZip(files);
 const zipB = createThemeZip(generateShopifyTheme(input));

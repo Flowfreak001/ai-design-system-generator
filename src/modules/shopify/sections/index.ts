@@ -9,6 +9,7 @@ import {
   collectionListSection, featuredProductSection,
 } from "./content-extra";
 import { announcementBarSection, headerSection, footerSection } from "./structural";
+import { STOREFRONT_SECTIONS } from "./storefront";
 
 /** Sections always included in a generated theme (referenced by theme.liquid). */
 export const STRUCTURAL_SECTIONS: ShopifySectionDefinition[] = [announcementBarSection, headerSection, footerSection];
@@ -20,7 +21,10 @@ export const CONTENT_SECTIONS: ShopifySectionDefinition[] = [
   newsletterSection, faqSection,
 ];
 
-export const ALL_SECTIONS: ShopifySectionDefinition[] = [...STRUCTURAL_SECTIONS, ...CONTENT_SECTIONS];
+/** "main" sections injected into required storefront templates (not user-addable). */
+export { STOREFRONT_SECTIONS } from "./storefront";
+
+export const ALL_SECTIONS: ShopifySectionDefinition[] = [...STRUCTURAL_SECTIONS, ...CONTENT_SECTIONS, ...STOREFRONT_SECTIONS];
 
 const BY_ID = new Map(ALL_SECTIONS.map((s) => [s.id, s]));
 

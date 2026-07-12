@@ -2,7 +2,20 @@
 // library: the OUTPUT here is Shopify-native (Liquid + JSON templates + theme
 // settings), not React sections. See src/modules/shopify/README.md.
 
-/** Brand design tokens shared from Flowfreak, mapped to Shopify theme settings. */
+/** A reusable colour scheme (Dawn model) — a section picks one by id. */
+export interface ColorScheme {
+  id: string; // "scheme-1"
+  background: string;
+  text: string;
+  button: string; // primary button background / brand
+  buttonText: string;
+  secondary: string; // accent
+  border: string;
+}
+
+/** Brand design tokens shared from Flowfreak, mapped to Shopify theme settings.
+ *  The first 8 fields are the stable core (back-compat); the rest are optional
+ *  Dawn-grade controls with sensible fallbacks. */
 export interface BrandTokens {
   primaryColor: string;
   secondaryColor: string;
@@ -12,9 +25,19 @@ export interface BrandTokens {
   bodyFont: string;
   borderRadius: string; // e.g. "8px"
   spacingScale: string; // e.g. "1" | "1.2" (multiplier)
+
+  // Optional Dawn-grade controls (defaults applied in design-tokens.ts).
+  colorSchemes?: ColorScheme[]; // when omitted, 3 schemes are derived from the core colours
+  headingScale?: number; // 1.0–1.4 — heading size multiplier
+  bodyScale?: number; // 0.9–1.2 — body size multiplier
+  buttonStyle?: "solid" | "outline";
+  cardStyle?: "elevated" | "flat" | "bordered";
+  animate?: boolean; // reveal-on-scroll animations
 }
 
-export type ShopifyTemplateType = "index" | "product" | "collection" | "page" | "cart" | "404";
+export type ShopifyTemplateType =
+  | "index" | "product" | "collection" | "list-collections"
+  | "page" | "cart" | "search" | "blog" | "article" | "404";
 
 /** A single field in a section's {% schema %} settings. */
 export interface ShopifySettingField {
