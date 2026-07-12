@@ -15,7 +15,7 @@ import { SECTION_LIBRARY_CATEGORIES, sectionCategories } from "@/lib/section-lib
 import { DEFAULT_SECTION_THEME } from "@/components/sections/section-theme";
 import { SectionErrorBoundary, renderLibrarySection as renderSection } from "@/components/section-library/section-render";
 import { ExportModal } from "@/components/section-library/export-modal";
-import { deleteLibrarySectionAction } from "@/app/(app)/library/actions";
+import { deleteLibrarySectionAction, renameLibrarySectionAction } from "@/app/(app)/library/actions";
 import { toggleSavedSectionAction } from "@/lib/saved-sections/actions";
 import { builtinSectionKey } from "@/lib/saved-sections/key";
 
@@ -34,11 +34,19 @@ function CardThumb({ section, theme }: { section: LibrarySection; theme: Section
     if (vpRef.current) ro.observe(vpRef.current);
     return () => ro.disconnect();
   }, []);
+  // Fixed "screen" exactly the card-box aspect (screenH * scale === BOX) with a
+  // scroll container that dynamic full-height sections (heroes measuring their
+  // available height) detect + fill — instead of collapsing to a tiny fallback.
+  // Short/natural sections show their top, clipped to the box (a normal crop).
+  const BOX = 212;
+  const screenH = Math.round(BOX / (scale || 0.236));
   return (
     <div className="pointer-events-none overflow-hidden rounded-2xl bg-line/60 p-4">
       <div ref={vpRef} className="relative h-[212px] w-full overflow-hidden rounded-xl border border-line bg-white">
-        <div className="absolute left-0 top-0 origin-top-left" style={{ width: BASE, transform: `scale(${scale})` }}>
-          <SectionErrorBoundary>{renderSection(section, theme, false)}</SectionErrorBoundary>
+        <div className="absolute left-0 top-0 origin-top-left" style={{ width: BASE, height: screenH, overflow: "hidden", transform: `scale(${scale})` }}>
+          <div style={{ height: "100%", overflowY: "auto" }}>
+            <SectionErrorBoundary>{renderSection(section, theme, false)}</SectionErrorBoundary>
+          </div>
         </div>
       </div>
     </div>
@@ -128,7 +136,21 @@ export function LibraryCatalogClient({
   const [exportSel, setExportSel] = useState<LibrarySection | null>(null);
   const [saved, setSaved] = useState<Set<string>>(() => new Set(savedIds));
   const [menuId, setMenuId] = useState<string | null>(null);
+  const [renameId, setRenameId] = useState<string | null>(null);
+  const [renameVal, setRenameVal] = useState("");
+  const [renameErr, setRenameErr] = useState<string | null>(null);
   const [, start] = useTransition();
+
+  const beginRename = (s: LibrarySection) => { setMenuId(null); setRenameErr(null); setRenameVal(s.name); setRenameId(s.id); };
+  const commitRename = (s: LibrarySection) => {
+    const name = renameVal.trim();
+    if (!name || name === s.name) { setRenameId(null); return; }
+    start(async () => {
+      const res = await renameLibrarySectionAction(s.id, name);
+      if (res.error) { setRenameErr(res.error); return; }
+      setRenameId(null); router.refresh();
+    });
+  };
 
   const cats = useMemo(
     () => ["all", ...SECTION_LIBRARY_CATEGORIES.filter((c) => sections.some((s) => sectionCategories(s).includes(c)))],
@@ -246,6 +268,10 @@ export function LibraryCatalogClient({
                               <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M8 3H5a2 2 0 0 0-2 2v3m0 8v3a2 2 0 0 0 2 2h3m8-18h3a2 2 0 0 1 2 2v3m0 8v3a2 2 0 0 1-2 2h-3" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" /></svg>
                               Edit design
                             </Link>
+                            <button type="button" onClick={() => beginRename(s)} className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12.5px] text-ink hover:bg-panel">
+                              <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M4 20h4L18.5 9.5a2 2 0 0 0-2.8-2.8L5 17.2V20z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" /></svg>
+                              Rename
+                            </button>
                             <button type="button" onClick={() => del(s)} className="flex w-full items-center gap-2 px-3 py-2 text-left text-[12.5px] text-danger hover:bg-danger-soft">
                               <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M5 7h14M10 7V5h4v2m-6 0 .7 12h6.6L18 7" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" /></svg>
                               Delete
@@ -259,10 +285,43 @@ export function LibraryCatalogClient({
                     <CardThumb section={s} theme={theme} />
                   </div>
                   <div className="flex flex-1 flex-col gap-1 p-4">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[15px] font-semibold text-ink">{s.name}</span>
-                      <span className="rounded-full bg-panel px-2 py-0.5 text-[10.5px] font-medium uppercase tracking-wide text-muted">{s.category}</span>
-                    </div>
+                    {renameId === s.id ? (
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            autoFocus
+                            value={renameVal}
+                            onChange={(e) => { setRenameVal(e.target.value); setRenameErr(null); }}
+                            onKeyDown={(e) => { if (e.key === "Enter") commitRename(s); if (e.key === "Escape") setRenameId(null); }}
+                            onBlur={() => commitRename(s)}
+                            placeholder="Section name"
+                            maxLength={80}
+                            className="min-w-0 flex-1 rounded-lg border border-accent bg-surface px-2 py-1 text-[15px] font-semibold text-ink outline-none"
+                          />
+                          <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => commitRename(s)} aria-label="Save name" className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-accent text-white">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="m5 13 4 4L19 7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                          </button>
+                        </div>
+                        {renameErr && <p className="mt-1 text-[11.5px] text-danger">{renameErr}</p>}
+                      </div>
+                    ) : (
+                      <div className="group/title flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => canManage(s) && beginRename(s)}
+                          title={canManage(s) ? "Rename" : undefined}
+                          className={`truncate text-left text-[15px] font-semibold text-ink ${canManage(s) ? "hover:text-accent" : "cursor-default"}`}
+                        >
+                          {s.name}
+                        </button>
+                        {canManage(s) && (
+                          <button type="button" onClick={() => beginRename(s)} aria-label="Rename section" className="shrink-0 text-muted opacity-0 transition-opacity hover:text-ink group-hover/title:opacity-100">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 20h4L18.5 9.5a2 2 0 0 0-2.8-2.8L5 17.2V20z" stroke="currentColor" strokeWidth="1.6" strokeLinejoin="round" /></svg>
+                          </button>
+                        )}
+                        <span className="ml-auto rounded-full bg-panel px-2 py-0.5 text-[10.5px] font-medium uppercase tracking-wide text-muted">{s.category}</span>
+                      </div>
+                    )}
                     <div className="mt-3 flex items-center gap-2">
                       <Button variant="secondary" onClick={() => setSelected(s)}>
                         <svg className="-ml-0.5" width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" stroke="currentColor" strokeWidth="1.7" /><circle cx="12" cy="12" r="2.5" stroke="currentColor" strokeWidth="1.7" /></svg>

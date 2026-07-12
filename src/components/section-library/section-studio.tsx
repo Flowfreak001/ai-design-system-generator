@@ -150,7 +150,17 @@ export function SectionStudio({
             Library
           </Link>
           <span className="mx-0.5 h-5 w-px bg-line" />
-          <input value={draft.name} onChange={(e) => set("name", e.target.value)} className="w-48 rounded-lg border border-transparent bg-transparent px-2 py-1 text-[13.5px] font-semibold text-ink outline-none hover:border-line focus:border-accent" />
+          <label className="group flex items-center gap-1.5 rounded-lg border border-line bg-panel/60 px-2 py-1 focus-within:border-accent focus-within:bg-surface" title="Section name — click to edit">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" className="shrink-0 text-muted group-focus-within:text-accent"><path d="M4 20h4L18.5 9.5a2 2 0 0 0-2.8-2.8L5 17.2V20z" stroke="currentColor" strokeWidth="1.7" strokeLinejoin="round" /></svg>
+            <input
+              value={draft.name}
+              onChange={(e) => set("name", e.target.value)}
+              onFocus={(e) => { if (draft.name === "Untitled section") e.target.select(); }}
+              placeholder="Section name"
+              maxLength={80}
+              className="w-44 bg-transparent text-[13.5px] font-semibold text-ink outline-none placeholder:font-normal placeholder:text-faint"
+            />
+          </label>
           <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium capitalize ${pill}`}>
             <span className="h-1.5 w-1.5 rounded-full bg-current" />{status.state === "compiling" ? "Compiling" : status.state}
           </span>

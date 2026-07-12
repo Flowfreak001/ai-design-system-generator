@@ -8,7 +8,7 @@ import { revalidatePath } from "next/cache";
 import { requireUser } from "@/lib/auth";
 import { getCatalogSection, upsertCatalogSection, deleteCatalogSection } from "@/lib/section-library/catalog-store";
 import { isAdmin, canEditLibrarySection, canDeleteLibrarySection } from "@/lib/section-library/permissions";
-import type { DynamicSectionDef } from "@/lib/section-library/dynamic-section";
+import { slugify, type DynamicSectionDef } from "@/lib/section-library/dynamic-section";
 
 export async function saveLibrarySectionAction(def: DynamicSectionDef): Promise<{ error?: string; id?: string }> {
   const user = await requireUser();
@@ -27,6 +27,24 @@ export async function saveLibrarySectionAction(def: DynamicSectionDef): Promise<
   }
 
   const saved = await upsertCatalogSection(user.agencyId, user.id, def);
+  revalidatePath("/library");
+  return { id: saved.id };
+}
+
+export async function renameLibrarySectionAction(sectionId: string, name: string): Promise<{ error?: string; id?: string }> {
+  const user = await requireUser();
+  if (!user.agencyId) return { error: "No agency." };
+  const clean = name.trim();
+  if (!clean) return { error: "Name is required." };
+  if (clean.length > 80) return { error: "Name is too long." };
+
+  const existing = await getCatalogSection(sectionId, user.agencyId);
+  if (!existing) return { error: "Section not found." };
+  if (!canEditLibrarySection(user, { sourceType: existing.sourceType, createdByUserId: existing.createdByUserId })) {
+    return { error: "You can only rename sections you created." };
+  }
+  // Route through upsert so a seeded built-in is adopted (never reverted on reseed).
+  const saved = await upsertCatalogSection(user.agencyId, user.id, { ...existing, name: clean, slug: slugify(clean) });
   revalidatePath("/library");
   return { id: saved.id };
 }
