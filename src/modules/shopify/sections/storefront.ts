@@ -93,7 +93,8 @@ export const mainProductSection = s(
 </section>
 <style>
   #shopify-section-{{ section.id }} .mp__grid{display:grid;gap:clamp(28px,4vw,56px)}
-  @media(min-width:900px){#shopify-section-{{ section.id }} .mp__grid{grid-template-columns:1.05fr .95fr;align-items:start}
+  @media(min-width:768px){#shopify-section-{{ section.id }} .mp__grid{grid-template-columns:1fr 1fr;align-items:start}}
+  @media(min-width:1000px){#shopify-section-{{ section.id }} .mp__grid{grid-template-columns:1.05fr .95fr}
     #shopify-section-{{ section.id }} .mp__info{position:sticky;top:24px}}
   #shopify-section-{{ section.id }} .mp__media{display:flex;flex-direction:column;gap:14px}
   #shopify-section-{{ section.id }} .mp__stage{order:1;background:#f4f4f5;border-radius:calc(var(--radius) * 1.4);overflow:hidden;aspect-ratio:1/1;display:flex;align-items:center;justify-content:center}

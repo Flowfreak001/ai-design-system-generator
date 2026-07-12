@@ -800,7 +800,8 @@ export const STORE_CSS = `
 .ff-ccx--overlay .ff-ccx-body{position:relative;z-index:1;text-align:left;padding:20px;background:linear-gradient(to top,rgba(0,0,0,.72),rgba(0,0,0,0));}
 .ff-ccx--overlay .ff-ccx-title{color:#fff;}
 .ff-pdp-grid{display:grid;gap:clamp(24px,4cqw,48px);}
-@container (min-width:820px){.ff-pdp-grid{grid-template-columns:1.05fr .95fr;align-items:start;}}
+@container (min-width:720px){.ff-pdp-grid{grid-template-columns:1fr 1fr;align-items:start;}}
+@container (min-width:1000px){.ff-pdp-grid{grid-template-columns:1.05fr .95fr;}}
 .ff-pdp-gallery{display:flex;flex-direction:column;gap:12px;}
 .ff-pdp-stage{order:1;background:#f4f4f5;border-radius:calc(var(--radius) * 1.4);overflow:hidden;}
 .ff-pdp-thumbs{order:2;display:flex;gap:10px;flex-wrap:wrap;}
