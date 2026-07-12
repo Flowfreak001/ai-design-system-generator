@@ -16,13 +16,9 @@ export default async function NewProjectPage({
 
   return (
     <div className="mx-auto max-w-5xl px-5 py-8 sm:px-8">
-      <h2 className="text-[26px] font-semibold tracking-[-0.02em]">Start something new</h2>
-      <p className="mt-1 text-sm text-muted">
-        Build a live Wix Headless site from a template, or plan a design project.
-      </p>
-      <div className="mt-8">
-        <NewProjectChooser clients={clients.map((c) => ({ id: c.id, name: c.name }))} />
-      </div>
+      {/* The chooser renders its own step heading (choose step only), so no
+          duplicate title here. */}
+      <NewProjectChooser clients={clients.map((c) => ({ id: c.id, name: c.name }))} />
     </div>
   );
 }

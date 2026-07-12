@@ -52,11 +52,16 @@ export function NewProjectChooser({ clients }: { clients: { id: string; name: st
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.22, ease: EASE }}
-          className="grid gap-5 sm:grid-cols-3"
         >
-          {CHOICES.map((c, i) => (
-            <ChoiceCard key={c.id} {...c} index={i} onClick={() => setMode(c.id)} />
-          ))}
+          <div className="pr-10">
+            <h2 className="text-[23px] font-semibold tracking-[-0.02em] text-ink">Start something new</h2>
+            <p className="mt-1 text-[15.5px] text-body">Pick how you want to build — publish a Wix site, export a Shopify theme, or plan a design project.</p>
+          </div>
+          <div className="mt-7 grid gap-5 sm:grid-cols-3">
+            {CHOICES.map((c, i) => (
+              <ChoiceCard key={c.id} {...c} index={i} onClick={() => setMode(c.id)} />
+            ))}
+          </div>
         </motion.div>
       ) : (
         <motion.div

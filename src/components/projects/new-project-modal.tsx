@@ -48,24 +48,16 @@ export function NewProjectButton({
               exit={{ opacity: 0, y: 8, scale: 0.98 }}
               transition={{ duration: 0.24, ease: EASE }}
             >
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <h2 className="text-[23px] font-semibold tracking-[-0.02em] text-ink">Start something new</h2>
-                  <p className="mt-1 text-[15.5px] text-body">Build a live Wix Headless site from a template, or plan a design project.</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setOpen(false)}
-                  aria-label="Close"
-                  className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-panel hover:text-ink"
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M6 6l12 12M18 6 6 18" /></svg>
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                aria-label="Close"
+                className="absolute right-4 top-4 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted transition-colors hover:bg-panel hover:text-ink"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M6 6l12 12M18 6 6 18" /></svg>
+              </button>
 
-              <div className="mt-8">
-                <NewProjectChooser clients={clients} />
-              </div>
+              <NewProjectChooser clients={clients} />
             </motion.div>
           </motion.div>
         )}
