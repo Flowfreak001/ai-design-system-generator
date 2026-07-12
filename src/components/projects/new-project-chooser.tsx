@@ -110,7 +110,7 @@ function ChoiceCard({ icon, tint, title, body, tags, index, onClick }: {
           <span key={t} className="rounded-md bg-panel px-2 py-1 text-[12.5px] font-medium text-body">{t}</span>
         ))}
       </div>
-      <span className="mt-auto pt-5 inline-flex items-center gap-1 text-[14.5px] font-semibold text-muted transition-colors group-hover:text-accent">
+      <span className="mt-auto self-end pt-5 inline-flex items-center gap-1 text-[14.5px] font-semibold text-muted transition-colors group-hover:text-accent">
         Continue
         <Icon name="arrow" className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
       </span>
