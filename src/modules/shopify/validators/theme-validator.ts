@@ -17,9 +17,6 @@ const REQUIRED_FILES = [
   "locales/en.default.json",
   "templates/password.liquid",
   "templates/gift_card.liquid",
-  "templates/customers/login.liquid",
-  "templates/customers/account.liquid",
-  "templates/customers/register.liquid",
 ];
 
 // A complete, installable store needs these templates.

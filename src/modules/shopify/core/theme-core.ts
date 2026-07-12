@@ -206,79 +206,6 @@ const GIFT_CARD_TEMPLATE = `<div class="page-width section" style="max-width:460
   <a class="btn btn--primary" href="{{ shop.url }}" style="margin-top:12px">Shop now</a>
 </div>`;
 
-// Customer account pages (plain-Liquid templates — valid + wrapped by theme.liquid).
-const CUST_LOGIN = `<div class="page-width section" style="max-width:440px;margin:0 auto">
-  <h1 style="text-align:center">Login</h1>
-  {% form 'customer_login' %}
-    {{ form.errors | default_errors }}
-    <label>Email<input type="email" name="customer[email]" required></label>
-    <label>Password<input type="password" name="customer[password]"></label>
-    <button type="submit" class="btn btn--primary">Sign in</button>
-  {% endform %}
-  <p style="text-align:center;margin-top:14px"><a href="{{ routes.account_register_url }}">Create account</a></p>
-</div>`;
-const CUST_REGISTER = `<div class="page-width section" style="max-width:440px;margin:0 auto">
-  <h1 style="text-align:center">Create account</h1>
-  {% form 'create_customer' %}
-    {{ form.errors | default_errors }}
-    <label>First name<input type="text" name="customer[first_name]"></label>
-    <label>Last name<input type="text" name="customer[last_name]"></label>
-    <label>Email<input type="email" name="customer[email]" required></label>
-    <label>Password<input type="password" name="customer[password]" required></label>
-    <button type="submit" class="btn btn--primary">Create</button>
-  {% endform %}
-</div>`;
-const CUST_ACCOUNT = `<div class="page-width section" style="max-width:760px;margin:0 auto">
-  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
-    <h1>Hi, {{ customer.first_name | default: customer.email }}</h1>
-    <a href="{{ routes.account_logout_url }}">Log out</a>
-  </div>
-  <h2 style="margin-top:24px">Orders</h2>
-  {% paginate customer.orders by 20 %}
-    {% if customer.orders.size > 0 %}
-      <div class="table-wrapper" style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">
-        <thead><tr><th style="text-align:left;padding:8px">Order</th><th style="text-align:left;padding:8px">Date</th><th style="text-align:left;padding:8px">Total</th><th style="text-align:left;padding:8px">Status</th></tr></thead>
-        <tbody>{% for order in customer.orders %}<tr><td style="padding:8px"><a href="{{ order.customer_url }}">{{ order.name }}</a></td><td style="padding:8px">{{ order.created_at | date: '%b %d, %Y' }}</td><td style="padding:8px">{{ order.total_price | money }}</td><td style="padding:8px">{{ order.financial_status_label }}</td></tr>{% endfor %}</tbody>
-      </table></div>
-    {% else %}<p>No orders yet.</p>{% endif %}
-  {% endpaginate %}
-  <p style="margin-top:20px"><a href="{{ routes.account_addresses_url }}">Manage addresses</a></p>
-</div>`;
-const CUST_ORDER = `<div class="page-width section" style="max-width:760px;margin:0 auto">
-  <h1>Order {{ order.name }}</h1>
-  <p>{{ order.created_at | date: '%b %d, %Y' }} · {{ order.financial_status_label }} · {{ order.fulfillment_status_label }}</p>
-  <div class="table-wrapper" style="overflow-x:auto;margin-top:16px"><table style="width:100%;border-collapse:collapse">
-    <thead><tr><th style="text-align:left;padding:8px">Item</th><th style="padding:8px">Qty</th><th style="padding:8px">Total</th></tr></thead>
-    <tbody>{% for line in order.line_items %}<tr><td style="padding:8px">{{ line.title }}</td><td style="padding:8px;text-align:center">{{ line.quantity }}</td><td style="padding:8px;text-align:right">{{ line.final_line_price | money }}</td></tr>{% endfor %}</tbody>
-    <tfoot><tr><td colspan="2" style="padding:8px;text-align:right"><strong>Total</strong></td><td style="padding:8px;text-align:right"><strong>{{ order.total_price | money }}</strong></td></tr></tfoot>
-  </table></div>
-</div>`;
-const CUST_ADDRESSES = `<div class="page-width section" style="max-width:640px;margin:0 auto">
-  <h1>Your addresses</h1>
-  <p><a href="{{ routes.account_url }}">Back to account</a></p>
-  {% for address in customer.addresses %}
-    <div class="card" style="padding:16px;margin-top:12px">{{ address | format_address }}</div>
-  {% else %}<p>No saved addresses.</p>{% endfor %}
-</div>`;
-const CUST_RESET = `<div class="page-width section" style="max-width:440px;margin:0 auto">
-  <h1 style="text-align:center">Reset password</h1>
-  {% form 'reset_customer_password' %}
-    {{ form.errors | default_errors }}
-    <label>New password<input type="password" name="customer[password]" required></label>
-    <label>Confirm<input type="password" name="customer[password_confirmation]" required></label>
-    <button type="submit" class="btn btn--primary">Reset</button>
-  {% endform %}
-</div>`;
-const CUST_ACTIVATE = `<div class="page-width section" style="max-width:440px;margin:0 auto">
-  <h1 style="text-align:center">Activate account</h1>
-  {% form 'activate_customer_password' %}
-    {{ form.errors | default_errors }}
-    <label>Password<input type="password" name="customer[password]" required></label>
-    <label>Confirm<input type="password" name="customer[password_confirmation]" required></label>
-    <button type="submit" class="btn btn--primary">Activate</button>
-  {% endform %}
-</div>`;
-
 /** Static skeleton files common to every generated theme. */
 export function themeCoreFiles(): GeneratedThemeFile[] {
   return [
@@ -298,14 +225,8 @@ export function themeCoreFiles(): GeneratedThemeFile[] {
     // Password page (its own layout) — new stores are password-protected by default.
     { path: "layout/password.liquid", contents: PASSWORD_LAYOUT.replace("{{ '__CSS_VARS__' }}", themeCssVariables()) },
     { path: "templates/password.liquid", contents: PASSWORD_TEMPLATE },
-    // Gift card + customer account pages (a complete, installable store).
+    // Gift card page (top-level only — customer account pages omitted, matching
+    // Shopify's current Horizon theme, and to avoid nested template folders).
     { path: "templates/gift_card.liquid", contents: GIFT_CARD_TEMPLATE },
-    { path: "templates/customers/login.liquid", contents: CUST_LOGIN },
-    { path: "templates/customers/register.liquid", contents: CUST_REGISTER },
-    { path: "templates/customers/account.liquid", contents: CUST_ACCOUNT },
-    { path: "templates/customers/order.liquid", contents: CUST_ORDER },
-    { path: "templates/customers/addresses.liquid", contents: CUST_ADDRESSES },
-    { path: "templates/customers/reset_password.liquid", contents: CUST_RESET },
-    { path: "templates/customers/activate_account.liquid", contents: CUST_ACTIVATE },
   ];
 }

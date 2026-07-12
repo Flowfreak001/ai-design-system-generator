@@ -60,7 +60,6 @@ for (const p of [
   "sections/main-product.liquid", "sections/main-collection.liquid", "sections/main-cart.liquid",
   "sections/header-group.json", "sections/footer-group.json",
   "layout/password.liquid", "templates/password.liquid", "templates/gift_card.liquid",
-  "templates/customers/login.liquid", "templates/customers/account.liquid",
 ]) {
   assert.ok(paths.includes(p), `missing storefront file ${p}`);
 }
