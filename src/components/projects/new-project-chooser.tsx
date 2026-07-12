@@ -216,10 +216,10 @@ function ShopifyCreate({ onBack }: { onBack: () => void }) {
       </button>
 
       <div className="mt-5 flex items-center gap-3">
-        <span className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-success-soft text-success"><Icon name="shopify" /></span>
+        <span className="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-success-soft text-success"><Icon name="shopify" /></span>
         <div>
-          <p className="text-[15px] font-semibold text-ink">New Shopify store</p>
-          <p className="text-[12.5px] text-body">A native Online Store 2.0 theme, built from brand + page sections and exported as a Shopify-ready ZIP.</p>
+          <p className="text-[23px] font-semibold tracking-[-0.02em] text-ink">New Shopify store</p>
+          <p className="mt-1 text-[15.5px] text-body">A native Online Store 2.0 theme, built from brand + page sections and exported as a Shopify-ready ZIP.</p>
         </div>
       </div>
 
