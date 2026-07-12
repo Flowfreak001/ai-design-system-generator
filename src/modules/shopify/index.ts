@@ -5,6 +5,7 @@
 export type {
   BrandTokens, ShopifyTemplateType, ShopifySectionDefinition, ShopifySectionInstance,
   ShopifyPage, ShopifyProjectInput, GeneratedThemeFile, ThemeValidationResult, ShopifyDeploymentProvider,
+  ShopifySettingField, ShopifyBlockDefinition, ShopifySectionSchema,
 } from "./types";
 
 export { ALL_SECTIONS, CONTENT_SECTIONS, STRUCTURAL_SECTIONS, getSection, isValidSectionId } from "./sections";

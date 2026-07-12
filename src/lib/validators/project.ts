@@ -84,7 +84,7 @@ export const createProjectSchema = z.object({
   platformTarget: optionalText.transform((v) => v ?? ""),
   businessId: optionalText,
   clientName: optionalText,
-  type: z.enum(["WEBSITE_APP", "AUTOMATION_WORKFLOW"]).default("WEBSITE_APP"),
+  type: z.enum(["WEBSITE_APP", "AUTOMATION_WORKFLOW", "SHOPIFY", "WEBFLOW_CLOUD"]).default("WEBSITE_APP"),
   targetAudience: optionalText,
   referenceUrls: listField,
   existingWebsiteUrl: optionalText,

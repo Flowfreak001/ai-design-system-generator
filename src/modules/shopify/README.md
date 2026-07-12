@@ -49,11 +49,26 @@ npx tsx src/modules/shopify/__tests__/theme-generation.smoke.ts
 
 Asserts a valid, deterministic theme + zip and that unknown section ids fail.
 
+## Wired into the app (built)
+
+- `ProjectType.SHOPIFY` (+ `WEBFLOW_CLOUD`) and the `ShopifyProject` model
+  (migration `20260712090000_shopify_builder`). Brand + pages are stored as JSON
+  so this module owns their shape; data layer in `src/lib/shopify-builder/store.ts`.
+- New-project chooser → "Shopify Store" card creates a SHOPIFY project and opens
+  the builder at `(app)/projects/[id]/shopify`.
+- Builder workspace (`src/components/shopify/shopify-builder.tsx`): Overview,
+  Brand, Pages (section add/reorder/remove + settings & block editing), Preview,
+  Export. Server actions in `(app)/projects/[id]/shopify/actions.ts`
+  (`saveBrandAction`, `savePagesAction`, `exportThemeAction`) — all Zod-validated
+  and funnelled through `validateProjectInput` / `validateShopifyTheme`.
+- React storefront preview (`src/components/shopify/storefront-preview.tsx`)
+  renders the SAME structured section data with mock Shopify data. Editor-only,
+  never exported.
+- Export: `exportThemeAction` generates + validates + zips and streams the ZIP to
+  the browser (base64 → Blob download).
+
 ## Not yet implemented (next phases)
 
-- Prisma models (`ProjectType.SHOPIFY`, `ShopifyProject`, `ShopifyPage`,
-  `ShopifySectionInstance`, `ShopifyThemeVersion`, `ShopifyExport`) + migration
-- Routes/UI under `(app)/projects/[id]/shopify/*` (brand, pages, editor, preview, export)
-- React storefront preview renderer (renders from the same structured section data)
 - Remaining sections (collection-list, featured-product, usp-bar, testimonials, newsletter, rich-text)
+- Product/collection template section editing beyond the starter set
 - Shopify OAuth + theme upload/publish (a `ShopifyDeploymentProvider` interface exists; no live impl)

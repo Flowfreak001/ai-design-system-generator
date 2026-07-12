@@ -28,6 +28,8 @@ export function StatusBadge({ status }: { status: string }) {
 const TYPE_STYLES: Record<string, { label: string; cls: string }> = {
   WEBSITE_APP: { label: "Website / App", cls: "bg-accent-soft text-accent border-accent/25" },
   AUTOMATION_WORKFLOW: { label: "Automation", cls: "bg-info-soft text-info border-info/25" },
+  SHOPIFY: { label: "Shopify Store", cls: "bg-success-soft text-success border-success/25" },
+  WEBFLOW_CLOUD: { label: "Webflow Cloud", cls: "bg-panel text-ink border-line" },
 };
 
 export function TypeBadge({ type }: { type: string }) {

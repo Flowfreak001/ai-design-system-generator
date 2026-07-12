@@ -9,7 +9,7 @@ import { QuickStart } from "@/components/projects/quick-start";
 import { createProjectAction, type FormState } from "@/app/(app)/projects/actions";
 import { SITE_TEMPLATES } from "@/lib/site-templates";
 
-type Mode = "choose" | "wix" | "design";
+type Mode = "choose" | "wix" | "design" | "shopify";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -26,6 +26,8 @@ function Icon({ name, className }: { name: string; className?: string }) {
     events: <><path d="M4 8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2 2 2 0 0 0 0 4 2 2 0 0 1 0 4H6a2 2 0 0 1-2-2 2 2 0 0 0 0-4Z" {...p} /><path d="M14 6v12" strokeDasharray="1.5 2.5" {...p} /></>,
     content: <><rect x="4" y="3.5" width="16" height="17" rx="2" {...p} /><path d="M8 8h8M8 12h8M8 16h5" {...p} /></>,
     arrow: <path d="M5 12h14M13 6l6 6-6 6" {...p} />,
+    // shopping bag
+    shopify: <><path d="M6 8h12l-1 12H7L6 8Z" {...p} /><path d="M9 8a3 3 0 0 1 6 0" {...p} /><path d="M9.5 12v.01M14.5 12v.01" {...p} /></>,
   };
   return <svg viewBox="0 0 24 24" width="22" height="22" className={className} aria-hidden="true">{paths[name]}</svg>;
 }
@@ -37,9 +39,10 @@ export function NewProjectChooser({ clients }: { clients: { id: string; name: st
 
   if (mode === "design") return <QuickStart clients={clients} />;
   if (mode === "wix") return <WixHeadlessCreate onBack={() => setMode("choose")} />;
+  if (mode === "shopify") return <ShopifyCreate onBack={() => setMode("choose")} />;
 
   return (
-    <div className="grid gap-6 sm:grid-cols-2">
+    <div className="grid gap-6 sm:grid-cols-3">
       <ChoiceCard
         icon="headless"
         tint="rose"
@@ -47,6 +50,14 @@ export function NewProjectChooser({ clients }: { clients: { id: string; name: st
         body="Pick a template, bind it to your Wix data, and publish a live site — or download the design file."
         tags={["Store", "Bookings", "Events"]}
         onClick={() => setMode("wix")}
+      />
+      <ChoiceCard
+        icon="shopify"
+        tint="green"
+        title="Shopify Store"
+        body="Build a native Shopify theme — brand, page sections, live preview, and a deterministic theme export."
+        tags={["Theme", "Sections", "Export"]}
+        onClick={() => setMode("shopify")}
       />
       <ChoiceCard
         icon="design"
@@ -63,6 +74,7 @@ export function NewProjectChooser({ clients }: { clients: { id: string; name: st
 const TINT: Record<string, string> = {
   rose: "bg-accent-soft text-accent",
   slate: "bg-panel text-ink",
+  green: "bg-success-soft text-success",
 };
 
 function ChoiceCard({ icon, tint, title, body, tags, onClick }: {
@@ -164,6 +176,51 @@ function WixHeadlessCreate({ onBack }: { onBack: () => void }) {
         <p className="text-[11.5px] text-muted">Next: connect Wix, then assemble &amp; publish — or download the design file.</p>
         <Button size="lg" onClick={submit} disabled={pending || !name.trim()} className="min-w-[150px]">
           {pending ? "Creating…" : "Create site"}
+        </Button>
+      </div>
+    </motion.div>
+  );
+}
+
+function ShopifyCreate({ onBack }: { onBack: () => void }) {
+  const [state, formAction] = useActionState<FormState, FormData>(createProjectAction, {});
+  const [pending, setPending] = useState(false);
+  const [name, setName] = useState("");
+
+  const submit = () => {
+    const fd = new FormData();
+    fd.set("name", name);
+    fd.set("businessName", name);
+    fd.set("type", "SHOPIFY");
+    setPending(true);
+    startTransition(() => formAction(fd));
+  };
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.28, ease: EASE }}>
+      <button type="button" onClick={onBack} className="inline-flex items-center gap-1 text-[12.5px] font-medium text-muted transition-colors hover:text-ink">
+        <Icon name="arrow" className="h-3.5 w-3.5 rotate-180" /> Back
+      </button>
+
+      <div className="mt-5 flex items-center gap-3">
+        <span className="inline-flex h-10 w-10 items-center justify-center rounded-md bg-success-soft text-success"><Icon name="shopify" /></span>
+        <div>
+          <p className="text-[15px] font-semibold text-ink">New Shopify store</p>
+          <p className="text-[12.5px] text-body">A native Online Store 2.0 theme, built from brand + page sections and exported as a Shopify-ready ZIP.</p>
+        </div>
+      </div>
+
+      <label className="mt-6 block text-[13px] font-semibold text-ink">Store name <span className="text-accent">*</span>
+        <input value={name} onChange={(e) => setName(e.target.value)} autoFocus placeholder="e.g. Aurora Home"
+          className="mt-1.5 w-full rounded-[8px] border border-line bg-surface px-3.5 py-2.5 text-[14px] text-ink outline-none placeholder:text-faint focus:border-accent" />
+      </label>
+
+      {state?.error && <p className="mt-4 rounded-lg bg-danger-soft px-3 py-2 text-[12.5px] text-danger">{state.error}</p>}
+
+      <div className="mt-6 flex items-center justify-between gap-3">
+        <p className="text-[11.5px] text-muted">Next: set your brand, assemble page sections, preview &amp; export the theme.</p>
+        <Button size="lg" onClick={submit} disabled={pending || !name.trim()} className="min-w-[150px]">
+          {pending ? "Creating…" : "Create store"}
         </Button>
       </div>
     </motion.div>

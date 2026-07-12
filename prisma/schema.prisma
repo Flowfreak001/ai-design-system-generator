@@ -97,6 +97,8 @@ model SavedSection {
 enum ProjectType {
   WEBSITE_APP
   AUTOMATION_WORKFLOW
+  SHOPIFY
+  WEBFLOW_CLOUD
 }
 
 enum ProjectStatus {
@@ -133,9 +135,30 @@ model Project {
   agentRuns AgentRun[]
   notes     ProjectNote[]
   workflows Workflow[]
+  shopify   ShopifyProject?
 
   @@index([status])
   @@index([type])
+}
+
+// Shopify Builder module (isolated from the standard website builder). Holds the
+// builder state for a SHOPIFY-type Project: brand tokens + the page/section tree,
+// stored as JSON so the isolated module owns their shape (see src/modules/shopify).
+// The Liquid theme is generated deterministically from this state on export.
+model ShopifyProject {
+  id        String   @id @default(cuid())
+  projectId String   @unique
+  storeName String
+  themeName String?
+  industry  String?
+  // BrandTokens (colors, typography, radius, ...) — shape owned by the module.
+  brand     Json
+  // ShopifyPage[] (template + section instances) — shape owned by the module.
+  pages     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 // Structured inputs, grouped by category (e.g. "brief", "automation").

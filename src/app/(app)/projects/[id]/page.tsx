@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getProject, getFileVersions, toGenerationInput } from "@/lib/projects";
 import { requireUser } from "@/lib/auth";
 import { deriveStatus, STATUS_STYLES } from "@/lib/status";
@@ -55,6 +55,8 @@ export default async function ProjectWorkspacePage({
   if (!user.agencyId) notFound();
   const project = await getProject(id, user.agencyId);
   if (!project) notFound();
+  // Shopify-store projects have their own dedicated builder workspace.
+  if (project.type === "SHOPIFY") redirect(`/projects/${id}/shopify`);
   const screenshotInput = await prisma.projectInput.findFirst({ where: { projectId: id, category: "screenshots" } });
   const screenshots = ((screenshotInput?.data as { shots?: Screenshot[] } | null)?.shots ?? []) as Screenshot[];
 

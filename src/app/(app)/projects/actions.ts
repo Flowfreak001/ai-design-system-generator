@@ -137,6 +137,8 @@ export async function createProjectAction(
   }
 
   revalidatePath("/projects");
+  // Shopify-store projects open straight into the isolated Shopify builder.
+  if (parsed.data.type === "SHOPIFY") redirect(`/projects/${project.id}/shopify`);
   redirect(`/projects/${project.id}`);
 }
 
