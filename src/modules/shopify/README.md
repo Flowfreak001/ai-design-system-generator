@@ -68,7 +68,13 @@ Asserts a valid, deterministic theme + zip and that unknown section ids fail.
 - Export: `exportThemeAction` generates + validates + zips and streams the ZIP to
   the browser (base64 → Blob download).
 
-## Not yet implemented (next phases)
+## Out of scope (by decision)
+
+- **Shopify OAuth + theme upload/publish — not planned right now.** The delivery
+  path is the export ZIP (Shopify admin → Online Store → Themes → Upload). The
+  `ShopifyDeploymentProvider` interface is kept as a seam if this is ever revisited,
+  but there is no live implementation and none is planned.
+
+## Possible future work
 
 - Product/collection template section editing beyond the starter set
-- Shopify OAuth + theme upload/publish (a `ShopifyDeploymentProvider` interface exists; no live impl)
