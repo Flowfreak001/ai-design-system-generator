@@ -21,6 +21,9 @@ import { builtinSectionKey } from "@/lib/saved-sections/key";
 
 type Device = "desktop" | "tablet" | "mobile";
 const DEVICE_WIDTH: Record<Device, number> = { desktop: 1280, tablet: 820, mobile: 390 };
+// Fixed device "screen" sizes so every section preview has a consistent height —
+// full-height sections fill the screen, short ones sit at the top.
+const DEVICE_DIM: Record<Device, { w: number; h: number }> = { desktop: { w: 1280, h: 760 }, tablet: { w: 820, h: 1093 }, mobile: { w: 390, h: 780 } };
 
 // Framed, full-colour live preview — grey well, white device, scaled to width.
 function CardThumb({ section, theme }: { section: LibrarySection; theme: SectionTheme }) {
@@ -56,27 +59,20 @@ function CardThumb({ section, theme }: { section: LibrarySection; theme: Section
 // View-only full preview with a device toggle.
 function PreviewModule({ section, theme, onClose, publicMode = false }: { section: LibrarySection; theme: SectionTheme; onClose: () => void; publicMode?: boolean }) {
   const [device, setDevice] = useState<Device>("desktop");
-  const width = DEVICE_WIDTH[device];
-  // Scale the true-width device down to fit the modal so the whole section shows.
-  const areaRef = useRef<HTMLDivElement>(null);
-  const contentRef = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(1);
-  const [scaledH, setScaledH] = useState<number | undefined>(undefined);
+  const { w: width, h: height } = DEVICE_DIM[device];
+  // Fixed device "screen" scaled to fit the modal — every section previews at a
+  // consistent height, and full-height sections fill the screen (they measure the
+  // inner scroll container). Measure the viewport so the modal hugs the screen.
+  const [vp, setVp] = useState({ w: 1000, h: 760 });
   useEffect(() => {
-    const measure = () => {
-      // Subtract the area's p-6 padding (48px) so the scaled width fits with no side scroll.
-      const avail = (areaRef.current?.clientWidth ?? width) - 48;
-      const s = Math.min(1, avail / width);
-      setScale(s);
-      const h = contentRef.current?.offsetHeight;
-      if (h) setScaledH(h * s);
-    };
+    const measure = () => setVp({ w: Math.min(window.innerWidth - 32, 1152), h: window.innerHeight });
     measure();
-    const ro = new ResizeObserver(measure);
-    if (areaRef.current) ro.observe(areaRef.current);
-    if (contentRef.current) ro.observe(contentRef.current);
-    return () => ro.disconnect();
-  }, [width, device, section]);
+    window.addEventListener("resize", measure);
+    return () => window.removeEventListener("resize", measure);
+  }, []);
+  const availW = vp.w - 48;
+  const availH = vp.h * 0.9 - 120;
+  const scale = Math.min(availW / width, availH / height, 1);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4" onClick={onClose}>
       <div className="flex max-h-[90vh] w-full max-w-6xl flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-2xl" onClick={(e) => e.stopPropagation()}>
@@ -101,12 +97,12 @@ function PreviewModule({ section, theme, onClose, publicMode = false }: { sectio
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
           </button>
         </div>
-        <div ref={areaRef} className="flex flex-1 flex-col overflow-auto bg-panel p-6" style={{ minHeight: 400 }}>
-          {/* m-auto centers short sections (no empty gap); tall ones top-align + scroll.
-              overflow-hidden clips the true-width (unscaled) child so no side scroll. */}
-          <div className="m-auto overflow-hidden" style={{ width: width * scale, height: scaledH }}>
-            <div ref={contentRef} className="overflow-hidden rounded-xl border border-line bg-white shadow-sm" style={{ width, transform: `scale(${scale})`, transformOrigin: "top left" }}>
-              <SectionErrorBoundary>{renderSection(section, theme, device === "mobile")}</SectionErrorBoundary>
+        <div className="flex flex-1 items-center justify-center overflow-auto bg-panel p-4 sm:p-6">
+          <div className="shrink-0 overflow-hidden rounded-xl border border-line bg-white shadow-sm" style={{ width: width * scale, height: height * scale }}>
+            <div style={{ width, height, transform: `scale(${scale})`, transformOrigin: "top left" }}>
+              <div style={{ height: "100%", overflowY: "auto" }}>
+                <SectionErrorBoundary>{renderSection(section, theme, device === "mobile")}</SectionErrorBoundary>
+              </div>
             </div>
           </div>
         </div>
