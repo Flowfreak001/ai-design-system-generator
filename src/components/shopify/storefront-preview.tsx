@@ -56,11 +56,11 @@ function Placeholder({ hue = 220, label, ratio = "4 / 3" }: { hue?: number; labe
   );
 }
 
-function AnnouncementBar() {
+export function AnnouncementBar() {
   return <div className="ff-announce">Free shipping on orders over $50</div>;
 }
 
-function Header({ storeName }: { storeName: string }) {
+export function Header({ storeName }: { storeName: string }) {
   return (
     <header className="ff-header">
       <button className="ff-hicon" aria-label="Menu">
@@ -77,7 +77,7 @@ function Header({ storeName }: { storeName: string }) {
   );
 }
 
-function Footer() {
+export function Footer() {
   return (
     <footer className="ff-footer">
       <div className="ff-footcols">
@@ -448,7 +448,7 @@ function MainPage() {
   );
 }
 
-function renderSection(inst: ShopifySectionInstance) {
+export function renderSection(inst: ShopifySectionInstance) {
   if (inst.disabled) return null;
   switch (inst.sectionId) {
     case "hero-banner": return <Hero settings={inst.settings} />;
@@ -484,20 +484,14 @@ function renderSection(inst: ShopifySectionInstance) {
 
 // Prepend the template's main section (mirrors the generator) so switching to
 // Product/Collection/Cart previews the real storefront template.
-const TEMPLATE_MAIN: Record<string, string> = {
+export const TEMPLATE_MAIN: Record<string, string> = {
   product: "main-product", collection: "main-collection", "list-collections": "main-list-collections",
   cart: "main-cart", search: "main-search", blog: "main-blog", article: "main-article", page: "main-page",
 };
 
-export function StorefrontPreview({ brand, page, storeName }: {
-  brand: BrandTokens; page: ShopifyPage; storeName: string;
-}) {
-  const rootRef = useRef<HTMLDivElement>(null);
-  const animate = brand.animate !== false;
-  const headScale = brand.headingScale ?? 1.1;
-  const bodyScale = brand.bodyScale ?? 1;
-
-  const vars: React.CSSProperties = {
+/** Root CSS variables for the store shell (colours, fonts, radius, type scale). */
+export function storeVars(brand: BrandTokens): React.CSSProperties {
+  return {
     ["--c-primary" as string]: brand.primaryColor,
     ["--c-secondary" as string]: brand.secondaryColor,
     ["--c-bg" as string]: brand.backgroundColor,
@@ -505,17 +499,31 @@ export function StorefrontPreview({ brand, page, storeName }: {
     ["--f-head" as string]: brand.headingFont,
     ["--f-body" as string]: brand.bodyFont,
     ["--radius" as string]: brand.borderRadius,
-    ["--h-scale" as string]: String(headScale),
-    ["--b-scale" as string]: String(bodyScale),
+    ["--h-scale" as string]: String(brand.headingScale ?? 1.1),
+    ["--b-scale" as string]: String(brand.bodyScale ?? 1),
   };
+}
 
+/** Per-section colour-scheme CSS variables (empty for full-bleed hero-type ids). */
+export function sectionSchemeVars(brand: BrandTokens, inst: ShopifySectionInstance): React.CSSProperties | undefined {
+  if (["hero-banner", "image-banner", "slideshow"].includes(inst.sectionId)) return undefined;
   const schemes = resolveSchemes(brand);
-  const schemeById = new Map(schemes.map((sc) => [sc.id, sc]));
-  const schemeVars = (id?: string): React.CSSProperties => {
-    const sc = schemeById.get(id || "scheme-1") ?? schemes[0];
-    if (!sc) return {};
-    return { ["--c-bg" as string]: sc.background, ["--c-text" as string]: sc.text, ["--c-primary" as string]: sc.button, ["--c-secondary" as string]: sc.secondary, background: sc.background, color: sc.text };
-  };
+  const sc = schemes.find((x) => x.id === (inst.settings?.color_scheme || "scheme-1")) ?? schemes[0];
+  if (!sc) return undefined;
+  return { ["--c-bg" as string]: sc.background, ["--c-text" as string]: sc.text, ["--c-primary" as string]: sc.button, ["--c-secondary" as string]: sc.secondary, background: sc.background, color: sc.text };
+}
+
+/** The main section id auto-injected for a storefront template (undefined for index/page-less). */
+export function mainSectionId(template: string): string | undefined {
+  return TEMPLATE_MAIN[template];
+}
+
+export function StorefrontPreview({ brand, page, storeName }: {
+  brand: BrandTokens; page: ShopifyPage; storeName: string;
+}) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const animate = brand.animate !== false;
+  const vars = storeVars(brand);
 
   // Prepend the template's main section so storefront templates preview fully.
   const mainId = TEMPLATE_MAIN[page.template];
@@ -543,14 +551,11 @@ export function StorefrontPreview({ brand, page, storeName }: {
       <main>
         {effective.length === 0
           ? <div className="ff-empty">This template has no sections yet. Add some in <b>Pages</b>.</div>
-          : effective.map((inst) => {
-              const scoped = !["hero-banner", "image-banner", "slideshow"].includes(inst.sectionId);
-              return (
-                <div key={inst.key} data-ffreveal={animate ? "" : undefined} className={animate ? "ff-reveal" : undefined} style={scoped ? schemeVars(inst.settings?.color_scheme as string | undefined) : undefined}>
-                  {renderSection(inst)}
-                </div>
-              );
-            })}
+          : effective.map((inst) => (
+              <div key={inst.key} data-ffreveal={animate ? "" : undefined} className={animate ? "ff-reveal" : undefined} style={sectionSchemeVars(brand, inst)}>
+                {renderSection(inst)}
+              </div>
+            ))}
       </main>
       <Footer />
       <style>{STORE_CSS}</style>
@@ -558,7 +563,7 @@ export function StorefrontPreview({ brand, page, storeName }: {
   );
 }
 
-const STORE_CSS = `
+export const STORE_CSS = `
 .ff-store{background:var(--c-bg);color:var(--c-text);font-family:var(--f-body);line-height:1.55;container-type:inline-size;font-size:calc(15px * var(--b-scale,1));}
 .ff-store h1,.ff-store h2{font-family:var(--f-head);line-height:1.08;margin:0;}
 .ff-store h1{font-size:calc(clamp(28px,5cqw,46px) * var(--h-scale,1));}
