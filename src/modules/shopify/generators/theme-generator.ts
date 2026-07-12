@@ -30,10 +30,20 @@ export function resolveTemplatePages(input: ShopifyProjectInput): ShopifyPage[] 
   const pages: ShopifyPage[] = [];
   for (const template of REQUIRED_TEMPLATES) {
     const existing = byKey.get(`${template}|`);
-    const sections: ShopifySectionInstance[] = existing ? [...existing.sections] : [];
+    let sections: ShopifySectionInstance[] = existing ? [...existing.sections] : [];
     const mainId = TEMPLATE_MAIN[template];
     if (mainId && !sections.some((sec) => sec.sectionId === mainId)) {
       sections.unshift({ key: "main", sectionId: mainId });
+    }
+    // Safety net: a template that would render EMPTY gets a sensible default so
+    // the storefront is never blank (the homepage especially must have content).
+    if (sections.length === 0) {
+      if (template === "index") {
+        sections = [
+          { key: "hero", sectionId: "hero-banner", settings: { heading: "Welcome", height: "large" } },
+          { key: "featured", sectionId: "featured-collection", settings: { heading: "Featured products" } },
+        ];
+      }
     }
     pages.push({ template, sections });
   }
