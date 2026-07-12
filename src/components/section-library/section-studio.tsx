@@ -94,8 +94,18 @@ export function SectionStudio({
     start(async () => {
       const res = projectId ? await saveAdminSectionAction(projectId, draft) : await saveLibrarySectionAction(draft);
       if (res.error) { setMsg(res.error); return; }
-      if (thenBack) { router.push(backHref); router.refresh(); }
-      else { setMsg("Saved."); router.refresh(); }
+      const savedId = res.id ?? draft.id;
+      // Reflect the saved id in the draft so subsequent saves update the same row
+      // (never mint duplicates) even before the route reloads.
+      if (savedId !== draft.id) setDraft((d) => ({ ...d, id: savedId }));
+      if (thenBack) { router.push(backHref); router.refresh(); return; }
+      setMsg("Saved.");
+      // Move to the saved section's canonical Studio URL. Without this, a Studio
+      // opened for a NEW section (no id in the URL) reloads a fresh blank
+      // "Untitled section" draft on refresh — making renames/edits look lost and
+      // creating a new row on every save. replace() keeps history clean.
+      router.replace(`${studioBase}/${savedId}`);
+      router.refresh();
     });
   };
   const remove = () => {
