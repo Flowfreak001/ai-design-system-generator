@@ -39,7 +39,8 @@ function rowToDef(r: LibrarySectionModel): DynamicSectionDef {
 }
 
 export async function listCatalogSections(agencyId: string | null): Promise<DynamicSectionDef[]> {
-  const rows = await prisma.librarySection.findMany({ where: { agencyId }, orderBy: { updatedAt: "desc" } });
+  // Exclude internal bookkeeping rows (e.g. the seeder's version sentinel).
+  const rows = await prisma.librarySection.findMany({ where: { agencyId, NOT: { sourceType: "system" } }, orderBy: { updatedAt: "desc" } });
   return rows.map(rowToDef);
 }
 
@@ -89,8 +90,13 @@ export async function upsertCatalogSection(
     history: history as unknown as Prisma.InputJsonValue,
   };
 
+  // "Adopt" an auto-seeded built-in the first time it's edited: stamp the editor
+  // as its owner (createdBy) so the seeder treats it as user work and never
+  // deletes or reverts it on a future version bump. Regular rows keep their owner.
+  const adopt = Boolean(existing) && existing!.createdBy === null && createdBy != null && existing!.id.startsWith("seed-");
+
   const row = existing
-    ? await prisma.librarySection.update({ where: { id: existing.id }, data })
+    ? await prisma.librarySection.update({ where: { id: existing.id }, data: adopt ? { ...data, createdBy } : data })
     // Keep the client-provided id stable so repeated saves update the same row.
     : await prisma.librarySection.create({ data: { ...data, id: def.id, createdBy } });
   return rowToDef(row);

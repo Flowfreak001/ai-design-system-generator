@@ -16,24 +16,45 @@ type BuiltinSection = {
 
 const SECTIONS = BUILTIN_SECTIONS as unknown as BuiltinSection[];
 
-/** Seed the built-in sections into an agency's catalog once (idempotent). */
+const SEED_VERSION = "v110";
+
+/** Seed the built-in sections into an agency's catalog once (idempotent).
+ *
+ * Never overrides user work. A built-in the user has edited becomes "adopted"
+ * (its row gets a non-null createdBy, see upsertCatalogSection) — the seeder
+ * then leaves it alone AND does not re-add a pristine default for that base.
+ * Brand-new user sections (non-seed ids) are likewise never touched. */
 export async function seedBuiltinsForAgency(agencyId: string): Promise<void> {
   const first = SECTIONS[0];
   if (!first) return;
-  // Version marker — bump the suffix if the built-in set changes so agencies re-seed.
   const prefix = `seed-${agencyId}-`;
-  const curPrefix = `${prefix}v109-`;
-  const marker = `${curPrefix}${first.id}`;
+  const curPrefix = `${prefix}${SEED_VERSION}-`;
+  // Hidden version sentinel (sourceType "system", filtered out of the catalog).
+  // Its presence — not any content section — marks this version as seeded, so
+  // idempotency holds even when some bases are intentionally skipped below.
+  const marker = `${curPrefix}__seed_marker__`;
   if (await prisma.librarySection.findUnique({ where: { id: marker } })) return;
 
-  // Not on the current set yet — remove any PREVIOUS built-in seeds for this
-  // agency (auto-seeded rows have createdBy: null). User-authored sections
-  // (createdBy set) are never touched.
+  // Bases the user has customized: an edited built-in (adopted → createdBy set)
+  // for THIS agency. These must survive re-seeding untouched, and we must not
+  // recreate their default. Derive the base id back out of the seed id.
+  const adoptedRows = await prisma.librarySection.findMany({
+    where: { agencyId, id: { startsWith: prefix }, NOT: { createdBy: null } },
+    select: { id: true },
+  });
+  const adoptedBases = new Set(
+    adoptedRows.map((r) => r.id.slice(prefix.length).replace(/^v\d+-/, "")),
+  );
+
+  // Remove ONLY previous-version auto-seed rows the user hasn't touched
+  // (createdBy null). Adopted/edited rows (createdBy set) and user-authored
+  // sections (non-seed ids) are never deleted. Old sentinels are cleaned here too.
   await prisma.librarySection.deleteMany({
     where: { agencyId, createdBy: null, id: { startsWith: prefix }, NOT: { id: { startsWith: curPrefix } } },
   });
 
   for (const b of SECTIONS) {
+    if (adoptedBases.has(b.id)) continue; // user owns a customized copy — keep theirs
     const id = `${curPrefix}${b.id}`;
     if (await prisma.librarySection.findUnique({ where: { id } })) continue;
     await prisma.librarySection.create({
@@ -53,4 +74,14 @@ export async function seedBuiltinsForAgency(agencyId: string): Promise<void> {
       },
     });
   }
+
+  // Write the sentinel last so a crash mid-seed re-runs cleanly next time.
+  await prisma.librarySection.create({
+    data: {
+      id: marker, agencyId,
+      name: "__seed_marker__", slug: `seed-marker-${SEED_VERSION}`,
+      sourceType: "system", status: "archived", visibility: "admin-only",
+      createdBy: null,
+    },
+  });
 }
