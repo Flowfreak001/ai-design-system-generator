@@ -608,6 +608,7 @@ export const STORE_CSS = `
 .ff-hero-bg{position:absolute;inset:0;background:linear-gradient(135deg,var(--c-primary),var(--c-secondary));}
 .ff-hero-overlay{position:absolute;inset:0;background:#000;}
 .ff-hero-inner{position:relative;display:flex;flex-direction:column;justify-content:center;max-width:620px;}
+.ff-hero h1,.ff-hero .ff-hero-sub,.ff-hero .ff-eyebrow{color:#fff;}
 .ff-hero h1{font-size:clamp(30px,6cqw,54px);margin-bottom:14px;}
 .ff-hero-sub p{margin:0;font-size:clamp(15px,2cqw,18px);opacity:.92;}
 .ff-section{padding:clamp(40px,6cqw,72px) 24px;max-width:1200px;margin:0 auto;}
