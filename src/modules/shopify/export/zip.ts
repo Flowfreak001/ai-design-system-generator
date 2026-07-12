@@ -23,20 +23,15 @@ function crc32(buf: Buffer): number {
 type ZipEntry = { path: string; data: Buffer; isDir: boolean };
 
 /** Build a valid .zip Buffer from theme files (STORE / no compression).
- *  Includes explicit DIRECTORY entries — real Shopify theme zips (Dawn) have them,
- *  and the Admin importer can drop nested files (e.g. templates/customers/*) when
- *  they are missing. Deterministic: fixed timestamps + sorted entries. */
+ *  FILES ONLY — no explicit directory entries. Shopify's own theme exports contain
+ *  only file entries, and adding 0-byte directory entries (with the MS-DOS dir bit)
+ *  can confuse the Admin theme importer into silently dropping a template
+ *  (observed: templates/index.json dropped on import). Deterministic: fixed
+ *  timestamps + sorted entries -> identical bytes for the same input. */
 export function createThemeZip(files: GeneratedThemeFile[]): Buffer {
-  // Every parent directory of every file, as a trailing-slash entry.
-  const dirs = new Set<string>();
-  for (const f of files) {
-    const parts = f.path.split("/");
-    for (let i = 1; i < parts.length; i++) dirs.add(parts.slice(0, i).join("/") + "/");
-  }
-  const entries: ZipEntry[] = [
-    ...[...dirs].map((p) => ({ path: p, data: Buffer.alloc(0), isDir: true })),
-    ...files.map((f) => ({ path: f.path, data: Buffer.from(f.contents, "utf8"), isDir: false })),
-  ].sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
+  const entries: ZipEntry[] = files
+    .map((f) => ({ path: f.path, data: Buffer.from(f.contents, "utf8"), isDir: false }))
+    .sort((a, b) => (a.path < b.path ? -1 : a.path > b.path ? 1 : 0));
 
   const DOS_TIME = 0; // fixed => deterministic
   const DOS_DATE = 0x21; // 1980-01-01
