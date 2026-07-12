@@ -25,7 +25,14 @@ export interface BuilderInit {
   pages: ShopifyPage[];
 }
 
-const TEMPLATE_LABEL: Record<string, string> = { index: "Home", product: "Product", collection: "Collection", page: "Page" };
+const TEMPLATE_LABEL: Record<string, string> = { index: "Home", product: "Product", collection: "Collection", "list-collections": "Collections", cart: "Cart", search: "Search", blog: "Blog", article: "Article", page: "Page" };
+
+// Templates the storefront preview can show (main sections auto-injected).
+const PREVIEW_TEMPLATES: { template: string; label: string }[] = [
+  { template: "index", label: "Home" }, { template: "product", label: "Product" },
+  { template: "collection", label: "Collection" }, { template: "cart", label: "Cart" },
+  { template: "search", label: "Search" }, { template: "blog", label: "Blog" },
+];
 
 function Icon({ d, className }: { d: string; className?: string }) {
   return <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden><path d={d} /></svg>;
@@ -287,7 +294,7 @@ function SectionCard({ inst, idx, count, onMove, onRemove, onPatch }: {
   const def = getSection(inst.sectionId);
   if (!def) return null;
   const settings = inst.settings ?? {};
-  const editable = def.schema.settings.filter((f) => f.id && f.type !== "image_picker" && f.type !== "product" && f.type !== "collection");
+  const editable = def.schema.settings.filter((f) => f.id && !["image_picker", "product", "collection", "color_scheme", "video_url"].includes(f.type));
 
   const setField = (id: string, value: string | number | boolean) => onPatch(inst.key, { ...settings, [id]: value });
 
@@ -363,16 +370,19 @@ function BlockEditor({ inst, def, onChange }: { inst: ShopifySectionInstance; de
 function PreviewTab({ pages, brand, storeName }: { pages: ShopifyPage[]; brand: BrandTokens; storeName: string }) {
   const [active, setActive] = useState(0);
   const [width, setWidth] = useState<number | "full">("full");
-  const page = pages[active] ?? pages[0];
   const widths: { id: number | "full"; label: string }[] = [
     { id: 390, label: "Mobile" }, { id: 768, label: "Tablet" }, { id: "full", label: "Desktop" },
   ];
+  // Every storefront template is previewable; use the user's page if it exists,
+  // otherwise a synthetic empty page (the preview injects the main section).
+  const tabs = PREVIEW_TEMPLATES.map((t) => pages.find((p) => p.template === t.template && !p.handle) ?? { template: t.template as ShopifyPage["template"], sections: [] });
+  const page = tabs[active] ?? tabs[0];
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex gap-1 rounded-md bg-panel p-1">
-          {pages.map((p, i) => (
-            <button key={i} onClick={() => setActive(i)} className={`rounded px-2.5 py-1 text-[12px] font-medium ${i === active ? "bg-white text-ink shadow-sm" : "text-muted"}`}>{TEMPLATE_LABEL[p.template] ?? p.template}{p.handle ? `·${p.handle}` : ""}</button>
+        <div className="flex flex-wrap gap-1 rounded-md bg-panel p-1">
+          {PREVIEW_TEMPLATES.map((t, i) => (
+            <button key={t.template} onClick={() => setActive(i)} className={`rounded px-2.5 py-1 text-[12px] font-medium ${i === active ? "bg-white text-ink shadow-sm" : "text-muted"}`}>{t.label}</button>
           ))}
         </div>
         <div className="ml-auto flex gap-1 rounded-md bg-panel p-1">

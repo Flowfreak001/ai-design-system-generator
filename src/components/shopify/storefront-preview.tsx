@@ -5,7 +5,8 @@
 // data (products/collections). It is never exported — the export path is Liquid.
 // Renders full-width inside app chrome (Context A: normal CSS responsive is fine).
 
-import type { BrandTokens, ShopifyPage, ShopifySectionInstance } from "@/modules/shopify";
+import { useEffect, useRef } from "react";
+import { resolveSchemes, type BrandTokens, type ShopifyPage, type ShopifySectionInstance } from "@/modules/shopify";
 
 type Settings = Record<string, string | number | boolean>;
 
@@ -260,27 +261,242 @@ function FeaturedProduct({ settings }: { settings?: Settings }) {
   );
 }
 
+// ── Creative + main-section renderers ──────────────────────────────────────────
+function ImageBanner({ settings }: { settings?: Settings }) {
+  const center = s(settings, "alignment", "left") === "center";
+  return (
+    <section className="ff-ib" style={{ textAlign: center ? "center" : "left" }}>
+      <div className="ff-ib-bg" /><div className="ff-ib-ov" style={{ opacity: num(settings, "overlay", 35) / 100 }} />
+      <div className="ff-ib-in" style={{ margin: center ? "0 auto" : undefined, alignItems: center ? "center" : "flex-start" }}>
+        {s(settings, "eyebrow") && <span className="ff-eyebrow" style={{ color: "#fff" }}>{s(settings, "eyebrow")}</span>}
+        <h1>{s(settings, "heading", "Designed to stand out")}</h1>
+        <RichText className="ff-ib-sub" html={s(settings, "subheading", "<p>A bold statement banner.</p>")} />
+        <div className="ff-btns" style={{ justifyContent: center ? "center" : "flex-start" }}>
+          <span className="ff-btn ff-btn--primary">{s(settings, "button_label", "Shop now")}</span>
+          {s(settings, "button2_label") && <span className="ff-btn ff-btn--ghost" style={{ color: "#fff" }}>{s(settings, "button2_label")}</span>}
+        </div>
+      </div>
+    </section>
+  );
+}
+function Slideshow({ instance }: { instance: ShopifySectionInstance }) {
+  const b = (instance.blocks ?? [])[0];
+  return (
+    <section className="ff-ib">
+      <div className="ff-ib-bg" style={{ background: "linear-gradient(120deg,#334155,#0f172a)" }} /><div className="ff-ib-ov" style={{ opacity: 0.32 }} />
+      <div className="ff-ib-in">
+        <h2 style={{ color: "#fff" }}>{s(b?.settings, "heading", "Season highlights")}</h2>
+        <p className="ff-ib-sub">{s(b?.settings, "text", "Tell a short, punchy story.")}</p>
+        <span className="ff-btn ff-btn--primary">{s(b?.settings, "button_label", "Shop")}</span>
+      </div>
+      <div className="ff-ss-dots">{(instance.blocks ?? [{ key: "x" }]).map((bl, i) => <span key={bl.key} style={{ opacity: i === 0 ? 1 : 0.5 }} />)}</div>
+    </section>
+  );
+}
+function Multicolumn({ instance }: { instance: ShopifySectionInstance }) {
+  const cols = num(instance.settings, "columns", 3);
+  return (
+    <section className="ff-section">
+      {s(instance.settings, "heading") && <h2 style={{ textAlign: "center", marginBottom: 26, fontSize: "clamp(22px,3cqw,32px)" }}>{s(instance.settings, "heading")}</h2>}
+      <div className="ff-usp" style={{ ["--ff-cols" as string]: String(cols), gridTemplateColumns: `repeat(2,minmax(0,1fr))` }}>
+        {(instance.blocks ?? []).map((b) => (
+          <div key={b.key}><div className="ff-usp-ic">{s(b.settings, "icon", "★")}</div><div className="ff-usp-t">{s(b.settings, "title", "Feature")}</div><RichText className="ff-usp-x" html={s(b.settings, "text", "")} /></div>
+        ))}
+      </div>
+    </section>
+  );
+}
+function Multirow({ instance }: { instance: ShopifySectionInstance }) {
+  return (
+    <section className="ff-section">
+      {(instance.blocks ?? []).map((b, i) => (
+        <div key={b.key} className="ff-iwt" style={{ ["--iwt-dir" as string]: i % 2 ? "row-reverse" : "row", marginBottom: 40 }}>
+          <div className="ff-iwt-media"><Placeholder hue={(i * 60) % 360} /></div>
+          <div className="ff-iwt-body">
+            {s(b.settings, "eyebrow") && <span className="ff-eyebrow">{s(b.settings, "eyebrow")}</span>}
+            <h2>{s(b.settings, "heading", "Made with intention")}</h2>
+            <RichText className="ff-prose" html={s(b.settings, "text", "<p>Explain a value or step.</p>")} />
+            {s(b.settings, "button_label") && <span className="ff-btn ff-btn--primary" style={{ marginTop: 8 }}>{s(b.settings, "button_label")}</span>}
+          </div>
+        </div>
+      ))}
+    </section>
+  );
+}
+function LogoList({ instance }: { instance: ShopifySectionInstance }) {
+  return (
+    <section className="ff-section" style={{ textAlign: "center" }}>
+      {s(instance.settings, "heading") && <span className="ff-eyebrow">{s(instance.settings, "heading")}</span>}
+      <div className="ff-logos">{(instance.blocks ?? []).map((b) => <span key={b.key}>{s(b.settings, "name", "Brand")}</span>)}</div>
+    </section>
+  );
+}
+function Countdown({ settings }: { settings?: Settings }) {
+  return (
+    <section className="ff-section" style={{ textAlign: "center" }}>
+      <h2 style={{ fontSize: "clamp(22px,3cqw,32px)" }}>{s(settings, "heading", "Sale ends soon")}</h2>
+      {s(settings, "text") && <p style={{ opacity: 0.8 }}>{s(settings, "text")}</p>}
+      <div className="ff-cd">04d 12h 30m 00s</div>
+      <span className="ff-btn ff-btn--primary">{s(settings, "button_label", "Shop the sale")}</span>
+    </section>
+  );
+}
+function ContactForm({ settings }: { settings?: Settings }) {
+  return (
+    <section className="ff-section" style={{ maxWidth: 640 }}>
+      {s(settings, "heading") && <h2 style={{ textAlign: "center" }}>{s(settings, "heading")}</h2>}
+      <div className="ff-cf-row"><input placeholder="Name" readOnly /><input placeholder="Email" readOnly /></div>
+      <textarea placeholder="Message" rows={4} readOnly />
+      <span className="ff-btn ff-btn--primary" style={{ marginTop: 8 }}>{s(settings, "button_label", "Send")}</span>
+    </section>
+  );
+}
+function BlogPosts({ settings }: { settings?: Settings }) {
+  const n = Math.max(2, Math.min(6, num(settings, "count", 3)));
+  return (
+    <section className="ff-section">
+      {s(settings, "heading") && <h2 style={{ marginBottom: 24, fontSize: "clamp(22px,3cqw,32px)" }}>{s(settings, "heading")}</h2>}
+      <div className="ff-grid" style={{ ["--cols" as string]: "3" }}>
+        {Array.from({ length: n }, (_, i) => <div key={i} className="ff-card"><Placeholder hue={(i * 50) % 360} ratio="16 / 10" /><div className="ff-card-t">Article headline goes here</div></div>)}
+      </div>
+    </section>
+  );
+}
+function ProductRecs({ settings }: { settings?: Settings }) {
+  const n = Math.max(2, Math.min(8, num(settings, "count", 4)));
+  return (
+    <section className="ff-section">
+      <h2 style={{ marginBottom: 22, fontSize: "clamp(22px,3cqw,32px)" }}>{s(settings, "heading", "You may also like")}</h2>
+      <div className="ff-grid" style={{ ["--cols" as string]: "4" }}>
+        {Array.from({ length: n }, (_, i) => { const p = MOCK_PRODUCTS[i % MOCK_PRODUCTS.length]; return <div key={i} className="ff-card"><Placeholder hue={p.hue} ratio="4 / 5" /><div className="ff-card-t">{p.title}</div><div className="ff-card-p">{p.price}</div></div>; })}
+      </div>
+    </section>
+  );
+}
+// Main (template) sections
+function MainProduct() {
+  const p = MOCK_PRODUCTS[0];
+  return (
+    <section className="ff-section ff-iwt" style={{ ["--iwt-dir" as string]: "row" }}>
+      <div className="ff-iwt-media"><Placeholder hue={p.hue} ratio="1 / 1" /></div>
+      <div className="ff-iwt-body">
+        <h1>{p.title}</h1>
+        <div style={{ fontSize: 22, fontWeight: 600, margin: "8px 0 18px" }}>{p.price}</div>
+        <div className="ff-po"><span>Size</span><select disabled><option>Medium</option></select></div>
+        <div className="ff-po"><span>Quantity</span><input type="number" defaultValue={1} readOnly /></div>
+        <span className="ff-btn ff-btn--primary" style={{ marginTop: 6 }}>Add to cart</span>
+        <RichText className="ff-prose" html="<p style='margin-top:22px'>A considered product with durable materials and a clean, timeless design.</p>" />
+      </div>
+    </section>
+  );
+}
+function MainCollection() {
+  return (
+    <section className="ff-section">
+      <h1 style={{ marginBottom: 8 }}>All products</h1>
+      <p style={{ opacity: 0.7, marginBottom: 24 }}>Everyday essentials, made to last.</p>
+      <div className="ff-grid" style={{ ["--cols" as string]: "4" }}>
+        {MOCK_PRODUCTS.map((p, i) => <div key={i} className="ff-card"><Placeholder hue={p.hue} ratio="4 / 5" /><div className="ff-card-t">{p.title}</div><div className="ff-card-p">{p.price}</div></div>)}
+      </div>
+    </section>
+  );
+}
+function MainCart() {
+  const items = MOCK_PRODUCTS.slice(0, 2);
+  return (
+    <section className="ff-section" style={{ maxWidth: 820 }}>
+      <h1>Your cart</h1>
+      <div style={{ margin: "20px 0" }}>{items.map((p, i) => (
+        <div key={i} className="ff-cart-row"><Placeholder hue={p.hue} ratio="1 / 1" /><div style={{ flex: 1 }}>{p.title}</div><div>1 × {p.price}</div><b>{p.price}</b></div>
+      ))}</div>
+      <div className="ff-cart-foot"><span style={{ fontSize: 18 }}>Subtotal <b>$72</b></span><span className="ff-btn ff-btn--primary">Check out</span></div>
+    </section>
+  );
+}
+function MainSearch() {
+  return (
+    <section className="ff-section">
+      <div className="ff-nl-row" style={{ maxWidth: 520, marginBottom: 24 }}><input placeholder="Search" readOnly /><span className="ff-btn ff-btn--primary">Search</span></div>
+      <div className="ff-grid" style={{ ["--cols" as string]: "4" }}>{MOCK_PRODUCTS.slice(0, 4).map((p, i) => <div key={i} className="ff-card"><Placeholder hue={p.hue} ratio="4 / 5" /><div className="ff-card-t">{p.title}</div><div className="ff-card-p">{p.price}</div></div>)}</div>
+    </section>
+  );
+}
+function MainBlog() {
+  return (
+    <section className="ff-section">
+      <h1 style={{ marginBottom: 24 }}>Journal</h1>
+      <div className="ff-grid" style={{ ["--cols" as string]: "3" }}>{Array.from({ length: 6 }, (_, i) => <div key={i} className="ff-card"><Placeholder hue={(i * 45) % 360} ratio="16 / 10" /><div style={{ padding: 4 }}><span className="ff-eyebrow">Jul 12</span><div className="ff-card-t" style={{ marginTop: 0 }}>How we think about materials</div></div></div>)}</div>
+    </section>
+  );
+}
+function MainArticle() {
+  return (
+    <article className="ff-section" style={{ maxWidth: 720 }}>
+      <span className="ff-eyebrow">July 12, 2026</span>
+      <h1>The story behind the collection</h1>
+      <Placeholder hue={30} ratio="16 / 9" />
+      <RichText className="ff-prose" html="<p style='margin-top:18px'>An article body with a comfortable reading measure and generous line height.</p><p>A second paragraph to show flow.</p>" />
+    </article>
+  );
+}
+function MainPage() {
+  return (
+    <section className="ff-section" style={{ maxWidth: 780 }}>
+      <h1>About us</h1>
+      <RichText className="ff-prose" html="<p>Rich page content rendered from the page template.</p>" />
+    </section>
+  );
+}
+
 function renderSection(inst: ShopifySectionInstance) {
   if (inst.disabled) return null;
   switch (inst.sectionId) {
     case "hero-banner": return <Hero settings={inst.settings} />;
+    case "image-banner": return <ImageBanner settings={inst.settings} />;
+    case "slideshow": return <Slideshow instance={inst} />;
     case "image-with-text": return <ImageWithText settings={inst.settings} />;
+    case "multirow": return <Multirow instance={inst} />;
     case "featured-collection": return <FeaturedCollection settings={inst.settings} />;
-    case "faq": return <Faq instance={inst} />;
-    case "rich-text": return <RichTextSec settings={inst.settings} />;
-    case "usp-bar": return <UspBar instance={inst} />;
-    case "newsletter": return <Newsletter settings={inst.settings} />;
-    case "testimonials": return <Testimonials instance={inst} />;
     case "collection-list": return <CollectionList instance={inst} />;
     case "featured-product": return <FeaturedProduct settings={inst.settings} />;
+    case "product-recommendations": return <ProductRecs settings={inst.settings} />;
+    case "multicolumn": return <Multicolumn instance={inst} />;
+    case "usp-bar": return <UspBar instance={inst} />;
+    case "rich-text": return <RichTextSec settings={inst.settings} />;
+    case "testimonials": return <Testimonials instance={inst} />;
+    case "logo-list": return <LogoList instance={inst} />;
+    case "countdown": return <Countdown settings={inst.settings} />;
+    case "blog-posts": return <BlogPosts settings={inst.settings} />;
+    case "contact-form": return <ContactForm settings={inst.settings} />;
+    case "newsletter": return <Newsletter settings={inst.settings} />;
+    case "faq": return <Faq instance={inst} />;
+    case "main-product": return <MainProduct />;
+    case "main-collection": case "main-list-collections": return <MainCollection />;
+    case "main-cart": return <MainCart />;
+    case "main-search": return <MainSearch />;
+    case "main-blog": return <MainBlog />;
+    case "main-article": return <MainArticle />;
+    case "main-page": return <MainPage />;
     default:
-      return <section className="ff-section"><div className="ff-unknown">Unsupported section: {inst.sectionId}</div></section>;
+      return <section className="ff-section"><div className="ff-unknown">Section: {inst.sectionId}</div></section>;
   }
 }
+
+// Prepend the template's main section (mirrors the generator) so switching to
+// Product/Collection/Cart previews the real storefront template.
+const TEMPLATE_MAIN: Record<string, string> = {
+  product: "main-product", collection: "main-collection", "list-collections": "main-list-collections",
+  cart: "main-cart", search: "main-search", blog: "main-blog", article: "main-article", page: "main-page",
+};
 
 export function StorefrontPreview({ brand, page, storeName }: {
   brand: BrandTokens; page: ShopifyPage; storeName: string;
 }) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const animate = brand.animate !== false;
+  const headScale = brand.headingScale ?? 1.1;
+  const bodyScale = brand.bodyScale ?? 1;
+
   const vars: React.CSSProperties = {
     ["--c-primary" as string]: brand.primaryColor,
     ["--c-secondary" as string]: brand.secondaryColor,
@@ -289,15 +505,52 @@ export function StorefrontPreview({ brand, page, storeName }: {
     ["--f-head" as string]: brand.headingFont,
     ["--f-body" as string]: brand.bodyFont,
     ["--radius" as string]: brand.borderRadius,
+    ["--h-scale" as string]: String(headScale),
+    ["--b-scale" as string]: String(bodyScale),
   };
+
+  const schemes = resolveSchemes(brand);
+  const schemeById = new Map(schemes.map((sc) => [sc.id, sc]));
+  const schemeVars = (id?: string): React.CSSProperties => {
+    const sc = schemeById.get(id || "scheme-1") ?? schemes[0];
+    if (!sc) return {};
+    return { ["--c-bg" as string]: sc.background, ["--c-text" as string]: sc.text, ["--c-primary" as string]: sc.button, ["--c-secondary" as string]: sc.secondary, background: sc.background, color: sc.text };
+  };
+
+  // Prepend the template's main section so storefront templates preview fully.
+  const mainId = TEMPLATE_MAIN[page.template];
+  const effective: ShopifySectionInstance[] = [
+    ...(mainId && !page.sections.some((s2) => s2.sectionId === mainId) ? [{ key: "__main", sectionId: mainId } as ShopifySectionInstance] : []),
+    ...page.sections,
+  ];
+
+  // Reveal-on-scroll (mirrors the generated theme.js), reduced-motion safe.
+  useEffect(() => {
+    if (!animate || !rootRef.current) return;
+    const els = Array.from(rootRef.current.querySelectorAll<HTMLElement>("[data-ffreveal]"));
+    if (typeof IntersectionObserver === "undefined" || window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      els.forEach((el) => el.classList.add("is-in")); return;
+    }
+    const io = new IntersectionObserver((entries) => entries.forEach((e) => { if (e.isIntersecting) { e.target.classList.add("is-in"); io.unobserve(e.target); } }), { rootMargin: "0px 0px -6% 0px", threshold: 0.06 });
+    els.forEach((el) => io.observe(el));
+    return () => io.disconnect();
+  }, [animate, page.template, effective.length]);
+
   return (
-    <div className="ff-store" style={vars}>
+    <div className="ff-store" style={vars} ref={rootRef}>
       <AnnouncementBar />
       <Header storeName={storeName} />
       <main>
-        {page.sections.length === 0
+        {effective.length === 0
           ? <div className="ff-empty">This template has no sections yet. Add some in <b>Pages</b>.</div>
-          : page.sections.map((inst) => <div key={inst.key}>{renderSection(inst)}</div>)}
+          : effective.map((inst) => {
+              const scoped = !["hero-banner", "image-banner", "slideshow"].includes(inst.sectionId);
+              return (
+                <div key={inst.key} data-ffreveal={animate ? "" : undefined} className={animate ? "ff-reveal" : undefined} style={scoped ? schemeVars(inst.settings?.color_scheme as string | undefined) : undefined}>
+                  {renderSection(inst)}
+                </div>
+              );
+            })}
       </main>
       <Footer />
       <style>{STORE_CSS}</style>
@@ -306,9 +559,33 @@ export function StorefrontPreview({ brand, page, storeName }: {
 }
 
 const STORE_CSS = `
-.ff-store{background:var(--c-bg);color:var(--c-text);font-family:var(--f-body);line-height:1.55;container-type:inline-size;}
-.ff-store h1,.ff-store h2{font-family:var(--f-head);line-height:1.1;margin:0;}
+.ff-store{background:var(--c-bg);color:var(--c-text);font-family:var(--f-body);line-height:1.55;container-type:inline-size;font-size:calc(15px * var(--b-scale,1));}
+.ff-store h1,.ff-store h2{font-family:var(--f-head);line-height:1.08;margin:0;}
+.ff-store h1{font-size:calc(clamp(28px,5cqw,46px) * var(--h-scale,1));}
+.ff-store h2{font-size:calc(clamp(22px,3.4cqw,32px) * var(--h-scale,1));}
 .ff-store *{box-sizing:border-box;}
+.ff-reveal{opacity:0;transform:translateY(16px);transition:opacity .6s cubic-bezier(.22,1,.36,1),transform .6s cubic-bezier(.22,1,.36,1);}
+.ff-reveal.is-in{opacity:1;transform:none;}
+.ff-ib{position:relative;overflow:hidden;color:#fff;min-height:clamp(320px,52cqw,520px);display:flex;align-items:center;}
+.ff-ib-bg{position:absolute;inset:0;background:linear-gradient(135deg,var(--c-primary),var(--c-secondary));}
+.ff-ib-ov{position:absolute;inset:0;background:#000;}
+.ff-ib-in{position:relative;display:flex;flex-direction:column;justify-content:center;max-width:min(640px,86%);padding:44px 24px;}
+.ff-ib-in h1,.ff-ib-in h2{color:#fff;}
+.ff-ib-sub{font-size:clamp(15px,2cqw,18px);opacity:.92;margin:8px 0 18px;}
+.ff-ib-sub p{margin:0;}
+.ff-ss-dots{position:absolute;bottom:16px;left:0;right:0;display:flex;gap:7px;justify-content:center;}
+.ff-ss-dots span{width:8px;height:8px;border-radius:999px;background:#fff;}
+.ff-logos{display:flex;flex-wrap:wrap;gap:36px;align-items:center;justify-content:center;margin-top:18px;font-weight:700;font-size:17px;opacity:.6;}
+.ff-cd{font-size:clamp(24px,4cqw,38px);font-weight:700;font-variant-numeric:tabular-nums;margin:14px 0 18px;}
+.ff-cf-row{display:grid;gap:12px;margin-bottom:12px;}
+@container (min-width:600px){.ff-cf-row{grid-template-columns:1fr 1fr;}}
+.ff-cf-row input,.ff-store textarea{width:100%;border:1px solid rgba(0,0,0,.15);border-radius:var(--radius);padding:11px 13px;font-size:15px;font-family:inherit;}
+.ff-po{margin-bottom:12px;font-weight:600;font-size:14px;}
+.ff-po span{display:block;margin-bottom:5px;}
+.ff-po select,.ff-po input{border:1px solid rgba(0,0,0,.15);border-radius:var(--radius);padding:9px 12px;min-width:160px;font-weight:400;}
+.ff-cart-row{display:flex;gap:14px;align-items:center;padding:12px 0;border-bottom:1px solid rgba(0,0,0,.1);}
+.ff-cart-row>div:first-child,.ff-cart-row .ff-ph{width:56px;flex:0 0 56px;}
+.ff-cart-foot{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px;margin-top:8px;}
 .ff-announce{background:#111827;color:#fff;text-align:center;font-size:12.5px;padding:8px 12px;letter-spacing:.01em;}
 .ff-header{display:flex;align-items:center;gap:16px;padding:14px 24px;border-bottom:1px solid rgba(0,0,0,.08);}
 .ff-wordmark{font-family:var(--f-head);font-weight:700;font-size:18px;}
