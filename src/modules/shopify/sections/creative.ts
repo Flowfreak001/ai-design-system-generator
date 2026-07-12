@@ -109,7 +109,7 @@ export const slideshowSection: ShopifySectionDefinition = {
 export const multicolumnSection: ShopifySectionDefinition = {
   id: "multicolumn", name: "Multicolumn", category: "content",
   description: "Row of icon/title/text columns — features, benefits, steps (blocks).",
-  supportedTemplates: ["index", "page", "product", "collection"],
+  supportedTemplates: ["index", "page", "product", "collection", "search", "blog"],
   liquid: `<div class="mc ${ROOT}"><div class="page-width">
   {% if section.settings.heading != blank %}<h2 class="mc__h">{{ section.settings.heading | escape }}</h2>{% endif %}
   <div class="mc__grid" style="--cols:{{ section.settings.columns }}">

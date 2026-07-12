@@ -9,7 +9,7 @@ export const richTextSection: ShopifySectionDefinition = {
   name: "Rich text",
   category: "content",
   description: "Centered heading + rich text with an optional button — good for story or intro copy.",
-  supportedTemplates: ["index", "page", "product", "collection"],
+  supportedTemplates: ["index", "page", "product", "collection", "cart", "search", "blog"],
   liquid: `<div class="rt page-width section rt--{{ section.settings.alignment }}">
   {% if section.settings.eyebrow != blank %}<p class="rt__eyebrow">{{ section.settings.eyebrow | escape }}</p>{% endif %}
   {% if section.settings.heading != blank %}<h2>{{ section.settings.heading | escape }}</h2>{% endif %}
@@ -99,7 +99,7 @@ export const newsletterSection: ShopifySectionDefinition = {
   name: "Newsletter",
   category: "content",
   description: "Email capture band wired to Shopify's customer form.",
-  supportedTemplates: ["index", "page"],
+  supportedTemplates: ["index", "page", "collection", "cart", "search", "blog"],
   liquid: `<div class="nl page-width section">
   <div class="nl__box">
     {% if section.settings.heading != blank %}<h2>{{ section.settings.heading | escape }}</h2>{% endif %}

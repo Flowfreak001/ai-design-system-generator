@@ -11,7 +11,9 @@ const s = (id: string, name: string, template: ShopifySectionDefinition["support
   description: `Main section for the ${template} template.`,
   supportedTemplates: [template],
   liquid,
-  schema: { name, tag: "section", settings },
+  // enabled_on locks the section to its template (Shopify OS 2.0) and, with no
+  // preset, prevents it being added/removed elsewhere — it's the template core.
+  schema: { name, tag: "section", settings, enabled_on: { templates: [template] } },
   defaultSettings: {},
 });
 

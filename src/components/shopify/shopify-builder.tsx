@@ -211,12 +211,37 @@ function ColorField({ label, value, onChange }: { label: string; value: string; 
 }
 
 // ── Pages editor ──────────────────────────────────────────────────────────────
+// Each storefront template has a locked "main" section (Shopify OS 2.0). Content
+// sections are added around it.
+const TEMPLATE_MAIN: Record<string, { id: string; label: string }> = {
+  product: { id: "main-product", label: "Product details" },
+  collection: { id: "main-collection", label: "Product grid" },
+  cart: { id: "main-cart", label: "Cart" },
+  search: { id: "main-search", label: "Search results" },
+  blog: { id: "main-blog", label: "Blog posts" },
+  page: { id: "main-page", label: "Page content" },
+};
+// Templates every store has, shown in the editor even before customization.
+const BUILDER_TEMPLATES: { template: ShopifyPage["template"]; label: string }[] = [
+  { template: "index", label: "Home" }, { template: "product", label: "Product" },
+  { template: "collection", label: "Collection" }, { template: "cart", label: "Cart" },
+  { template: "search", label: "Search" }, { template: "blog", label: "Blog" },
+];
+
 function PagesTab({ projectId, pages, setPages }: { projectId: string; pages: ShopifyPage[]; setPages: (p: ShopifyPage[]) => void }) {
   const [active, setActive] = useState(0);
   const [saved, setSaved] = useState<"idle" | "saving" | "ok" | "err">("idle");
   const [err, setErr] = useState("");
   const firstRun = useRef(true);
-  const page = pages[active] ?? pages[0];
+
+  // The editor lists the canonical storefront templates + any custom pages the
+  // user added (page.handle). Templates not yet in state show as empty.
+  const templates: ShopifyPage[] = [
+    ...BUILDER_TEMPLATES.map((t) => pages.find((p) => p.template === t.template && !p.handle) ?? { template: t.template, sections: [] }),
+    ...pages.filter((p) => p.handle),
+  ];
+  const page = templates[active] ?? templates[0];
+  const sameKey = (p: ShopifyPage) => p.template === page.template && (p.handle ?? "") === (page.handle ?? "");
 
   // Debounced autosave whenever the tree changes.
   useEffect(() => {
@@ -231,8 +256,14 @@ function PagesTab({ projectId, pages, setPages }: { projectId: string; pages: Sh
 
   const mutate = useCallback((fn: (p: ShopifyPage[]) => ShopifyPage[]) => setPages(fn(pages)), [pages, setPages]);
 
+  // Write the active template's sections back into state, creating the page row
+  // if it doesn't exist yet (canonical templates start synthetic/empty).
   const updatePageSections = (sections: ShopifySectionInstance[]) =>
-    mutate((ps) => ps.map((p, i) => (i === active ? { ...p, sections } : p)));
+    mutate((ps) => {
+      const idx = ps.findIndex(sameKey);
+      if (idx >= 0) return ps.map((p, i) => (i === idx ? { ...p, sections } : p));
+      return [...ps, { template: page.template, handle: page.handle, sections }];
+    });
 
   const addSection = (sectionId: string) => {
     const def = getSection(sectionId);
@@ -262,11 +293,11 @@ function PagesTab({ projectId, pages, setPages }: { projectId: string; pages: Sh
     <div className="grid gap-6 lg:grid-cols-[200px_1fr]">
       <div className="space-y-1">
         <div className="mb-2 text-[11px] font-medium uppercase tracking-wide text-muted">Templates</div>
-        {pages.map((p, i) => (
+        {templates.map((p, i) => (
           <button key={`${p.template}-${p.handle ?? ""}`} onClick={() => setActive(i)}
             className={`flex w-full items-center justify-between rounded-md px-3 py-2 text-left text-[13px] transition-colors ${i === active ? "bg-accent-soft text-accent" : "text-body hover:bg-panel"}`}>
             <span>{TEMPLATE_LABEL[p.template] ?? p.template}{p.handle ? ` · ${p.handle}` : ""}</span>
-            <span className="text-[11px] opacity-70">{p.sections.length}</span>
+            <span className="text-[11px] opacity-70">{(TEMPLATE_MAIN[p.template] ? 1 : 0) + p.sections.length}</span>
           </button>
         ))}
         <div className="pt-2 text-[11px] text-muted">
@@ -289,10 +320,23 @@ function PagesTab({ projectId, pages, setPages }: { projectId: string; pages: Sh
           </div>
         </div>
 
-        {page.sections.length === 0 && (
+        {/* Locked "main" section — the core of this storefront template (Shopify OS 2.0). */}
+        {TEMPLATE_MAIN[page.template] && (
+          <div className="flex items-center gap-2 rounded-[10px] border border-line bg-panel/50 px-3.5 py-3">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.7" className="shrink-0 text-muted"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></svg>
+            <span className="text-[13px] font-medium text-ink">{TEMPLATE_MAIN[page.template].label}</span>
+            <span className="rounded-full bg-panel px-2 py-0.5 text-[10.5px] font-medium text-muted">Core · locked</span>
+            <span className="ml-auto text-[11.5px] text-muted">Always rendered on this template</span>
+          </div>
+        )}
+
+        {page.sections.length === 0 && !TEMPLATE_MAIN[page.template] && (
           <div className="rounded-[10px] border border-dashed border-line bg-panel/40 px-4 py-10 text-center text-[13px] text-muted">
             No sections on this template yet. Add one above.
           </div>
+        )}
+        {page.sections.length === 0 && TEMPLATE_MAIN[page.template] && (
+          <p className="px-1 text-[12px] text-muted">Add content sections above to appear around the {TEMPLATE_MAIN[page.template].label.toLowerCase()}.</p>
         )}
 
         {page.sections.map((inst, idx) => (
